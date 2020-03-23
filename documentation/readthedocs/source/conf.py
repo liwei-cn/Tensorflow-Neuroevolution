@@ -17,12 +17,12 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'tfne'
+project = 'TFNE'
 copyright = '2020, Paul Pauls'
 author = 'Paul Pauls'
 
 # The full version, including alpha/beta/rc tags
-release = 'Apr. 2019'
+release = 'April 2019'
 
 
 # -- General configuration ---------------------------------------------------
@@ -39,7 +39,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = []
 
 
 # -- Options for HTML output -------------------------------------------------
