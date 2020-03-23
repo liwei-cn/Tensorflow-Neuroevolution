@@ -15,7 +15,7 @@ from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
 
-    def __init__(self, config):
+    def __init__(self, config, initial_population_path=None):
         """"""
         # Read and process the supplied config
         self._process_config(config)
