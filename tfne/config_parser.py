@@ -1,7 +1,5 @@
 from configparser import ConfigParser
 
-from absl import logging
-
 
 def parse_configuration(config_path):
     """"""

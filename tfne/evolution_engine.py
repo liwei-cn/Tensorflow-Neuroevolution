@@ -1,5 +1,3 @@
-import ast
-
 import ray
 
 from .encodings.base_genome import BaseGenome
@@ -9,7 +7,7 @@ class EvolutionEngine:
     """"""
 
     def __init__(self,
-                 population,
+                 ne_algorithm,
                  environment,
                  config,
                  num_cpus=None,
@@ -19,19 +17,14 @@ class EvolutionEngine:
                  backup_agents=None):
         """"""
         # Register parameters
-        self.population = population
+        self.ne_algorithm = ne_algorithm
         self.environment = environment
         self.max_generations = max_generations
         self.max_fitness = max_fitness
         self.backup_agents = backup_agents
 
-        # Read and process the evaluation config values relevant for the fitness evaluation of the population
-        self.evaluation_epochs = ast.literal_eval(config['EVALUATION']['evaluation_epochs'])
-        self.evaluation_batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
-
-        # Set up evaluation environment according to config and register environment with population
-        self.environment.set_evaluation_parameters(epochs=self.evaluation_epochs, batch_size=self.evaluation_batch_size)
-        self.population.set_environment(self.environment)
+        # Register the evaluation environment through which the genomes are evaluated at the NE algorithm
+        self.ne_algorithm.register_environment(self.environment)
 
         # Initiate the Multiprocessing library ray
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
@@ -41,48 +34,40 @@ class EvolutionEngine:
 
     def train(self) -> BaseGenome:
         """"""
-        # Check if an uninitialized population has been supplied or if training commences on a pre-evolved population
-        if self.population.get_generation_counter() is None:
-            print("Initializing blank population...")
-            self.population.initialize()
-        else:
-            print("Evolving a pre-evolved population")
-        print("Initial state of the population:")
-        self.population.evaluate()
-        self.population.summary()
+        # Initialize population. If pre-evolved population was supplied will this be used as the initial population.
+        self.ne_algorithm.initialize_population()
 
-        # Do an initial run of the backup agents if supplied, saving the initial state of the population
-        if self.backup_agents_supplied:
-            for backup_agent in self.backup_agents:
-                backup_agent(self.population)
-
-        # Start possibly endless training loop
-        while self._check_training_loop_exit_conditions():
-            # Create the next generation of the population by evolving it
-            self.population.evolve()
-
-            # Evaluate population and assign each genome a fitness score
-            self.population.evaluate()
-
-            # Give summary of population after each evaluation
-            self.population.summary()
+        # Start possibly endless training loop, only exited if population goes extinct, the maximum number of
+        # generations or the maximum fitness has been reached
+        while True:
+            # Evaluate and summarize population
+            generation_counter, best_fitness = self.ne_algorithm.evaluate_population()
+            self.ne_algorithm.summarize_population()
 
             # Call backup agents if supplied
             if self.backup_agents_supplied:
                 for backup_agent in self.backup_agents:
-                    backup_agent(self.population)
+                    backup_agent(generation_counter, self.ne_algorithm)
 
-        # Determine best genome resulting from the evolution and then return it, after the process came to an end
-        return self.population.get_best_genome()
+            # Exit training loop if maximum number of generations or maximum fitness has been reached
+            if self.max_fitness is not None and best_fitness >= self.max_fitness:
+                print("Population's best genome reached specified fitness threshold.\n"
+                      "Exiting evolutionary training loop...")
+                break
+            if self.max_generations is not None and generation_counter >= self.max_generations:
+                print("Population reached specified maximum number of generations.\n"
+                      "Exiting evolutionary training loop...")
+                break
 
-    def _check_training_loop_exit_conditions(self) -> bool:
-        if self.population.check_extinction():
-            print("Population went extinct. Exiting evolutionary training loop...")
-            return False
-        if self.max_generations is not None and self.population.get_generation_counter() >= self.max_generations:
-            print("Population reached specified maximum number of generations. Exiting evolutionary training loop...")
-            return False
-        if self.max_fitness is not None and self.population.get_best_genome().get_fitness() >= self.max_fitness:
-            print("Population's best genome reached specified fitness threshold. Exiting evolutionary training loop...")
-            return False
-        return True
+            # Evolve population
+            population_extinct = self.ne_algorithm.evolve_population()
+
+            # Exit training loop if population went extinct
+            if population_extinct:
+                print("Population went extinct.\n"
+                      "Exiting evolutionary training loop...")
+                break
+
+        # Determine best genome from evolutionary process and return it. This should return the best genome of the
+        # evolutionary process, even if the population went extinct.
+        return self.ne_algorithm.get_best_genome()

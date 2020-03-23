@@ -23,11 +23,10 @@ class BackupAgentPopulation:
         self.backup_dir_path += run_datetime_string
         os.makedirs(self.backup_dir_path)
 
-    def __call__(self, population):
+    def __call__(self, generation_counter, ne_algorithm):
         """"""
-        generation = population.get_generation_counter()
-        if generation % self.periodicity == 0:
-            logging.debug("\t\tToDo: Create Backups for Population")
+        if generation_counter % self.periodicity == 0:
+            logging.info("\t\tToDo: Create Backups for Population")
 
 
 class BackupAgentBestGenome:
@@ -49,8 +48,7 @@ class BackupAgentBestGenome:
         self.backup_dir_path += run_datetime_string
         os.makedirs(self.backup_dir_path)
 
-    def __call__(self, population):
+    def __call__(self, generation_counter, ne_algorithm):
         """"""
-        generation = population.get_generation_counter()
-        if generation % self.periodicity == 0:
-            logging.debug("\t\tToDo: Create Backups for Best Genome")
+        if generation_counter % self.periodicity == 0:
+            logging.info("\t\tToDo: Create Backups for Best Genome")

@@ -65,7 +65,7 @@ def codeepneat_example(argv):
     config = tfne.parse_configuration(config_path)
 
     # Initialize the environment as well as the specific NE algorithm
-    environment = tfne.environments.XOREnvironment()
+    environment = tfne.environments.XOREnvironment(config, weight_training_eval=True)
     ne_algorithm = tfne.CoDeepNEAT(config)
 
     # If periodic backups of genomes or the population are desired, initialize backup agents
@@ -86,15 +86,12 @@ def codeepneat_example(argv):
     # Start training process, returning the best genome when training ends
     best_genome = engine.train()
 
-    if best_genome is not None:
-        # Show string representation of best genome, visualize it and then save it
-        print("Best Genome returned by evolution:\n")
-        print(best_genome)
-        best_genome.visualize(view=True, save_dir='./')
-        best_genome.save_genotype(save_dir='./')
-        best_genome.save_model(save_dir='./')
-    else:
-        print("Evolutionary process was not able to return an eligible genome")
+    # Show string representation of best genome, visualize it and then save it
+    print("Best Genome returned by evolution:\n")
+    print(best_genome)
+    best_genome.visualize(view=True, save_dir='./')
+    best_genome.save_genotype(save_dir='./')
+    best_genome.save_model(save_dir='./')
 
 
 if __name__ == '__main__':

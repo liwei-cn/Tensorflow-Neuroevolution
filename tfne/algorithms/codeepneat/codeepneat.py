@@ -158,6 +158,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def initialize_population(self) -> (dict, dict, int, dict, dict, int):
         """"""
 
+        raise NotImplementedError("ToDo: If a pre-evolved population is supplied via 'initial_population_path' param"
+                                  "then notify user accordingly and load and reg this pop."
+                                  "If not, initialize minimal population as defined by CoDeepNEAT.")
+
         # Initialize module population. The type and the parameters of each module are uniformly randomly chosen. The
         # module population is initially specified solely by the type of the module.
         modules = dict()
@@ -296,7 +300,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             mod_avg_fitness = round(statistics.mean(mod_fitness_list), 3)
             modules[mod_id].set_fitness(mod_avg_fitness)
 
+        # TODO after each completed evaluation, deepcopy or permanently register the best genome, such that even
+        # when the population goes extinct in evolve_pop there is something to return when calling get_best_genome
+
         return best_genome, best_fitness
+
+    def get_best_genome(self) -> CoDeepNEATGenome:
+        pass
 
     def evolve_population(self, blueprints, modules, bp_species, mod_species) -> (dict, dict, int, dict, dict, int):
         """"""
@@ -423,7 +433,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         bp_mutation_remove_node_prob = bp_mutation_remove_conn_prob + self.bp_mutation_remove_node
         bp_mutation_node_species_prob = bp_mutation_remove_node_prob + self.bp_mutation_node_species
         bp_mutation_hp_prob = bp_mutation_node_species_prob + self.bp_mutation_hp
-        
+
         for spec_id in bp_species.keys():
             # Create as many blueprints through mutation/crossover until assigned species size is reached
             for _ in range(assigned_species_size_bp[spec_id] - len(new_bp_species[spec_id])):
@@ -474,6 +484,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.bp_pop_size = len(blueprints)
 
         return blueprints, bp_species, self.bp_pop_size, modules, new_mod_species, self.mod_pop_size
+
+    def register_environment(self, environment):
+        """"""
+        raise NotImplementedError("TODO: Check if environment is set to weight training, as this is required for CDN. "
+                                  "set environment as class var."
+                                  "Set input and output shapes.")
 
     def set_input_output_shape(self, input_shape, output_units):
         """"""
