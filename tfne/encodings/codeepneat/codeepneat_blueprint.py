@@ -1,4 +1,3 @@
-import networkx as nx
 import tensorflow as tf
 from absl import logging
 
