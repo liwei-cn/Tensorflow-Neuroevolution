@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 import tensorflow as tf
+from absl import logging
 
 from ..base_environment import BaseEnvironment
 
@@ -31,6 +32,8 @@ class XOREnvironment(BaseEnvironment):
             self.loss_function = tf.keras.losses.BinaryCrossentropy()
             self.epochs = ast.literal_eval(config['EVALUATION']['evaluation_epochs'])
             self.batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
+            logging.info("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
+            logging.info("Config value for 'EVALUATION/evaluation_batch_size': {}".format(self.batch_size))
         else:
             # Register the NON weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_non_weight_training

@@ -9,7 +9,6 @@ class EvolutionEngine:
     def __init__(self,
                  ne_algorithm,
                  environment,
-                 config,
                  num_cpus=None,
                  num_gpus=None,
                  max_generations=None,

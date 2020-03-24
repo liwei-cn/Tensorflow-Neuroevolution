@@ -11,65 +11,224 @@ from .codeepneat_helper import deserialize_merge_method, round_to_nearest_multip
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 
+'''
+class CoDeepNEATPopulation(BasePopulation):
+    """"""
+
+    def __init__(self, config):
+        """"""
+        # Initialize and register the CoDeepNEAT algorithm
+        self.ne_algorithm = CoDeepNEAT(config)
+
+        # Declare internal variables of the population
+        self.environment = None
+        self.bp_pop_size = 0
+        self.mod_pop_size = 0
+        self.generation_counter = None
+        self.best_genome = None
+        self.best_fitness = 0
+
+        # Declare the actual containers for all blueprints and modules, which will later be initialized as dicts
+        # associating the blueprint/module ids (dict key) to the respective blueprint or module (dict value). Also
+        # declare the species objections, associating the species ids (dict key) to the id of the respective blueprint
+        # or module (dict value)
+        self.blueprints = None
+        self.modules = None
+        self.bp_species = None
+        self.mod_species = None
+
+    def initialize(self):
+        """"""
+        self.generation_counter = 0
+        init_ret = self.ne_algorithm.initialize_population()
+        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
+
+    def evolve(self):
+        """"""
+        self.generation_counter += 1
+        evol_ret = self.ne_algorithm.evolve_population(self.blueprints, self.modules, self.bp_species, self.mod_species)
+        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = evol_ret
+
+    def evaluate(self):
+        """"""
+        best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
+                                                                          blueprints=self.blueprints,
+                                                                          modules=self.modules,
+                                                                          mod_species=self.mod_species,
+                                                                          generation=self.generation_counter,
+                                                                          current_best_fitness=self.best_fitness)
+        if best_genome is not None:
+            self.best_genome = best_genome
+            self.best_fitness = best_fitness
+
+    def summary(self):
+        """"""
+        print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
+              "Generation: {}\n"
+              "Blueprints population size: {}\n"
+              "Modules population size: {}\n"
+              "Best genome: {}\n"
+              "Best genome fitness: {}\n"
+              .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
+                      self.best_genome, self.best_fitness))
+
+    def save_population(self, save_file_path):
+        """"""
+        pass
+
+    def load_population(self, load_file_path):
+        """"""
+        pass
+
+    def check_extinction(self) -> bool:
+        """"""
+        if len(self.blueprints) == 0 or len(self.modules) == 0:
+            return True
+        return False
+
+    def set_environment(self, environment):
+        """"""
+        self.environment = environment
+        input_shape = self.environment.get_input_shape()
+        output_units = self.environment.get_output_units()
+        self.ne_algorithm.set_input_output_shape(input_shape, output_units)
+
+    def get_generation_counter(self) -> int:
+        return self.generation_counter
+
+    def get_best_genome(self) -> BaseGenome:
+        """"""
+        return self.best_genome
+'''
+
 
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
 
     def __init__(self, config, initial_population_path=None):
         """"""
-        # Read and process the supplied config
+        # Read and process the supplied config and register the possibly supplied initial population
         self._process_config(config)
+        self.initial_population_path = initial_population_path
 
         # Initialize and register the CoDeepNEAT encoding
         self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
 
-        # Declare Input shape and number of output units important for blueprint creation
+        # Declare variables of the environment and its input/output shape that will be initialized ones the environment
+        # is registered
+        self.environment = None
         self.input_shape = None
-        self.output_units = None
+        self.output_shape = None
 
-        # Initialize internal variables of the algorithm
+        # Declare internal variables of the population and, if applicable, initialize them to standard values
+        self.generation_counter = None
+        self.best_genome = None
+        self.best_fitness = 0
+
+        # Declare and initialize internal variables concerning the module population of the CoDeepNEAT algorithm
+        self.modules = dict()
+        self.mod_species = dict()
+        self.mod_species_type = dict()
         self.mod_species_counter = 0
+
+        # Declare and initialize internal variables concerning the blueprint population of the CoDeepNEAT algorithm
+        self.blueprints = dict()
+        self.bp_species = dict()
+        self.bp_species_counter = 0
 
     def _process_config(self, config):
         """"""
         # Read and process the general config values for the CoDeepNEAT algorithm
         self.available_modules = ast.literal_eval(config['GENERAL']['available_modules'])
         self.dtype = tf.dtypes.as_dtype(ast.literal_eval(config['GENERAL']['dtype']))
-        self.bp_pop_size = ast.literal_eval(config['GENERAL']['bp_pop_size'])
         self.mod_pop_size = ast.literal_eval(config['GENERAL']['mod_pop_size'])
+        self.bp_pop_size = ast.literal_eval(config['GENERAL']['bp_pop_size'])
         self.genomes_per_bp = ast.literal_eval(config['GENERAL']['genomes_per_bp'])
+        logging.info("Config value for 'GENERAL/available_modules': {}".format(self.available_modules))
+        logging.info("Config value for 'GENERAL/dtype': {}".format(self.dtype))
+        logging.info("Config value for 'GENERAL/mod_pop_size': {}".format(self.mod_pop_size))
+        logging.info("Config value for 'GENERAL/bp_pop_size': {}".format(self.bp_pop_size))
+        logging.info("Config value for 'GENERAL/genomes_per_bp': {}".format(self.genomes_per_bp))
+
+        # Read and process the speciation config values for modules in the CoDeepNEAT algorithm
+        self.mod_speciation_type = ast.literal_eval(config['MODULE_SPECIATION']['mod_speciation_type'])
+        if self.mod_speciation_type is 'Basic':
+            logging.info("Config value for 'MODULE_SPECIATION/mod_speciation_type': {}"
+                         .format(self.mod_speciation_type))
+        elif self.mod_speciation_type == 'k-means':
+            # TODO
+            raise NotImplementedError('MOD speciation type of k-means not yet implemented')
+
+        # Read and process the selection config values for modules in the CoDeepNEAT algorithm
+        if config.has_option('MODULE_SELECTION', 'mod_removal'):
+            self.mod_removal_type = 'fixed'
+            self.mod_removal = ast.literal_eval(config['MODULE_SELECTION']['mod_removal'])
+            logging.info("Config value for 'MODULE_SELECTION/mod_removal': {}".format(self.mod_removal))
+        elif config.has_option('MODULE_SELECTION', 'mod_removal_threshold'):
+            self.mod_removal_type = 'threshold'
+            self.mod_removal_threshold = ast.literal_eval(config['MODULE_SELECTION']['mod_removal_threshold'])
+            logging.info("Config value for 'MODULE_SELECTION/mod_removal_threshold': {}"
+                         .format(self.mod_removal_threshold))
+        else:
+            raise KeyError("'MODLUE_SELECTION/mod_removal' or 'MODLUE_SELECTION/mod_removal_threshold' not specified")
+        if config.has_option('MODULE_SELECTION', 'mod_elitism'):
+            self.mod_elitism_type = 'fixed'
+            self.mod_elitism = ast.literal_eval(config['MODULE_SELECTION']['mod_elitism'])
+            logging.info("Config value for 'MODULE_SELECTION/mod_elitism': {}".format(self.mod_elitism))
+        elif config.has_option('MODULE_SELECTION', 'mod_elitism_threshold'):
+            self.mod_elitism_type = 'threshold'
+            self.mod_elitism_threshold = ast.literal_eval(config['MODULE_SELECTION']['mod_elitism_threshold'])
+            logging.info("Config value for 'MODULE_SELECTION/mod_elitism_threshold': {}"
+                         .format(self.mod_elitism_threshold))
+        else:
+            raise KeyError("'MODULE_SELECTION/mod_elitism' or 'MODULE_SELECTION/mod_elitism_threshold' not specified")
+
+        # Read and process the evolution config values for modules in the CoDeepNEAT algorithm
+        self.mod_max_mutation = ast.literal_eval(config['MODULE_EVOLUTION']['mod_max_mutation'])
+        self.mod_mutation = ast.literal_eval(config['MODULE_EVOLUTION']['mod_mutation'])
+        self.mod_crossover = ast.literal_eval(config['MODULE_EVOLUTION']['mod_crossover'])
+        logging.info("Config value for 'MODULE_EVOLUTION/mod_max_mutation': {}".format(self.mod_max_mutation))
+        logging.info("Config value for 'MODULE_EVOLUTION/mod_mutation': {}".format(self.mod_mutation))
+        logging.info("Config value for 'MODULE_EVOLUTION/mod_crossover': {}".format(self.mod_crossover))
+        if self.mod_mutation + self.mod_crossover != 1.0:
+            raise KeyError("'MODULE_EVOLUTION/mod_mutation' and 'MODULE_EVOLUTION/mod_crossover' values "
+                           "dont add up to 1")
 
         # Read and process the speciation config values for blueprints in the CoDeepNEAT algorithm
-        self.bp_spec_type = ast.literal_eval(config['BP_SPECIATION']['bp_spec_type'])
-        if self.bp_spec_type is None:
-            pass
-        elif self.bp_spec_type == 'fixed-threshold':
+        self.bp_speciation_type = ast.literal_eval(config['BP_SPECIATION']['bp_spec_type'])
+        if self.bp_speciation_type is None:
+            logging.info("Config value for 'BP_SPECIATION/bp_speciation_type': {}".format(self.bp_speciation_type))
+        elif self.bp_speciation_type == 'fixed-threshold':
             # TODO
-            pass
-        elif self.bp_spec_type == 'dynamic-threshold':
+            raise NotImplementedError('BP speciation type of fixed-threshold not yet implemented')
+        elif self.bp_speciation_type == 'dynamic-threshold':
             # TODO
-            pass
-        elif self.bp_spec_type == 'k-means':
+            raise NotImplementedError('BP speciation type of dynamic-threshold not yet implemented')
+        elif self.bp_speciation_type == 'k-means':
             # TODO
-            pass
+            raise NotImplementedError('BP speciation type of k-means not yet implemented')
 
         # Read and process the selection config values for blueprints in the CoDeepNEAT algorithm
         if config.has_option('BP_SELECTION', 'bp_removal'):
             self.bp_removal_type = 'fixed'
             self.bp_removal = ast.literal_eval(config['BP_SELECTION']['bp_removal'])
+            logging.info("Config value for 'BP_SELECTION/bp_removal': {}".format(self.bp_removal))
         elif config.has_option('BP_SELECTION', 'bp_removal_threshold'):
             self.bp_removal_type = 'threshold'
             self.bp_removal_threshold = ast.literal_eval(config['BP_SELECTION']['bp_removal_threshold'])
+            logging.info("Config value for 'BP_SELECTION/bp_removal_threshold': {}".format(self.bp_removal_threshold))
         else:
-            raise KeyError("'bp_removal' or 'bp_removal_threshold' not specified")
+            raise KeyError("'BP_SELECTION/bp_removal' or 'BP_SELECTION/bp_removal_threshold' not specified")
         if config.has_option('BP_SELECTION', 'bp_elitism'):
             self.bp_elitism_type = 'fixed'
             self.bp_elitism = ast.literal_eval(config['BP_SELECTION']['bp_elitism'])
+            logging.info("Config value for 'BP_SELECTION/bp_elitism': {}".format(self.bp_elitism))
         elif config.has_option('BP_SELECTION', 'bp_elitism_threshold'):
             self.bp_elitism_type = 'threshold'
             self.bp_elitism_threshold = ast.literal_eval(config['BP_SELECTION']['bp_elitism_threshold'])
+            logging.info("Config value for 'BP_SELECTION/bp_elitism_threshold': {}".format(self.bp_elitism_threshold))
         else:
-            raise KeyError("'bp_elitism' or 'bp_elitism_threshold' not specified")
+            raise KeyError("'BP_SELECTION/bp_elitism' or 'BP_SELECTION/bp_elitism_threshold' not specified")
 
         # Read and process the evolution config values for blueprints in the CoDeepNEAT algorithm
         self.bp_max_mutation = ast.literal_eval(config['BP_EVOLUTION']['bp_max_mutation'])
@@ -80,43 +239,19 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.bp_mutation_node_species = ast.literal_eval(config['BP_EVOLUTION']['bp_mutation_node_species'])
         self.bp_mutation_hp = ast.literal_eval(config['BP_EVOLUTION']['bp_mutation_hp'])
         self.bp_crossover = ast.literal_eval(config['BP_EVOLUTION']['bp_crossover'])
+        logging.info("Config value for 'BP_EVOLUTION/bp_max_mutation': {}".format(self.bp_max_mutation))
+        logging.info("Config value for 'BP_EVOLUTION/bp_mutation_add_conn': {}".format(self.bp_mutation_add_conn))
+        logging.info("Config value for 'BP_EVOLUTION/bp_mutation_add_node': {}".format(self.bp_mutation_add_node))
+        logging.info("Config value for 'BP_EVOLUTION/bp_mutation_remove_conn': {}".format(self.bp_mutation_remove_conn))
+        logging.info("Config value for 'BP_EVOLUTION/bp_mutation_remove_node': {}".format(self.bp_mutation_remove_node))
+        logging.info(
+            "Config value for 'BP_EVOLUTION/bp_mutation_node_species': {}".format(self.bp_mutation_node_species))
+        logging.info("Config value for 'BP_EVOLUTION/bp_mutation_hp': {}".format(self.bp_mutation_hp))
+        logging.info("Config value for 'BP_EVOLUTION/bp_crossover': {}".format(self.bp_crossover))
         if self.bp_mutation_add_conn + self.bp_mutation_add_node + self.bp_mutation_remove_conn \
                 + self.bp_mutation_remove_node + self.bp_mutation_node_species + self.bp_mutation_hp \
                 + self.bp_crossover != 1.0:
-            raise KeyError("'bp_mutation_*' and 'bp_crossover' values dont add up to 1")
-
-        # Read and process the speciation config values for modules in the CoDeepNEAT algorithm
-        self.mod_spec_type = ast.literal_eval(config['MODULE_SPECIATION']['mod_spec_type'])
-        if self.mod_spec_type is 'Basic':
-            pass
-        elif self.mod_spec_type == 'k-means':
-            # TODO
-            pass
-
-        # Read and process the selection config values for modules in the CoDeepNEAT algorithm
-        if config.has_option('MODULE_SELECTION', 'mod_removal'):
-            self.mod_removal_type = 'fixed'
-            self.mod_removal = ast.literal_eval(config['MODULE_SELECTION']['mod_removal'])
-        elif config.has_option('MODULE_SELECTION', 'mod_removal_threshold'):
-            self.mod_removal_type = 'threshold'
-            self.mod_removal_threshold = ast.literal_eval(config['MODULE_SELECTION']['mod_removal_threshold'])
-        else:
-            raise KeyError("'mod_removal' or 'mod_removal_threshold' not specified")
-        if config.has_option('MODULE_SELECTION', 'mod_elitism'):
-            self.mod_elitism_type = 'fixed'
-            self.mod_elitism = ast.literal_eval(config['MODULE_SELECTION']['mod_elitism'])
-        elif config.has_option('MODULE_SELECTION', 'mod_elitism_threshold'):
-            self.mod_elitism_type = 'threshold'
-            self.mod_elitism_threshold = ast.literal_eval(config['MODULE_SELECTION']['mod_elitism_threshold'])
-        else:
-            raise KeyError("'mod_elitism' or 'mod_elitism_threshold' not specified")
-
-        # Read and process the evolution config values for modules in the CoDeepNEAT algorithm
-        self.mod_max_mutation = ast.literal_eval(config['MODULE_EVOLUTION']['mod_max_mutation'])
-        self.mod_mutation = ast.literal_eval(config['MODULE_EVOLUTION']['mod_mutation'])
-        self.mod_crossover = ast.literal_eval(config['MODULE_EVOLUTION']['mod_crossover'])
-        if self.mod_mutation + self.mod_crossover != 1.0:
-            raise KeyError("'mod_mutation' and 'mod_crossover' values dont add up to 1")
+            raise KeyError("'BP_EVOLUTION/bp_mutation_*' and 'BP_EVOLUTION/bp_crossover' values dont add up to 1")
 
         # Read and process the global hyperparameter config values for blueprints/genomes in the CoDeepNEAT algorithm
         self.optimizer = ast.literal_eval(config['GLOBAL_HP']['optimizer'])
@@ -124,6 +259,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.momentum = ast.literal_eval(config['GLOBAL_HP']['momentum'])
         self.nesterov = ast.literal_eval(config['GLOBAL_HP']['nesterov'])
         self.output_activation = ast.literal_eval(config['GLOBAL_HP']['output_activation'])
+        logging.info("Config value for 'GLOBAL_HP/optimizer': {}".format(self.optimizer))
+        logging.info("Config value for 'GLOBAL_HP/learning_rate': {}".format(self.learning_rate))
+        logging.info("Config value for 'GLOBAL_HP/momentum': {}".format(self.momentum))
+        logging.info("Config value for 'GLOBAL_HP/nesterov': {}".format(self.nesterov))
+        logging.info("Config value for 'GLOBAL_HP/output_activation': {}".format(self.output_activation))
 
         # Create Standard Deviation values for range specified global HP config values
         if len(self.learning_rate) == 4:
@@ -137,23 +277,34 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         if 'DENSE' in self.available_modules and config.has_section('MODULE_DENSE_HP'):
             # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
-            self.merge_method = deserialize_merge_method(ast.literal_eval(config['MODULE_DENSE_HP']['merge_method']))
-            self.units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
-            self.activation = ast.literal_eval(config['MODULE_DENSE_HP']['activation'])
-            self.kernel_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializer'])
-            self.bias_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializer'])
-            self.dropout_probability = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_probability'])
-            self.dropout_rate = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_rate'])
+            self.dense_merge_method = deserialize_merge_method(
+                ast.literal_eval(config['MODULE_DENSE_HP']['merge_method']))
+            self.dense_units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
+            self.dense_activation = ast.literal_eval(config['MODULE_DENSE_HP']['activation'])
+            self.dense_kernel_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializer'])
+            self.dense_bias_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializer'])
+            self.dense_dropout_probability = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_probability'])
+            self.dense_dropout_rate = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_rate'])
+            logging.info("Config value for 'MODULE_DENSE_HP/merge_method': {}".format(self.dense_merge_method))
+            logging.info("Config value for 'MODULE_DENSE_HP/units': {}".format(self.dense_units))
+            logging.info("Config value for 'MODULE_DENSE_HP/activation': {}".format(self.dense_activation))
+            logging.info("Config value for 'MODULE_DENSE_HP/kernel_initializer': {}"
+                         .format(self.dense_kernel_initializer))
+            logging.info("Config value for 'MODULE_DENSE_HP/bias_initializer': {}".format(self.dense_bias_initializer))
+            logging.info("Config value for 'MODULE_DENSE_HP/dropout_probability': {}"
+                         .format(self.dense_dropout_probability))
+            logging.info("Config value for 'MODULE_DENSE_HP/dropout_rate': {}".format(self.dense_dropout_rate))
 
             # Create Standard Deviation values for range specified Dense Module HP config values
-            if len(self.units) == 4:
-                self.units_stddev = float(self.units[1] - self.units[0]) / self.units[3]
+            if len(self.dense_units) == 4:
+                self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
             else:
-                self.units_stddev = float(self.units[1] - self.units[0]) / 4
-            if len(self.dropout_rate) == 4:
-                self.dropout_rate_stddev = float(self.dropout_rate[1] - self.dropout_rate[0]) / self.dropout_rate[3]
+                self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
+            if len(self.dense_dropout_rate) == 4:
+                self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
+                                           self.dense_dropout_rate[3]
             else:
-                self.dropout_rate_stddev = float(self.dropout_rate[1] - self.dropout_rate[0]) / 4
+                self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
 
     def initialize_population(self) -> (dict, dict, int, dict, dict, int):
         """"""

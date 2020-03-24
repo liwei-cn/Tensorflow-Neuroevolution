@@ -1,10 +1,10 @@
 import tensorflow as tf
 
 
-def deserialize_merge_method(input):
+def deserialize_merge_method(input_list):
     """"""
     deserialized_list = []
-    for merge_method in input:
+    for merge_method in input_list:
         if merge_method == 'concat':
             deserialized_list.append(tf.concat)
         elif merge_method == 'sum':
@@ -14,21 +14,21 @@ def deserialize_merge_method(input):
     return deserialized_list
 
 
-def round_to_nearest_multiple(value, min, max, multiple):
+def round_to_nearest_multiple(value, minimum, maximum, multiple):
     """"""
     lower_multiple = int(value / multiple) * multiple
     if value % multiple - (multiple / 2.0) < 0:
-        if lower_multiple >= min and lower_multiple <= max:
+        if minimum <= lower_multiple <= maximum:
             return lower_multiple
-        if lower_multiple < min:
-            return min
-        if lower_multiple > max:
-            return max
+        if lower_multiple < minimum:
+            return minimum
+        if lower_multiple > maximum:
+            return maximum
     else:
         higher_multiple = lower_multiple + multiple
-        if higher_multiple >= min and higher_multiple <= max:
+        if minimum <= higher_multiple <= maximum:
             return higher_multiple
-        if higher_multiple < min:
-            return min
-        if higher_multiple > max:
-            return max
+        if higher_multiple < minimum:
+            return minimum
+        if higher_multiple > maximum:
+            return maximum

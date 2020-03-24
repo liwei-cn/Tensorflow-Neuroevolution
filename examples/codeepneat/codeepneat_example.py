@@ -76,7 +76,6 @@ def codeepneat_example(argv):
     # Supply configuration and initialized NE elements to the evolution engine
     engine = tfne.EvolutionEngine(ne_algorithm=ne_algorithm,
                                   environment=environment,
-                                  config=config,
                                   num_cpus=num_cpus,
                                   num_gpus=num_gpus,
                                   max_generations=max_generations,
