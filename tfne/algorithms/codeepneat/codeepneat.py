@@ -7,7 +7,7 @@ import tensorflow as tf
 from absl import logging
 
 import tfne
-from .codeepneat_helper import deserialize_merge_method, round_to_nearest_multiple
+from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multiple
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 
