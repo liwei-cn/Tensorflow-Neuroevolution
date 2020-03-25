@@ -1,5 +1,4 @@
 import ast
-import math
 
 import numpy as np
 import tensorflow as tf
@@ -60,13 +59,11 @@ class XOREnvironment(BaseEnvironment):
 
         # TODO Resolve Workaround
         # Introduce temporary check for NaN as sometimes loss seems to yield NaN arbitrarily
+        import math
         if math.isnan(evaluated_fitness):
             evaluated_fitness = float(0)
 
         return round(evaluated_fitness, 3)
-
-        import random
-        return random.random()
         '''
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
