@@ -245,26 +245,15 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         """"""
         pass
 
-    def evaluate_population(self) -> (int, int):
-        """"""
-        pass
-
-    def summarize_population(self):
-        """"""
-        pass
-
-    def evolve_population(self) -> bool:
-        """"""
-        pass
-
-    def save_population(self, save_file_path):
-        """"""
-        pass
-
     '''
+     def initialize(self):
+        """"""
+        self.generation_counter = 0
+        init_ret = self.ne_algorithm.initialize_population()
+        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
+    
     def initialize_population(self) -> (dict, dict, int, dict, dict, int):
         """"""
-
         raise NotImplementedError("ToDo: If a pre-evolved population is supplied via 'initial_population_path' param"
                                   "then notify user accordingly and load and reg this pop."
                                   "If not, initialize minimal population as defined by CoDeepNEAT.")
@@ -352,7 +341,25 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             bp_species[1].append(new_bp_id)
 
         return blueprints, bp_species, self.bp_pop_size, modules, mod_species, self.mod_pop_size
+    '''
 
+    def evaluate_population(self) -> (int, int):
+        """"""
+        pass
+
+    '''
+    def evaluate(self):
+        """"""
+        best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
+                                                                          blueprints=self.blueprints,
+                                                                          modules=self.modules,
+                                                                          mod_species=self.mod_species,
+                                                                          generation=self.generation_counter,
+                                                                          current_best_fitness=self.best_fitness)
+        if best_genome is not None:
+            self.best_genome = best_genome
+            self.best_fitness = best_fitness
+    
     def evaluate_population(self,
                             environment,
                             blueprints,
@@ -411,7 +418,36 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # when the population goes extinct in evolve_pop there is something to return when calling get_best_genome
 
         return best_genome, best_fitness
+    '''
 
+    def summarize_population(self):
+        """"""
+        pass
+
+    '''
+    def summary(self):
+        """"""
+        print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
+              "Generation: {}\n"
+              "Blueprints population size: {}\n"
+              "Modules population size: {}\n"
+              "Best genome: {}\n"
+              "Best genome fitness: {}\n"
+              .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
+                      self.best_genome, self.best_fitness))
+    '''
+
+    def evolve_population(self) -> bool:
+        """"""
+        pass
+
+    '''
+    def evolve(self):
+        """"""
+        self.generation_counter += 1
+        evol_ret = self.ne_algorithm.evolve_population(self.blueprints, self.modules, self.bp_species, self.mod_species)
+        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = evol_ret
+    
     def evolve_population(self, blueprints, modules, bp_species, mod_species) -> (dict, dict, int, dict, dict, int):
         """"""
         #### Speciate modules ####
@@ -623,92 +659,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         return assigned_species_size
     '''
 
-    '''
-    class CoDeepNEATPopulation(BasePopulation):
+    def save_population(self, save_file_path):
         """"""
-
-        def __init__(self, config):
-            """"""
-            # Initialize and register the CoDeepNEAT algorithm
-            self.ne_algorithm = CoDeepNEAT(config)
-
-            # Declare internal variables of the population
-            self.environment = None
-            self.bp_pop_size = 0
-            self.mod_pop_size = 0
-            self.generation_counter = None
-            self.best_genome = None
-            self.best_fitness = 0
-
-            # Declare the actual containers for all blueprints and modules, which will later be initialized as dicts
-            # associating the blueprint/module ids (dict key) to the respective blueprint or module (dict value). Also
-            # declare the species objections, associating the species ids (dict key) to the id of the respective blueprint
-            # or module (dict value)
-            self.blueprints = None
-            self.modules = None
-            self.bp_species = None
-            self.mod_species = None
-
-        def initialize(self):
-            """"""
-            self.generation_counter = 0
-            init_ret = self.ne_algorithm.initialize_population()
-            self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
-
-        def evolve(self):
-            """"""
-            self.generation_counter += 1
-            evol_ret = self.ne_algorithm.evolve_population(self.blueprints, self.modules, self.bp_species, self.mod_species)
-            self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = evol_ret
-
-        def evaluate(self):
-            """"""
-            best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
-                                                                              blueprints=self.blueprints,
-                                                                              modules=self.modules,
-                                                                              mod_species=self.mod_species,
-                                                                              generation=self.generation_counter,
-                                                                              current_best_fitness=self.best_fitness)
-            if best_genome is not None:
-                self.best_genome = best_genome
-                self.best_fitness = best_fitness
-
-        def summary(self):
-            """"""
-            print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
-                  "Generation: {}\n"
-                  "Blueprints population size: {}\n"
-                  "Modules population size: {}\n"
-                  "Best genome: {}\n"
-                  "Best genome fitness: {}\n"
-                  .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
-                          self.best_genome, self.best_fitness))
-
-        def save_population(self, save_file_path):
-            """"""
-            pass
-
-        def load_population(self, load_file_path):
-            """"""
-            pass
-
-        def check_extinction(self) -> bool:
-            """"""
-            if len(self.blueprints) == 0 or len(self.modules) == 0:
-                return True
-            return False
-
-        def set_environment(self, environment):
-            """"""
-            self.environment = environment
-            input_shape = self.environment.get_input_shape()
-            output_units = self.environment.get_output_units()
-            self.ne_algorithm.set_input_output_shape(input_shape, output_units)
-
-        def get_generation_counter(self) -> int:
-            return self.generation_counter
-
-        def get_best_genome(self) -> BaseGenome:
-            """"""
-            return self.best_genome
-    '''
+        raise NotImplementedError()
