@@ -11,96 +11,6 @@ from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multi
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 
-'''
-class CoDeepNEATPopulation(BasePopulation):
-    """"""
-
-    def __init__(self, config):
-        """"""
-        # Initialize and register the CoDeepNEAT algorithm
-        self.ne_algorithm = CoDeepNEAT(config)
-
-        # Declare internal variables of the population
-        self.environment = None
-        self.bp_pop_size = 0
-        self.mod_pop_size = 0
-        self.generation_counter = None
-        self.best_genome = None
-        self.best_fitness = 0
-
-        # Declare the actual containers for all blueprints and modules, which will later be initialized as dicts
-        # associating the blueprint/module ids (dict key) to the respective blueprint or module (dict value). Also
-        # declare the species objections, associating the species ids (dict key) to the id of the respective blueprint
-        # or module (dict value)
-        self.blueprints = None
-        self.modules = None
-        self.bp_species = None
-        self.mod_species = None
-
-    def initialize(self):
-        """"""
-        self.generation_counter = 0
-        init_ret = self.ne_algorithm.initialize_population()
-        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
-
-    def evolve(self):
-        """"""
-        self.generation_counter += 1
-        evol_ret = self.ne_algorithm.evolve_population(self.blueprints, self.modules, self.bp_species, self.mod_species)
-        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = evol_ret
-
-    def evaluate(self):
-        """"""
-        best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
-                                                                          blueprints=self.blueprints,
-                                                                          modules=self.modules,
-                                                                          mod_species=self.mod_species,
-                                                                          generation=self.generation_counter,
-                                                                          current_best_fitness=self.best_fitness)
-        if best_genome is not None:
-            self.best_genome = best_genome
-            self.best_fitness = best_fitness
-
-    def summary(self):
-        """"""
-        print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
-              "Generation: {}\n"
-              "Blueprints population size: {}\n"
-              "Modules population size: {}\n"
-              "Best genome: {}\n"
-              "Best genome fitness: {}\n"
-              .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
-                      self.best_genome, self.best_fitness))
-
-    def save_population(self, save_file_path):
-        """"""
-        pass
-
-    def load_population(self, load_file_path):
-        """"""
-        pass
-
-    def check_extinction(self) -> bool:
-        """"""
-        if len(self.blueprints) == 0 or len(self.modules) == 0:
-            return True
-        return False
-
-    def set_environment(self, environment):
-        """"""
-        self.environment = environment
-        input_shape = self.environment.get_input_shape()
-        output_units = self.environment.get_output_units()
-        self.ne_algorithm.set_input_output_shape(input_shape, output_units)
-
-    def get_generation_counter(self) -> int:
-        return self.generation_counter
-
-    def get_best_genome(self) -> BaseGenome:
-        """"""
-        return self.best_genome
-'''
-
 
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
@@ -195,7 +105,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                            "dont add up to 1")
 
         # Read and process the speciation config values for blueprints in the CoDeepNEAT algorithm
-        self.bp_speciation_type = ast.literal_eval(config['BP_SPECIATION']['bp_spec_type'])
+        self.bp_speciation_type = ast.literal_eval(config['BP_SPECIATION']['bp_speciation_type'])
         if self.bp_speciation_type is None:
             logging.info("Config value for 'BP_SPECIATION/bp_speciation_type': {}".format(self.bp_speciation_type))
         elif self.bp_speciation_type == 'fixed-threshold':
@@ -275,37 +185,78 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             self.momentum_stddev = float(self.momentum[1] - self.momentum[0]) / 4
 
-        if 'DENSE' in self.available_modules and config.has_section('MODULE_DENSE_HP'):
-            # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
-            self.dense_merge_method = deserialize_merge_method(
-                ast.literal_eval(config['MODULE_DENSE_HP']['merge_method']))
-            self.dense_units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
-            self.dense_activation = ast.literal_eval(config['MODULE_DENSE_HP']['activation'])
-            self.dense_kernel_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializer'])
-            self.dense_bias_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializer'])
-            self.dense_dropout_probability = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_probability'])
-            self.dense_dropout_rate = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_rate'])
-            logging.info("Config value for 'MODULE_DENSE_HP/merge_method': {}".format(self.dense_merge_method))
-            logging.info("Config value for 'MODULE_DENSE_HP/units': {}".format(self.dense_units))
-            logging.info("Config value for 'MODULE_DENSE_HP/activation': {}".format(self.dense_activation))
-            logging.info("Config value for 'MODULE_DENSE_HP/kernel_initializer': {}"
-                         .format(self.dense_kernel_initializer))
-            logging.info("Config value for 'MODULE_DENSE_HP/bias_initializer': {}".format(self.dense_bias_initializer))
-            logging.info("Config value for 'MODULE_DENSE_HP/dropout_probability': {}"
-                         .format(self.dense_dropout_probability))
-            logging.info("Config value for 'MODULE_DENSE_HP/dropout_rate': {}".format(self.dense_dropout_rate))
+        for available_mod in self.available_modules:
+            if available_mod == 'DENSE':
+                if not config.has_section('MODULE_DENSE_HP'):
+                    raise KeyError("'DENSE' module set to be available in 'GENERAL/available_modules', though config "
+                                   "does not have a 'MODULE_DENSE_HP' section")
+                # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
+                self.dense_merge_method = deserialize_merge_method(
+                    ast.literal_eval(config['MODULE_DENSE_HP']['merge_method']))
+                self.dense_units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
+                self.dense_activation = ast.literal_eval(config['MODULE_DENSE_HP']['activation'])
+                self.dense_kernel_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializer'])
+                self.dense_bias_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializer'])
+                self.dense_dropout_probability = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_probability'])
+                self.dense_dropout_rate = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_rate'])
+                logging.info("Config value for 'MODULE_DENSE_HP/merge_method': {}".format(self.dense_merge_method))
+                logging.info("Config value for 'MODULE_DENSE_HP/units': {}".format(self.dense_units))
+                logging.info("Config value for 'MODULE_DENSE_HP/activation': {}".format(self.dense_activation))
+                logging.info("Config value for 'MODULE_DENSE_HP/kernel_initializer': {}"
+                             .format(self.dense_kernel_initializer))
+                logging.info("Config value for 'MODULE_DENSE_HP/bias_initializer': {}"
+                             .format(self.dense_bias_initializer))
+                logging.info("Config value for 'MODULE_DENSE_HP/dropout_probability': {}"
+                             .format(self.dense_dropout_probability))
+                logging.info("Config value for 'MODULE_DENSE_HP/dropout_rate': {}".format(self.dense_dropout_rate))
 
-            # Create Standard Deviation values for range specified Dense Module HP config values
-            if len(self.dense_units) == 4:
-                self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
+                # Create Standard Deviation values for range specified Dense Module HP config values
+                if len(self.dense_units) == 4:
+                    self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
+                else:
+                    self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
+                if len(self.dense_dropout_rate) == 4:
+                    self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
+                                               self.dense_dropout_rate[3]
+                else:
+                    self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
             else:
-                self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
-            if len(self.dense_dropout_rate) == 4:
-                self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
-                                           self.dense_dropout_rate[3]
-            else:
-                self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
+                raise KeyError("'{}' module set to be available in 'GENERAL/available_modules', though handling of "
+                               "this module has not yet been implemented".format(available_mod))
 
+    def register_environment(self, environment):
+        """"""
+        # Check if the registered environment is weight training
+        if not environment.is_weight_training():
+            raise AssertionError("The registered environment '{}' is not weight training, which is a requirement for "
+                                 "CoDeepNEAT as CoDeepNEAT is specified to first train the weights of created genome "
+                                 "phenotypes for a set amount of epochs before assigning a fitness score"
+                                 .format(environment))
+        # Register environment and its input/output shapes
+        self.environment = environment
+        self.input_shape = environment.get_input_shape()
+        self.output_shape = environment.get_output_shape()
+
+    def get_best_genome(self) -> CoDeepNEATGenome:
+        """"""
+        return self.best_genome
+
+    def initialize_population(self):
+        pass
+
+    def evaluate_population(self):
+        pass
+
+    def summarize_population(self):
+        pass
+
+    def evolve_population(self):
+        pass
+
+    def save_population(self):
+        pass
+
+    '''
     def initialize_population(self) -> (dict, dict, int, dict, dict, int):
         """"""
 
@@ -636,16 +587,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         return blueprints, bp_species, self.bp_pop_size, modules, new_mod_species, self.mod_pop_size
 
-    def register_environment(self, environment):
-        """"""
-        raise NotImplementedError("TODO: Check if environment is set to weight training, as this is required for CDN. "
-                                  "set environment as class var."
-                                  "Set input and output shapes.")
-
-    def set_input_output_shape(self, input_shape, output_units):
-        """"""
-        self.encoding.set_input_output_shape(input_shape, output_units)
-
     @staticmethod
     def _create_assigned_species_size(members, species, pop_size):
         """"""
@@ -678,3 +619,94 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             current_total_size += 1
 
         return assigned_species_size
+    '''
+
+    '''
+    class CoDeepNEATPopulation(BasePopulation):
+        """"""
+
+        def __init__(self, config):
+            """"""
+            # Initialize and register the CoDeepNEAT algorithm
+            self.ne_algorithm = CoDeepNEAT(config)
+
+            # Declare internal variables of the population
+            self.environment = None
+            self.bp_pop_size = 0
+            self.mod_pop_size = 0
+            self.generation_counter = None
+            self.best_genome = None
+            self.best_fitness = 0
+
+            # Declare the actual containers for all blueprints and modules, which will later be initialized as dicts
+            # associating the blueprint/module ids (dict key) to the respective blueprint or module (dict value). Also
+            # declare the species objections, associating the species ids (dict key) to the id of the respective blueprint
+            # or module (dict value)
+            self.blueprints = None
+            self.modules = None
+            self.bp_species = None
+            self.mod_species = None
+
+        def initialize(self):
+            """"""
+            self.generation_counter = 0
+            init_ret = self.ne_algorithm.initialize_population()
+            self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
+
+        def evolve(self):
+            """"""
+            self.generation_counter += 1
+            evol_ret = self.ne_algorithm.evolve_population(self.blueprints, self.modules, self.bp_species, self.mod_species)
+            self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = evol_ret
+
+        def evaluate(self):
+            """"""
+            best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
+                                                                              blueprints=self.blueprints,
+                                                                              modules=self.modules,
+                                                                              mod_species=self.mod_species,
+                                                                              generation=self.generation_counter,
+                                                                              current_best_fitness=self.best_fitness)
+            if best_genome is not None:
+                self.best_genome = best_genome
+                self.best_fitness = best_fitness
+
+        def summary(self):
+            """"""
+            print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
+                  "Generation: {}\n"
+                  "Blueprints population size: {}\n"
+                  "Modules population size: {}\n"
+                  "Best genome: {}\n"
+                  "Best genome fitness: {}\n"
+                  .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
+                          self.best_genome, self.best_fitness))
+
+        def save_population(self, save_file_path):
+            """"""
+            pass
+
+        def load_population(self, load_file_path):
+            """"""
+            pass
+
+        def check_extinction(self) -> bool:
+            """"""
+            if len(self.blueprints) == 0 or len(self.modules) == 0:
+                return True
+            return False
+
+        def set_environment(self, environment):
+            """"""
+            self.environment = environment
+            input_shape = self.environment.get_input_shape()
+            output_units = self.environment.get_output_units()
+            self.ne_algorithm.set_input_output_shape(input_shape, output_units)
+
+        def get_generation_counter(self) -> int:
+            return self.generation_counter
+
+        def get_best_genome(self) -> BaseGenome:
+            """"""
+            return self.best_genome
+    '''

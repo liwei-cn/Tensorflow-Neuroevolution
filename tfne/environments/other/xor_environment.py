@@ -84,6 +84,7 @@ class XOREnvironment(BaseEnvironment):
         '''
 
     def is_weight_training(self) -> bool:
+        """"""
         return self.weight_training_eval
 
     def get_input_shape(self) -> tuple:
