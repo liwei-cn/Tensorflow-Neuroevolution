@@ -15,11 +15,11 @@ from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
 
-    def __init__(self, config, initial_population_path=None):
+    def __init__(self, config, initial_population_file_path=None):
         """"""
         # Read and process the supplied config and register the possibly supplied initial population
         self._process_config(config)
-        self.initial_population_path = initial_population_path
+        self.initial_population_file_path = initial_population_file_path
 
         # Initialize and register the CoDeepNEAT encoding
         self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
@@ -242,18 +242,23 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         return self.best_genome
 
     def initialize_population(self):
+        """"""
         pass
 
-    def evaluate_population(self):
+    def evaluate_population(self) -> (int, int):
+        """"""
         pass
 
     def summarize_population(self):
+        """"""
         pass
 
-    def evolve_population(self):
+    def evolve_population(self) -> bool:
+        """"""
         pass
 
-    def save_population(self):
+    def save_population(self, save_file_path):
+        """"""
         pass
 
     '''
@@ -406,9 +411,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # when the population goes extinct in evolve_pop there is something to return when calling get_best_genome
 
         return best_genome, best_fitness
-
-    def get_best_genome(self) -> CoDeepNEATGenome:
-        pass
 
     def evolve_population(self, blueprints, modules, bp_species, mod_species) -> (dict, dict, int, dict, dict, int):
         """"""
