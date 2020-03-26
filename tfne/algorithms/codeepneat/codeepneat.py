@@ -30,7 +30,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.input_shape = None
         self.output_shape = None
 
-        # Declare internal variables of the population and, if applicable, initialize them to standard values
+        # Declare internal variables of the population
         self.generation_counter = None
         self.best_genome = None
         self.best_fitness = 0
@@ -67,7 +67,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                          .format(self.mod_speciation_type))
         elif self.mod_speciation_type == 'k-means':
             # TODO
-            raise NotImplementedError('MOD speciation type of k-means not yet implemented')
+            raise NotImplementedError("MOD speciation type of k-means not yet implemented")
 
         # Read and process the selection config values for modules in the CoDeepNEAT algorithm
         if config.has_option('MODULE_SELECTION', 'mod_removal'):
@@ -110,13 +110,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             logging.info("Config value for 'BP_SPECIATION/bp_speciation_type': {}".format(self.bp_speciation_type))
         elif self.bp_speciation_type == 'fixed-threshold':
             # TODO
-            raise NotImplementedError('BP speciation type of fixed-threshold not yet implemented')
+            raise NotImplementedError("BP speciation type of fixed-threshold not yet implemented")
         elif self.bp_speciation_type == 'dynamic-threshold':
             # TODO
-            raise NotImplementedError('BP speciation type of dynamic-threshold not yet implemented')
+            raise NotImplementedError("BP speciation type of dynamic-threshold not yet implemented")
         elif self.bp_speciation_type == 'k-means':
             # TODO
-            raise NotImplementedError('BP speciation type of k-means not yet implemented')
+            raise NotImplementedError("BP speciation type of k-means not yet implemented")
 
         # Read and process the selection config values for blueprints in the CoDeepNEAT algorithm
         if config.has_option('BP_SELECTION', 'bp_removal'):
@@ -243,7 +243,24 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def initialize_population(self):
         """"""
-        pass
+
+        if self.initial_population_file_path is None:
+            print("Initializing a new population of {} blueprints and {} modules..."
+                  .format(self.bp_pop_size, self.mod_pop_size))
+
+            # Set internal variables of the population to the initialization of a new population
+            self.generation_counter = 0
+            self.best_fitness = 0
+
+            #### Initialize Module Population ####
+            pass
+
+            #### Initialize Blueprint Population ####
+            pass
+
+        else:
+            raise NotImplementedError("Initializing population with a pre-evolved supplied initial population not yet "
+                                      "implemented")
 
     '''
      def initialize(self):
