@@ -33,7 +33,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Declare internal variables of the population
         self.generation_counter = None
         self.best_genome = None
-        self.best_fitness = 0
+        self.best_fitness = None
 
         # Declare and initialize internal variables concerning the module population of the CoDeepNEAT algorithm
         self.modules = dict()
@@ -361,80 +361,61 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evaluate_population(self) -> (int, int):
         """"""
-        pass
+        # Create container collecting the fitness of the genomes that involve specific modules. Calculate the average
+        # fitness of the genomes in which a module is involved in later and assign it as the module's fitness
+        mod_genome_fitness = dict()
 
-    '''
-    def evaluate(self):
-        """"""
-        best_genome, best_fitness = self.ne_algorithm.evaluate_population(environment=self.environment,
-                                                                          blueprints=self.blueprints,
-                                                                          modules=self.modules,
-                                                                          mod_species=self.mod_species,
-                                                                          generation=self.generation_counter,
-                                                                          current_best_fitness=self.best_fitness)
-        if best_genome is not None:
-            self.best_genome = best_genome
-            self.best_fitness = best_fitness
-    
-    def evaluate_population(self,
-                            environment,
-                            blueprints,
-                            modules,
-                            mod_species,
-                            generation,
-                            current_best_fitness) -> (CoDeepNEATGenome, float):
-        """"""
-        best_genome = None
-        best_fitness = current_best_fitness
-
-        # Create container collecting the fitness of the genomes that involve specific modules and average out the
-        # collected fitness values later
-        mod_fitness_dict = dict()
-
-        for blueprint in blueprints.values():
+        for blueprint in self.blueprints.values():
             bp_species = blueprint.get_species()
 
-            # Create container collecting the fitness of genomes using that specific blueprint and average it out later
-            bp_fitness_list = list()
+            # Create container collecting the fitness of the genomes that involve that specific blueprint.
+            bp_genome_fitness = list()
 
             for _ in range(self.genomes_per_bp):
-                module_id_chosen_for_species = dict()
+                # Assemble genome by first uniform randomly choosing a specific module from the species that the
+                # blueprint nodes are referring to.
+                bp_assigned_module_ids = dict()
                 bp_assigned_modules = dict()
                 for i in bp_species:
-                    module_id_chosen_for_species[i] = random.choice(mod_species[i])
-                    bp_assigned_modules[i] = modules[module_id_chosen_for_species[i]]
+                    chosen_module_id = random.choice(self.mod_species[i])
+                    bp_assigned_module_ids[i] = chosen_module_id
+                    bp_assigned_modules[i] = self.modules[chosen_module_id]
 
-                _, new_genome = self.encoding.create_genome(blueprint, bp_assigned_modules, generation)
+                # Create genome, using the specific blueprint, a dict of modules for each species and the current
+                # generation
+                _, genome = self.encoding.create_genome(blueprint, bp_assigned_modules, self.generation_counter)
 
-                fitness = environment.eval_genome_fitness(new_genome)
+                # Now evaluate genome on registered environment
+                genome_fitness = self.environment.eval_genome_fitness(genome)
 
-                # Assign genome fitness to blueprint and all the modules used in genome
-                bp_fitness_list.append(fitness)
-                for mod_id in module_id_chosen_for_species.values():
+                # Assign the genome fitness to the blueprint and all modules used for the creation of the genome
+                bp_genome_fitness.append(genome_fitness)
+                for mod_id in bp_assigned_module_ids.values():
                     try:
-                        mod_fitness_dict[mod_id].append(fitness)
+                        mod_genome_fitness[mod_id].append(genome_fitness)
                     except:
-                        mod_fitness_dict[mod_id] = [fitness]
+                        mod_genome_fitness[mod_id] = [genome_fitness]
 
-                if fitness > best_fitness:
-                    new_genome.set_fitness(fitness)
-                    best_genome = new_genome
-                    best_fitness = fitness
+                # Acutally assign fitness to the genome and register it as new best if it exhibits better fitness
+                if genome_fitness > self.best_fitness:
+                    genome.set_fitness(genome_fitness)
+                    self.best_genome = genome
+                    self.best_fitness = genome_fitness
 
-            # Average out collected blueprint fitness and assign to specific blueprint
-            bp_avg_fitness = round(statistics.mean(bp_fitness_list), 3)
-            blueprint.set_fitness(bp_avg_fitness)
+            # Average out collected fitness of genomes the blueprint was invovled in. Then assign to blueprint
+            bp_genome_fitness_avg = round(statistics.mean(bp_genome_fitness), 3)
+            blueprint.set_fitness(bp_genome_fitness_avg)
 
-        # Average out collected module fitness and assign to specific modules
-        for mod_id, mod_fitness_list in mod_fitness_dict.items():
-            mod_avg_fitness = round(statistics.mean(mod_fitness_list), 3)
-            modules[mod_id].set_fitness(mod_avg_fitness)
+        # Average out collected fitness of genomes each module was invovled in. Then assign to module
+        for mod_id, mod_genome_fitness_list in mod_genome_fitness.items():
+            mod_genome_fitness_avg = round(statistics.mean(mod_genome_fitness_list), 3)
+            self.modules[mod_id].set_fitness(mod_genome_fitness_avg)
 
-        # TODO after each completed evaluation, deepcopy or permanently register the best genome, such that even
-        # when the population goes extinct in evolve_pop there is something to return when calling get_best_genome
+        # TODO: Possibly deepcopy best genome as underlying genotype elements (blueprint/modules/etc) might go extinct
+        # from copy import deepcopy
+        # self.best_genome = deepcopy(self.best_genome)
 
-        return best_genome, best_fitness
-    '''
+        return self.generation_counter, self.best_fitness
 
     def summarize_population(self):
         """"""
