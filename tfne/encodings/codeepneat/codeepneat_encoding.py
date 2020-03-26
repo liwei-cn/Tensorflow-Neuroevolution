@@ -57,14 +57,19 @@ class CoDeepNEATEncoding(BaseEncoding):
         return gene_id, CoDeepNEATBlueprintConn(gene_id, conn_start, conn_end)
 
     def create_blueprint(self,
-                         blueprint_genotype,
+                         blueprint_graph,
                          optimizer,
                          learning_rate,
                          momentum,
                          nesterov,
-                         output_activation) -> (int, CoDeepNEATBlueprint):
+                         output_activation,
+                         output_shape) -> (int, CoDeepNEATBlueprint):
         """"""
         self.bp_id_counter += 1
+
+        # TODO Resolve current workaround
+        return self.bp_gene_id_counter, None
+
         return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
                                                        blueprint_genotype=blueprint_genotype,
                                                        optimizer=optimizer,

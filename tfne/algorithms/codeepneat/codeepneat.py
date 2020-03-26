@@ -273,8 +273,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if self.mod_species_type[chosen_species] == 'DENSE':
                     # Uniform randomly choose parameters of DENSE module
                     chosen_merge_method = random.choice(self.dense_merge_method)
-                    chosen_units_uniformly = random.randint(self.dense_units[0], self.dense_units[1])
-                    chosen_units = round_to_nearest_multiple(chosen_units_uniformly, self.dense_units[0],
+                    chosen_units_uniform = random.randint(self.dense_units[0], self.dense_units[1])
+                    chosen_units = round_to_nearest_multiple(chosen_units_uniform, self.dense_units[0],
                                                              self.dense_units[1], self.dense_units[2])
                     chosen_activation = random.choice(self.dense_activation)
                     chosen_kernel_initializer = random.choice(self.dense_kernel_initializer)
@@ -282,9 +282,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     # Decide according to dropout_probabilty if there will be a dropout layer at all
                     if random.random() < self.dense_dropout_probability:
-                        chosen_dropout_rate_uniformly = random.uniform(self.dense_dropout_rate[0],
-                                                                       self.dense_dropout_rate[1])
-                        chosen_dropout_rate = round_to_nearest_multiple(chosen_units_uniformly,
+                        chosen_dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
+                                                                     self.dense_dropout_rate[1])
+                        chosen_dropout_rate = round_to_nearest_multiple(chosen_dropout_rate_uniform,
                                                                         self.dense_dropout_rate[0],
                                                                         self.dense_dropout_rate[1],
                                                                         self.dense_dropout_rate[2])
@@ -292,12 +292,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         chosen_dropout_rate = None
 
                     # Create module
-                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=chosen_merge_method,
-                                                                            units=chosen_units,
-                                                                            activation=chosen_activation,
-                                                                            kernel_initializer=chosen_kernel_initializer,
-                                                                            bias_initializer=chosen_bias_initializer,
-                                                                            dropout_rate=chosen_dropout_rate)
+                    module_id, module = self.encoding.create_dense_module(merge_method=chosen_merge_method,
+                                                                          units=chosen_units,
+                                                                          activation=chosen_activation,
+                                                                          kernel_initializer=chosen_kernel_initializer,
+                                                                          bias_initializer=chosen_bias_initializer,
+                                                                          dropout_rate=chosen_dropout_rate)
                 elif self.mod_species_type[chosen_species] == 'LSTM':
                     raise NotImplementedError()
                 else:
@@ -305,69 +305,59 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                        .format(self.mod_species_type[chosen_species]))
 
                 # Append newly created module to module container and to according species
-                self.modules[new_mod_id] = new_mod
-                self.mod_species[chosen_species].append(new_mod_id)
+                self.modules[module_id] = module
+                self.mod_species[chosen_species].append(module_id)
 
             #### Initialize Blueprint Population ####
-            pass
+            # Initialize blueprint population with a minimal blueprint graph, only consisting of an input node (with
+            # not species or the 'input' species respectively) and a single output node, having a randomly assigned
+            # species. All hyperparameters of the blueprint are uniform randomly chosen. All blueprints are not
+            # speciated in the beginning and are assigned to species 1.
+
+            # Initialize blueprint species list and create tuple of the possible species the output node can take on
+            self.bp_species[1] = list()
+            available_mod_species = tuple(self.mod_species.keys())
+
+            for _ in range(self.bp_pop_size):
+                # Determine the module species of the output (and only) node
+                output_node_species = random.choice(available_mod_species)
+
+                # Create a minimal blueprint graph with an input node, an output node with the chosen module species and
+                # a connection between them
+                blueprint_graph = dict()
+                gene_id, gene = self.encoding.create_blueprint_node(node=1, species=None)
+                blueprint_graph[gene_id] = gene
+                gene_id, gene = self.encoding.create_blueprint_node(node=2, species=output_node_species)
+                blueprint_graph[gene_id] = gene
+                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
+                blueprint_graph[gene_id] = gene
+
+                # Uniform randomly choose global hyperparameters of the blueprint
+                chosen_optimizer = random.choice(self.optimizer)
+                chosen_learning_rate_uniform = random.uniform(self.learning_rate[0], self.learning_rate[1])
+                chosen_learning_rate = round_to_nearest_multiple(chosen_learning_rate_uniform, self.learning_rate[0],
+                                                                 self.learning_rate[1], self.learning_rate[2])
+                chosen_momentum_uniform = random.uniform(self.momentum[0], self.momentum[1])
+                chosen_momentum = round_to_nearest_multiple(chosen_momentum_uniform, self.momentum[0],
+                                                            self.momentum[1], self.momentum[2])
+                chosen_nesterov = random.choice(self.nesterov)
+                chosen_output_activation = random.choice(self.output_activation)
+
+                blueprint_id, blueprint = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                         optimizer=chosen_optimizer,
+                                                                         learning_rate=chosen_learning_rate,
+                                                                         momentum=chosen_momentum,
+                                                                         nesterov=chosen_nesterov,
+                                                                         output_activation=chosen_output_activation,
+                                                                         output_shape=self.output_shape)
+
+                # Append newly create blueprint to blueprint container and to only initial blueprint species
+                self.blueprints[blueprint_id] = blueprint
+                self.bp_species[1].append(blueprint)
 
         else:
             raise NotImplementedError("Initializing population with a pre-evolved supplied initial population not yet "
                                       "implemented")
-
-    '''
-     def initialize(self):
-        """"""
-        self.generation_counter = 0
-        init_ret = self.ne_algorithm.initialize_population()
-        self.blueprints, self.bp_species, self.bp_pop_size, self.modules, self.mod_species, self.mod_pop_size = init_ret
-    
-    def initialize_population(self) -> (dict, dict, int, dict, dict, int):
-        """"""
-        # Initialize blueprints population. Initialize all graphs with the nodes 1 and 2 and a connection between them.
-        # Node 1 points to the non-existent species 0, indicating it to represent the Input layer. Node 2 points to a
-        # randomly chosen modules species. The genes have to be created with their according id in order to enable
-        # historical marking crossover. The genome hyperparameters that are associated with the blueprints are uniformly
-        # randomly chosen. All blueprints are assigned to species 1 as the first speciation for blueprints does not
-        # happen until the evolution.
-        blueprints = dict()
-        bp_species = {1: []}
-        available_mod_species = tuple(mod_species.keys())
-        for _ in range(self.bp_pop_size):
-            # Determine the module species of the output node of this minimal graph randomly
-            output_module_species = random.choice(available_mod_species)
-
-            # Create basic genotype
-            blueprint_genotype = dict()
-            gene_id, gene = self.encoding.create_blueprint_node(node=1, species=0)
-            blueprint_genotype[gene_id] = gene
-            gene_id, gene = self.encoding.create_blueprint_node(node=2, species=output_module_species)
-            blueprint_genotype[gene_id] = gene
-            gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
-            blueprint_genotype[gene_id] = gene
-
-            # Randomly chose genome hyperparameters associated for this blueprint
-            chosen_optimizer = random.choice(self.optimizer)
-            chosen_learning_rate_uni = random.uniform(self.learning_rate[0], self.learning_rate[1])
-            chosen_learning_rate = round_to_nearest_multiple(chosen_learning_rate_uni, self.learning_rate[0],
-                                                             self.learning_rate[1], self.learning_rate[2])
-            chosen_momentum_uni = random.uniform(self.momentum[0], self.momentum[1])
-            chosen_momentum = round_to_nearest_multiple(chosen_momentum_uni, self.momentum[0],
-                                                        self.momentum[1], self.momentum[2])
-            chosen_nesterov = random.choice(self.nesterov)
-            chosen_output_activation = random.choice(self.output_activation)
-
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_genotype=blueprint_genotype,
-                                                               optimizer=chosen_optimizer,
-                                                               learning_rate=chosen_learning_rate,
-                                                               momentum=chosen_momentum,
-                                                               nesterov=chosen_nesterov,
-                                                               output_activation=chosen_output_activation)
-            blueprints[new_bp_id] = new_bp
-            bp_species[1].append(new_bp_id)
-
-        return blueprints, bp_species, self.bp_pop_size, modules, mod_species, self.mod_pop_size
-    '''
 
     def evaluate_population(self) -> (int, int):
         """"""
