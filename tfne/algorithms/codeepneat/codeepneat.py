@@ -419,20 +419,18 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def summarize_population(self):
         """"""
-        pass
-
-    '''
-    def summary(self):
-        """"""
-        print("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
+        print("\nTODO: Improve this preliminary dev summary of the population\n"
+              "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
               "Generation: {}\n"
               "Blueprints population size: {}\n"
               "Modules population size: {}\n"
               "Best genome: {}\n"
               "Best genome fitness: {}\n"
-              .format(self.generation_counter, self.bp_pop_size, self.mod_pop_size,
-                      self.best_genome, self.best_fitness))
-    '''
+              .format(self.generation_counter,
+                      self.bp_pop_size,
+                      self.mod_pop_size,
+                      self.best_genome,
+                      self.best_fitness))
 
     def evolve_population(self) -> bool:
         """"""
