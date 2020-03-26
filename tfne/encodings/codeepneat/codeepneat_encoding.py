@@ -80,10 +80,12 @@ class CoDeepNEATEncoding(BaseEncoding):
                             activation,
                             kernel_initializer,
                             bias_initializer,
-                            dropout_flag,
                             dropout_rate) -> (int, CoDeepNEATModuleDense):
         """"""
         self.mod_id_counter += 1
+
+        # TODO RESOLVE WORKARDOUND
+        dropout_flag = dropout_rate is not None
 
         return self.mod_id_counter, CoDeepNEATModuleDense(module_id=self.mod_id_counter,
                                                           merge_method=merge_method,

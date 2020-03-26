@@ -253,7 +253,60 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.best_fitness = 0
 
             #### Initialize Module Population ####
-            pass
+            # Initialize module population with a basic speciation scheme, only speciating modules according to their
+            # module type. Each module species (and therefore module type) is initiated with the same amount of modules
+            # (or close to the same amount if module pop size not evenly divisble). When parameters of all initial
+            # modules are uniform randomly chosen.
+
+            # Set initial species counter of basic speciation, initialize module species list and map each species to
+            # its type
+            for mod_type in self.available_modules:
+                self.mod_species_counter += 1
+                self.mod_species[self.mod_species_counter] = list()
+                self.mod_species_type[self.mod_species_counter] = mod_type
+
+            for i in range(self.mod_pop_size):
+                # Decide on for which species a new module is added (uniformly distributed)
+                chosen_species = (i % self.mod_species_counter) + 1
+
+                # Initialize a new module according to the module type of the chosen species
+                if self.mod_species_type[chosen_species] == 'DENSE':
+                    # Uniform randomly choose parameters of DENSE module
+                    chosen_merge_method = random.choice(self.dense_merge_method)
+                    chosen_units_uniformly = random.randint(self.dense_units[0], self.dense_units[1])
+                    chosen_units = round_to_nearest_multiple(chosen_units_uniformly, self.dense_units[0],
+                                                             self.dense_units[1], self.dense_units[2])
+                    chosen_activation = random.choice(self.dense_activation)
+                    chosen_kernel_initializer = random.choice(self.dense_kernel_initializer)
+                    chosen_bias_initializer = random.choice(self.dense_bias_initializer)
+
+                    # Decide according to dropout_probabilty if there will be a dropout layer at all
+                    if random.random() < self.dense_dropout_probability:
+                        chosen_dropout_rate_uniformly = random.uniform(self.dense_dropout_rate[0],
+                                                                       self.dense_dropout_rate[1])
+                        chosen_dropout_rate = round_to_nearest_multiple(chosen_units_uniformly,
+                                                                        self.dense_dropout_rate[0],
+                                                                        self.dense_dropout_rate[1],
+                                                                        self.dense_dropout_rate[2])
+                    else:
+                        chosen_dropout_rate = None
+
+                    # Create module
+                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=chosen_merge_method,
+                                                                            units=chosen_units,
+                                                                            activation=chosen_activation,
+                                                                            kernel_initializer=chosen_kernel_initializer,
+                                                                            bias_initializer=chosen_bias_initializer,
+                                                                            dropout_rate=chosen_dropout_rate)
+                elif self.mod_species_type[chosen_species] == 'LSTM':
+                    raise NotImplementedError()
+                else:
+                    raise RuntimeError("Species type '{}' could not be identified during initialization"
+                                       .format(self.mod_species_type[chosen_species]))
+
+                # Append newly created module to module container and to according species
+                self.modules[new_mod_id] = new_mod
+                self.mod_species[chosen_species].append(new_mod_id)
 
             #### Initialize Blueprint Population ####
             pass
@@ -271,50 +324,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     
     def initialize_population(self) -> (dict, dict, int, dict, dict, int):
         """"""
-        raise NotImplementedError("ToDo: If a pre-evolved population is supplied via 'initial_population_path' param"
-                                  "then notify user accordingly and load and reg this pop."
-                                  "If not, initialize minimal population as defined by CoDeepNEAT.")
-
-        # Initialize module population. The type and the parameters of each module are uniformly randomly chosen. The
-        # module population is initially specified solely by the type of the module.
-        modules = dict()
-        mod_species = dict()
-        module_species_types = dict()
-        for mod_type in self.available_modules:
-            self.mod_species_counter += 1
-            module_species_types[mod_type] = self.mod_species_counter
-            mod_species[self.mod_species_counter] = list()
-        for _ in range(self.mod_pop_size):
-            module_type = random.choice(self.available_modules)
-            if module_type == 'DENSE':
-                chosen_merge_method = random.choice(self.merge_method)
-                chosen_units_uni = random.randint(self.units[0], self.units[1])
-                chosen_units = round_to_nearest_multiple(chosen_units_uni, self.units[0], self.units[1], self.units[2])
-                chosen_activation = random.choice(self.activation)
-                chosen_kernel_initializer = random.choice(self.kernel_initializer)
-                chosen_bias_initializer = random.choice(self.bias_initializer)
-
-                dropout_flag = random.random() < self.dropout_probability
-                if dropout_flag:
-                    chosen_dropout_rate_uni = random.uniform(self.dropout_rate[0], self.dropout_rate[1])
-                    chosen_dropout_rate = round_to_nearest_multiple(chosen_dropout_rate_uni, self.dropout_rate[0],
-                                                                    self.dropout_rate[1], self.dropout_rate[2])
-                else:
-                    chosen_dropout_rate = None
-
-                new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=chosen_merge_method,
-                                                                        units=chosen_units,
-                                                                        activation=chosen_activation,
-                                                                        kernel_initializer=chosen_kernel_initializer,
-                                                                        bias_initializer=chosen_bias_initializer,
-                                                                        dropout_flag=dropout_flag,
-                                                                        dropout_rate=chosen_dropout_rate)
-                modules[new_mod_id] = new_mod
-                mod_species[module_species_types[module_type]].append(new_mod_id)
-
-            else:
-                raise NotImplementedError("Module type '{}' listed as available is not implemented".format(module_type))
-
         # Initialize blueprints population. Initialize all graphs with the nodes 1 and 2 and a connection between them.
         # Node 1 points to the non-existent species 0, indicating it to represent the Input layer. Node 2 points to a
         # randomly chosen modules species. The genes have to be created with their according id in order to enable
