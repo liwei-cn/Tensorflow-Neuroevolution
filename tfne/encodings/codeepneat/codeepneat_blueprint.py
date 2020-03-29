@@ -1,8 +1,9 @@
 import tensorflow as tf
-from absl import logging
 
 
 class CoDeepNEATBlueprintNode:
+    """"""
+
     def __init__(self, gene_id, node, species):
         self.gene_id = gene_id
         self.node = node
@@ -10,6 +11,8 @@ class CoDeepNEATBlueprintNode:
 
 
 class CoDeepNEATBlueprintConn:
+    """"""
+
     def __init__(self, gene_id, conn_start, conn_end):
         self.gene_id = gene_id
         self.conn_start = conn_start
@@ -25,35 +28,44 @@ class CoDeepNEATBlueprint:
 
     def __init__(self,
                  blueprint_id,
-                 blueprint_genotype,
+                 blueprint_graph,
+                 output_shape,
+                 output_activation,
                  optimizer,
                  learning_rate,
                  momentum,
-                 nesterov,
-                 output_units,
-                 output_activation):
+                 nesterov):
         """"""
-        # Register parameters
+        # Register internal parameters
         self.blueprint_id = blueprint_id
-        self.blueprint_genotype = blueprint_genotype
+
+        # Register graph related parameters of blueprint
+        self.blueprint_graph = blueprint_graph
+        self.output_shape = output_shape
+        self.output_activation = output_activation
+
+        # Register global hyperparameters assigned to blueprint
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.nesterov = nesterov
-        self.output_units = output_units
-        self.output_activation = output_activation
 
         # Initialize internal variables
         self.fitness = None
 
-        # Initialize graph specific internal variables
+        # Declare graph related internal variables
+        # species: set of all species present in blueprint
+        # node_species: mapping of each node to its corresponding species
+        # node dependencies: mapping of TODO to TODO
+        # graph topology: list of TODO
+        throwerror
         self.species = set()
         self.node_species = dict()
         self.node_dependencies = dict()
         self.graph_topology = list()
 
-        # Process genotype
-        self._process_graph_genotype()
+        # Process graph to set graph related internal variables
+        self._process_graph()
 
     def __str__(self) -> str:
         """"""

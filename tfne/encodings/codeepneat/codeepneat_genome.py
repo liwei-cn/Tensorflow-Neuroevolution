@@ -9,15 +9,15 @@ class CoDeepNEATGenome:
 
     def __init__(self,
                  genome_id,
-                 origin_generation,
                  blueprint,
                  bp_assigned_modules,
-                 dtype):
+                 dtype,
+                 origin_generation):
         """"""
         # Register parameters
         self.genome_id = genome_id
-        self.origin_generation = origin_generation
         self.dtype = dtype
+        self.origin_generation = origin_generation
 
         # Register genotype
         self.blueprint = blueprint

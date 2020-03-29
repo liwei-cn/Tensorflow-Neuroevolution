@@ -344,12 +344,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 chosen_output_activation = random.choice(self.output_activation)
 
                 blueprint_id, blueprint = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                         output_shape=self.output_shape,
                                                                          optimizer=chosen_optimizer,
                                                                          learning_rate=chosen_learning_rate,
                                                                          momentum=chosen_momentum,
                                                                          nesterov=chosen_nesterov,
-                                                                         output_activation=chosen_output_activation,
-                                                                         output_shape=self.output_shape)
+                                                                         output_activation=chosen_output_activation)
 
                 # Append newly create blueprint to blueprint container and to only initial blueprint species
                 self.blueprints[blueprint_id] = blueprint
