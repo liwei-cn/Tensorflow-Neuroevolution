@@ -31,10 +31,7 @@ class CoDeepNEATBlueprint:
                  blueprint_graph,
                  output_shape,
                  output_activation,
-                 optimizer,
-                 learning_rate,
-                 momentum,
-                 nesterov):
+                 optimizer_factory):
         """"""
         # Register internal parameters
         self.blueprint_id = blueprint_id
@@ -44,21 +41,20 @@ class CoDeepNEATBlueprint:
         self.output_shape = output_shape
         self.output_activation = output_activation
 
-        # Register global hyperparameters assigned to blueprint
-        self.optimizer = optimizer
-        self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.nesterov = nesterov
+        # Register the optimizer factory
+        self.optimizer_factory = optimizer_factory
 
         # Initialize internal variables
         self.fitness = None
 
+        # TODO CONTINUE HERE
+        raise NotImplementedError()
         # Declare graph related internal variables
         # species: set of all species present in blueprint
         # node_species: mapping of each node to its corresponding species
         # node dependencies: mapping of TODO to TODO
         # graph topology: list of TODO
-        throwerror
+
         self.species = set()
         self.node_species = dict()
         self.node_dependencies = dict()

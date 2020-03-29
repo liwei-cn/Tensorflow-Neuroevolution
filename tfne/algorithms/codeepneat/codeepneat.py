@@ -8,6 +8,7 @@ from absl import logging
 
 import tfne
 from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multiple
+from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 
@@ -49,16 +50,22 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def _process_config(self, config):
         """"""
         # Read and process the general config values for the CoDeepNEAT algorithm
-        self.available_modules = ast.literal_eval(config['GENERAL']['available_modules'])
         self.dtype = tf.dtypes.as_dtype(ast.literal_eval(config['GENERAL']['dtype']))
         self.mod_pop_size = ast.literal_eval(config['GENERAL']['mod_pop_size'])
         self.bp_pop_size = ast.literal_eval(config['GENERAL']['bp_pop_size'])
         self.genomes_per_bp = ast.literal_eval(config['GENERAL']['genomes_per_bp'])
-        logging.info("Config value for 'GENERAL/available_modules': {}".format(self.available_modules))
         logging.info("Config value for 'GENERAL/dtype': {}".format(self.dtype))
         logging.info("Config value for 'GENERAL/mod_pop_size': {}".format(self.mod_pop_size))
         logging.info("Config value for 'GENERAL/bp_pop_size': {}".format(self.bp_pop_size))
         logging.info("Config value for 'GENERAL/genomes_per_bp': {}".format(self.genomes_per_bp))
+
+        # Read and process the config values that concern the created genomes for the CoDeepNEAT algorithm
+        self.available_modules = ast.literal_eval(config['GENOME']['available_modules'])
+        self.available_optimizers = ast.literal_eval(config['GENOME']['available_optimizers'])
+        self.output_activations = ast.literal_eval(config['GENOME']['output_activations'])
+        logging.info("Config value for 'GENOME/available_modules': {}".format(self.available_modules))
+        logging.info("Config value for 'GENOME/available_optimizers': {}".format(self.available_optimizers))
+        logging.info("Config value for 'GENOME/output_activations': {}".format(self.output_activations))
 
         # Read and process the speciation config values for modules in the CoDeepNEAT algorithm
         self.mod_speciation_type = ast.literal_eval(config['MODULE_SPECIATION']['mod_speciation_type'])
@@ -163,49 +170,56 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 + self.bp_crossover != 1.0:
             raise KeyError("'BP_EVOLUTION/bp_mutation_*' and 'BP_EVOLUTION/bp_crossover' values dont add up to 1")
 
-        # Read and process the global hyperparameter config values for blueprints/genomes in the CoDeepNEAT algorithm
-        self.optimizer = ast.literal_eval(config['GLOBAL_HP']['optimizer'])
-        self.learning_rate = ast.literal_eval(config['GLOBAL_HP']['learning_rate'])
-        self.momentum = ast.literal_eval(config['GLOBAL_HP']['momentum'])
-        self.nesterov = ast.literal_eval(config['GLOBAL_HP']['nesterov'])
-        self.output_activation = ast.literal_eval(config['GLOBAL_HP']['output_activation'])
-        logging.info("Config value for 'GLOBAL_HP/optimizer': {}".format(self.optimizer))
-        logging.info("Config value for 'GLOBAL_HP/learning_rate': {}".format(self.learning_rate))
-        logging.info("Config value for 'GLOBAL_HP/momentum': {}".format(self.momentum))
-        logging.info("Config value for 'GLOBAL_HP/nesterov': {}".format(self.nesterov))
-        logging.info("Config value for 'GLOBAL_HP/output_activation': {}".format(self.output_activation))
+        # Read and process the hyperparameter config values for each optimizer
+        for available_opt in self.available_optimizers:
+            if available_opt == 'SGD':
+                if not config.has_section('SGD_HP'):
+                    raise KeyError("'SGD' optimizer set to be available in 'GENOME/available_optimizers', though "
+                                   "config does not have a 'SGD_HP' section")
+                # Read and process the hyperparameter config values for the SGD optimizer in the CoDeepNEAT algorithm
+                self.sgd_learning_rate = ast.literal_eval(config['SGD_HP']['learning_rate'])
+                self.sgd_momentum = ast.literal_eval(config['SGD_HP']['momentum'])
+                self.sgd_nesterov = ast.literal_eval(config['SGD_HP']['nesterov'])
+                logging.info("Config value for 'SGD_HP/learning_rate': {}".format(self.sgd_learning_rate))
+                logging.info("Config value for 'SGD_HP/momentum': {}".format(self.sgd_momentum))
+                logging.info("Config value for 'SGD_HP/nesterov': {}".format(self.sgd_nesterov))
 
-        # Create Standard Deviation values for range specified global HP config values
-        if len(self.learning_rate) == 4:
-            self.learning_rate_stddev = float(self.learning_rate[1] - self.learning_rate[0]) / self.learning_rate[3]
-        else:
-            self.learning_rate_stddev = float(self.learning_rate[1] - self.learning_rate[0]) / 4
-        if len(self.momentum) == 4:
-            self.momentum_stddev = float(self.momentum[1] - self.momentum[0]) / self.momentum[3]
-        else:
-            self.momentum_stddev = float(self.momentum[1] - self.momentum[0]) / 4
+                # Create Standard Deviation values for range specified global HP config values
+                if len(self.sgd_learning_rate) == 4:
+                    self.sgd_learning_rate_stddev = float(self.sgd_learning_rate[1] - self.sgd_learning_rate[0]) / \
+                                                    self.sgd_learning_rate[3]
+                else:
+                    self.sgd_learning_rate_stddev = float(self.sgd_learning_rate[1] - self.sgd_learning_rate[0]) / 4
+                if len(self.sgd_momentum) == 4:
+                    self.sgd_momentum_stddev = float(self.sgd_momentum[1] - self.sgd_momentum[0]) / self.sgd_momentum[3]
+                else:
+                    self.sgd_momentum_stddev = float(self.sgd_momentum[1] - self.sgd_momentum[0]) / 4
+            else:
+                raise KeyError("'{}' optimizer set to be available in 'GENOME/available_optimizers', though handling "
+                               "of this module has not yet been implemented".format(available_opt))
 
+        # Read and process the hyperparameter config values for each module
         for available_mod in self.available_modules:
             if available_mod == 'DENSE':
                 if not config.has_section('MODULE_DENSE_HP'):
-                    raise KeyError("'DENSE' module set to be available in 'GENERAL/available_modules', though config "
+                    raise KeyError("'DENSE' module set to be available in 'GENOME/available_modules', though config "
                                    "does not have a 'MODULE_DENSE_HP' section")
                 # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
-                self.dense_merge_method = deserialize_merge_method(
-                    ast.literal_eval(config['MODULE_DENSE_HP']['merge_method']))
+                self.dense_merge_methods = deserialize_merge_method(
+                    ast.literal_eval(config['MODULE_DENSE_HP']['merge_methods']))
                 self.dense_units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
-                self.dense_activation = ast.literal_eval(config['MODULE_DENSE_HP']['activation'])
-                self.dense_kernel_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializer'])
-                self.dense_bias_initializer = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializer'])
+                self.dense_activations = ast.literal_eval(config['MODULE_DENSE_HP']['activations'])
+                self.dense_kernel_initializers = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializers'])
+                self.dense_bias_initializers = ast.literal_eval(config['MODULE_DENSE_HP']['bias_initializers'])
                 self.dense_dropout_probability = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_probability'])
                 self.dense_dropout_rate = ast.literal_eval(config['MODULE_DENSE_HP']['dropout_rate'])
-                logging.info("Config value for 'MODULE_DENSE_HP/merge_method': {}".format(self.dense_merge_method))
+                logging.info("Config value for 'MODULE_DENSE_HP/merge_methods': {}".format(self.dense_merge_methods))
                 logging.info("Config value for 'MODULE_DENSE_HP/units': {}".format(self.dense_units))
-                logging.info("Config value for 'MODULE_DENSE_HP/activation': {}".format(self.dense_activation))
-                logging.info("Config value for 'MODULE_DENSE_HP/kernel_initializer': {}"
-                             .format(self.dense_kernel_initializer))
-                logging.info("Config value for 'MODULE_DENSE_HP/bias_initializer': {}"
-                             .format(self.dense_bias_initializer))
+                logging.info("Config value for 'MODULE_DENSE_HP/activations': {}".format(self.dense_activations))
+                logging.info("Config value for 'MODULE_DENSE_HP/kernel_initializers': {}"
+                             .format(self.dense_kernel_initializers))
+                logging.info("Config value for 'MODULE_DENSE_HP/bias_initializers': {}"
+                             .format(self.dense_bias_initializers))
                 logging.info("Config value for 'MODULE_DENSE_HP/dropout_probability': {}"
                              .format(self.dense_dropout_probability))
                 logging.info("Config value for 'MODULE_DENSE_HP/dropout_rate': {}".format(self.dense_dropout_rate))
@@ -221,7 +235,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 else:
                     self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
             else:
-                raise KeyError("'{}' module set to be available in 'GENERAL/available_modules', though handling of "
+                raise KeyError("'{}' module set to be available in 'GENOME/available_modules', though handling of "
                                "this module has not yet been implemented".format(available_mod))
 
     def register_environment(self, environment):
@@ -272,13 +286,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Initialize a new module according to the module type of the chosen species
                 if self.mod_species_type[chosen_species] == 'DENSE':
                     # Uniform randomly choose parameters of DENSE module
-                    chosen_merge_method = random.choice(self.dense_merge_method)
+                    chosen_merge_method = random.choice(self.dense_merge_methods)
                     chosen_units_uniform = random.randint(self.dense_units[0], self.dense_units[1])
                     chosen_units = round_to_nearest_multiple(chosen_units_uniform, self.dense_units[0],
                                                              self.dense_units[1], self.dense_units[2])
-                    chosen_activation = random.choice(self.dense_activation)
-                    chosen_kernel_initializer = random.choice(self.dense_kernel_initializer)
-                    chosen_bias_initializer = random.choice(self.dense_bias_initializer)
+                    chosen_activation = random.choice(self.dense_activations)
+                    chosen_kernel_initializer = random.choice(self.dense_kernel_initializers)
+                    chosen_bias_initializer = random.choice(self.dense_bias_initializers)
 
                     # Decide according to dropout_probabilty if there will be a dropout layer at all
                     if random.random() < self.dense_dropout_probability:
@@ -332,24 +346,39 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
                 blueprint_graph[gene_id] = gene
 
-                # Uniform randomly choose global hyperparameters of the blueprint
-                chosen_optimizer = random.choice(self.optimizer)
-                chosen_learning_rate_uniform = random.uniform(self.learning_rate[0], self.learning_rate[1])
-                chosen_learning_rate = round_to_nearest_multiple(chosen_learning_rate_uniform, self.learning_rate[0],
-                                                                 self.learning_rate[1], self.learning_rate[2])
-                chosen_momentum_uniform = random.uniform(self.momentum[0], self.momentum[1])
-                chosen_momentum = round_to_nearest_multiple(chosen_momentum_uniform, self.momentum[0],
-                                                            self.momentum[1], self.momentum[2])
-                chosen_nesterov = random.choice(self.nesterov)
-                chosen_output_activation = random.choice(self.output_activation)
+                # Uniform randomly choose an output activation
+                chosen_output_activation = random.choice(self.output_activations)
 
+                # Uniform Randomly choose an optimizer and its hyperparameters for the blueprint. Then create a factory
+                # for that optimizer.
+                chosen_optimizer = random.choice(self.available_optimizers)
+                if chosen_optimizer == 'SGD':
+                    chosen_learning_rate_uniform = random.uniform(self.sgd_learning_rate[0], self.sgd_learning_rate[1])
+                    chosen_learning_rate = round_to_nearest_multiple(chosen_learning_rate_uniform,
+                                                                     self.sgd_learning_rate[0],
+                                                                     self.sgd_learning_rate[1],
+                                                                     self.sgd_learning_rate[2])
+                    chosen_momentum_uniform = random.uniform(self.sgd_momentum[0], self.sgd_momentum[1])
+                    chosen_momentum = round_to_nearest_multiple(chosen_momentum_uniform,
+                                                                self.sgd_momentum[0],
+                                                                self.sgd_momentum[1],
+                                                                self.sgd_momentum[2])
+                    chosen_nesterov = random.choice(self.sgd_nesterov)
+
+                    optimizer_factory = SGDFactory(learning_rate=chosen_learning_rate,
+                                                   momentum=chosen_momentum,
+                                                   nesterov=chosen_nesterov)
+                elif chosen_optimizer == 'RMSprop':
+                    raise NotImplementedError()
+                else:
+                    raise RuntimeError("Optimizer type '{}' could not be identified during initialization"
+                                       .format(chosen_optimizer))
+
+                # Create blueprint
                 blueprint_id, blueprint = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                          output_shape=self.output_shape,
-                                                                         optimizer=chosen_optimizer,
-                                                                         learning_rate=chosen_learning_rate,
-                                                                         momentum=chosen_momentum,
-                                                                         nesterov=chosen_nesterov,
-                                                                         output_activation=chosen_output_activation)
+                                                                         output_activation=chosen_output_activation,
+                                                                         optimizer_factory=optimizer_factory)
 
                 # Append newly create blueprint to blueprint container and to only initial blueprint species
                 self.blueprints[blueprint_id] = blueprint

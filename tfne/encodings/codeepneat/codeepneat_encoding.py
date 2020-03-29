@@ -46,22 +46,16 @@ class CoDeepNEATEncoding(BaseEncoding):
     def create_blueprint(self,
                          blueprint_graph,
                          output_shape,
-                         optimizer,
-                         learning_rate,
-                         momentum,
-                         nesterov,
-                         output_activation) -> (int, CoDeepNEATBlueprint):
+                         output_activation,
+                         optimizer_factory) -> (int, CoDeepNEATBlueprint):
         """"""
         self.bp_id_counter += 1
 
         return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
                                                        blueprint_graph=blueprint_graph,
                                                        output_shape=output_shape,
-                                                       optimizer=optimizer,
-                                                       learning_rate=learning_rate,
-                                                       momentum=momentum,
-                                                       nesterov=nesterov,
-                                                       output_activation=output_activation)
+                                                       output_activation=output_activation,
+                                                       optimizer_factory=optimizer_factory)
 
     def create_dense_module(self,
                             merge_method,
