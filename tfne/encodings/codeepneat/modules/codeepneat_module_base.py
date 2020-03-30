@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     """"""
 
-    @abstractmethod
     def __init__(self, module_id, merge_method):
         self.module_id = module_id
         self.merge_method = merge_method
@@ -13,7 +12,7 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     @abstractmethod
     def __str__(self) -> str:
         """"""
-        pass
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
 
     def get_id(self) -> int:
         return self.module_id

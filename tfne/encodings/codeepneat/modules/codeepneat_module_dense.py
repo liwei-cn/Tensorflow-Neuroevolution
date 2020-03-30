@@ -1,5 +1,3 @@
-from absl import logging
-
 from .codeepneat_module_base import CoDeepNEATModuleBase
 from .codeepneat_module_dense_network import CoDeepNEATModuleDenseNetwork
 
@@ -14,7 +12,6 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
                  activation,
                  kernel_initializer,
                  bias_initializer,
-                 dropout_flag,
                  dropout_rate):
         """"""
         # Register parameters
@@ -23,13 +20,11 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         self.activation = activation
         self.kernel_initializer = kernel_initializer
         self.bias_initializer = bias_initializer
-        self.dropout_flag = dropout_flag
         self.dropout_rate = dropout_rate
 
     def __str__(self) -> str:
         """"""
-        logging.debug("\t\tToDo: Create string representation of CDN Dense Module")
-        return "ToDo: Create string representation of CDN Dense Module"
+        pass
 
     def create_module(self,
                       dtype,
@@ -42,6 +37,5 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
                                             activation=network_activation,
                                             kernel_initializer=self.kernel_initializer,
                                             bias_initializer=self.bias_initializer,
-                                            dropout_flag=self.dropout_flag,
                                             dropout_rate=self.dropout_rate,
                                             dtype=dtype)

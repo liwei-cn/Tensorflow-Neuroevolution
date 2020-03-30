@@ -5,7 +5,7 @@ import tensorflow as tf
 class CoDeepNEATModuleDenseNetwork:
     """"""
 
-    def __init__(self, units, activation, kernel_initializer, bias_initializer, dropout_flag, dropout_rate, dtype):
+    def __init__(self, units, activation, kernel_initializer, bias_initializer, dropout_rate, dtype):
         """"""
         # Initialize core elements of the module network
         self.dense = tf.keras.layers.Dense(units=units,
@@ -13,7 +13,7 @@ class CoDeepNEATModuleDenseNetwork:
                                            kernel_initializer=kernel_initializer,
                                            bias_initializer=bias_initializer,
                                            dtype=dtype)
-        self.dropout_flag = dropout_flag
+        self.dropout_flag = dropout_rate is not None
         if self.dropout_flag:
             self.dropout = tf.keras.layers.Dropout(rate=dropout_rate, dtype=dtype)
 
