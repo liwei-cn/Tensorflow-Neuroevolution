@@ -14,6 +14,11 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
 
+    @abstractmethod
+    def create_module(self, dtype, output_shape, output_activation) -> object:
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module()'")
+
     def get_id(self) -> int:
         return self.module_id
 

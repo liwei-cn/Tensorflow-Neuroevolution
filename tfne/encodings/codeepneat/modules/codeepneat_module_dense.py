@@ -28,10 +28,15 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
 
     def create_module(self,
                       dtype,
-                      output_units=None,
+                      output_shape=None,
                       output_activation=None) -> CoDeepNEATModuleDenseNetwork:
         """"""
-        network_units = self.units if output_units is None else output_units
+        if output_shape is None:
+            network_units = self.units
+        else:
+            if len(output_shape) > 1:
+                raise RuntimeError("Dense Module being created with a multi-dimensional output shape")
+            network_units = output_shape[0]
         network_activation = self.activation if output_activation is None else output_activation
         return CoDeepNEATModuleDenseNetwork(units=network_units,
                                             activation=network_activation,

@@ -53,7 +53,7 @@ class CoDeepNEATModel(tf.keras.Model):
         else:
             out_merge_method = None
         out_module_network = out_assigned_module.create_module(dtype=dtype,
-                                                               output_units=blueprint.get_output_units(),
+                                                               output_shape=blueprint.get_output_shape(),
                                                                output_activation=blueprint.get_output_activation())
         custom_layers = custom_layers + out_module_network.get_layers()
 

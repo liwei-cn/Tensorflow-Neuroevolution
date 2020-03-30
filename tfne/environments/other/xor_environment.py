@@ -43,12 +43,9 @@ class XOREnvironment(BaseEnvironment):
 
     def _eval_genome_fitness_weight_training(self, genome) -> float:
         """"""
-        raise NotImplementedError()
-        '''
-        # TODO REDO
         # Get model and optimizer required for compilation
         model = genome.get_model()
-        optimizer = genome.get_configured_optimizer()
+        optimizer = genome.get_optimizer()
 
         # Compile and train model
         model.compile(optimizer=optimizer, loss=self.loss_function)
@@ -64,7 +61,6 @@ class XOREnvironment(BaseEnvironment):
             evaluated_fitness = float(0)
 
         return round(evaluated_fitness, 3)
-        '''
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
         """"""
@@ -78,6 +74,10 @@ class XOREnvironment(BaseEnvironment):
         print("Replaying Genome {}...".format(genome.get_id()))
         print("Solution Values:\n{}".format(self.y))
         print("Predicted Values:\n{}".format(model.predict(self.x)))
+
+        print("Replaying Genome {}...".format(genome.get_id()))
+        print("Solution Values:\n{}".format(self.y))
+        print("Predicted Values:\n{}".format(genome(self.x)))
         '''
 
     def is_weight_training(self) -> bool:

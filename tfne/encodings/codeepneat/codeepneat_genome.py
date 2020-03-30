@@ -36,6 +36,9 @@ class CoDeepNEATGenome(BaseGenome):
     def __str__(self) -> str:
         """"""
         logging.warning("TODO: Implement codeepneat_genome.__str__()")
+        return "Genome {} from generation {} with fitness {}".format(self.genome_id,
+                                                                     self.origin_generation,
+                                                                     self.fitness)
 
     def visualize(self, view, save_dir):
         """"""

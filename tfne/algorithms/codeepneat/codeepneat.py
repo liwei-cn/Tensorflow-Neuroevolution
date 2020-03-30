@@ -463,6 +463,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evolve_population(self) -> bool:
         """"""
+        self.generation_counter += 1
         pass
 
     '''
