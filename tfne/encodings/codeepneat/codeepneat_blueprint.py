@@ -47,14 +47,12 @@ class CoDeepNEATBlueprint:
         # Initialize internal variables
         self.fitness = None
 
-        # TODO CONTINUE HERE
-        raise NotImplementedError()
         # Declare graph related internal variables
         # species: set of all species present in blueprint
         # node_species: mapping of each node to its corresponding species
-        # node dependencies: mapping of TODO to TODO
-        # graph topology: list of TODO
-
+        # node dependencies: mapping of nodes to the node upon which they depend upon
+        # graph topology: list of sets of dependency levels, with the first set being the nodes that depend on nothing,
+        #                 the second set being the nodes that depend on the first set, and so on
         self.species = set()
         self.node_species = dict()
         self.node_dependencies = dict()
@@ -67,11 +65,11 @@ class CoDeepNEATBlueprint:
         """"""
         pass
 
-    def _process_graph_genotype(self):
+    def _process_graph(self):
         """"""
         # Create set of species (self.species, set), assignment of nodes to their species (self.node_species, dict) as
         # well as the assignment of nodes to the nodes they depend upon (self.node_dependencies, dict)
-        for gene in self.blueprint_genotype.values():
+        for gene in self.blueprint_graph.values():
             if isinstance(gene, CoDeepNEATBlueprintConn):
                 if gene.conn_end in self.node_dependencies:
                     self.node_dependencies[gene.conn_end].add(gene.conn_start)
@@ -80,8 +78,8 @@ class CoDeepNEATBlueprint:
             else:  # if isinstance(gene, CoDeepNEATBlueprintNode):
                 self.node_species[gene.node] = gene.species
                 self.species.add(gene.species)
-        # Remove species assigned to Input node
-        self.species.remove(0)
+        # Remove the 'None' species assigned to Input node
+        self.species.remove(None)
 
         # Topologically sort the graph and save into self.graph_topology as a list of sets of levels, with the first
         # set being the layer dependent on nothing and the following sets depending on the values of the preceding sets
@@ -112,9 +110,21 @@ class CoDeepNEATBlueprint:
             for node, dep in node_deps.items():
                 node_deps[node] = dep - dependencyless
 
-    def get_blueprint_genotype(self) -> dict:
+    def get_blueprint_graph(self) -> dict:
         """"""
-        return self.blueprint_genotype
+        return self.blueprint_graph
+
+    def get_output_shape(self) -> tuple:
+        """"""
+        return self.output_shape
+
+    def get_output_activation(self) -> str:
+        """"""
+        return self.output_activation
+
+    def get_created_optimizer(self) -> tf.keras.optimizers.Optimizer:
+        """"""
+        return self.optimizer_factory.create_optimizer()
 
     def get_species(self) -> set:
         """"""
@@ -131,35 +141,6 @@ class CoDeepNEATBlueprint:
     def get_graph_topology(self) -> list:
         """"""
         return self.graph_topology
-
-    def get_configured_optimizer(self) -> tf.keras.optimizers.Optimizer:
-        """"""
-        if self.optimizer == "SGD":
-            return tf.keras.optimizers.SGD(learning_rate=self.learning_rate,
-                                           momentum=self.momentum,
-                                           nesterov=self.nesterov)
-        else:
-            raise NotImplementedError("Available Optimizer '{}' not yet implemented".format(self.optimizer))
-
-    def get_learning_rate(self) -> float:
-        """"""
-        return self.learning_rate
-
-    def get_momentum(self) -> float:
-        """"""
-        return self.momentum
-
-    def get_nesterov(self) -> bool:
-        """"""
-        return self.nesterov
-
-    def get_output_units(self) -> int:
-        """"""
-        return self.output_units
-
-    def get_output_activation(self) -> str:
-        """"""
-        return self.output_activation
 
     def get_id(self) -> int:
         return self.blueprint_id
