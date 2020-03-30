@@ -2,9 +2,10 @@ import tensorflow as tf
 from absl import logging
 
 from .codeepneat_model import CoDeepNEATModel
+from ..base_genome import BaseGenome
 
 
-class CoDeepNEATGenome:
+class CoDeepNEATGenome(BaseGenome):
     """"""
 
     def __init__(self,
@@ -27,15 +28,14 @@ class CoDeepNEATGenome:
         self.fitness = None
 
         # Create optimizer and model
-        self.configured_optimizer = self.blueprint.get_configured_optimizer()
+        self.optimizer = self.blueprint.create_optimizer()
         self.model = CoDeepNEATModel(blueprint=self.blueprint,
                                      bp_assigned_modules=self.bp_assigned_modules,
                                      dtype=self.dtype)
 
     def __str__(self) -> str:
         """"""
-        logging.debug("\t\tToDo: Create proper str representation of genome")
-        return "genome {} from gen {} with fitness {}".format(self.genome_id, self.origin_generation, self.fitness)
+        logging.warning("TODO: Implement codeepneat_genome.__str__()")
 
     def visualize(self, view, save_dir):
         """"""
@@ -53,9 +53,9 @@ class CoDeepNEATGenome:
         """"""
         return self.model
 
-    def get_configured_optimizer(self) -> tf.keras.optimizers.Optimizer:
+    def get_optimizer(self) -> tf.keras.optimizers.Optimizer:
         """"""
-        return self.configured_optimizer
+        return self.optimizer
 
     def get_genotype(self) -> tuple:
         """"""

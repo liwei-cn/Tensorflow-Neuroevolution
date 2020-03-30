@@ -1,4 +1,5 @@
 import tensorflow as tf
+from absl import logging
 
 
 class CoDeepNEATBlueprintNode:
@@ -63,7 +64,7 @@ class CoDeepNEATBlueprint:
 
     def __str__(self) -> str:
         """"""
-        pass
+        logging.warning("TODO: Implement codeepneat_blueprint.__str__()")
 
     def _process_graph(self):
         """"""
@@ -110,6 +111,10 @@ class CoDeepNEATBlueprint:
             for node, dep in node_deps.items():
                 node_deps[node] = dep - dependencyless
 
+    def create_optimizer(self) -> tf.keras.optimizers.Optimizer:
+        """"""
+        return self.optimizer_factory.create_optimizer()
+
     def get_blueprint_graph(self) -> dict:
         """"""
         return self.blueprint_graph
@@ -121,10 +126,6 @@ class CoDeepNEATBlueprint:
     def get_output_activation(self) -> str:
         """"""
         return self.output_activation
-
-    def get_created_optimizer(self) -> tf.keras.optimizers.Optimizer:
-        """"""
-        return self.optimizer_factory.create_optimizer()
 
     def get_species(self) -> set:
         """"""
