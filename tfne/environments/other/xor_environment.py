@@ -12,6 +12,9 @@ class XOREnvironment(BaseEnvironment):
 
     def __init__(self, config, weight_training_eval):
         """"""
+        # Register parameters
+        self.weight_training_eval = weight_training_eval
+
         # Initialize corresponding input and output mappings
         self.x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         self.y = np.array([[0], [1], [1], [0]])
@@ -20,15 +23,16 @@ class XOREnvironment(BaseEnvironment):
         self.input_shape = (2,)
         self.output_shape = (1,)
 
+        # Initialize loss function to evaluate performance on either evaluation method
+        self.loss_function = tf.keras.losses.BinaryCrossentropy()
+
         # Initialize environment differently depending on if the genome's weights are first being trained before the
         # genome is assigned a fitness value
-        self.weight_training_eval = weight_training_eval
         if weight_training_eval:
             # Register the weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_weight_training
 
-            # Initialize appropriate Loss function and read config supplied weight training parameters
-            self.loss_function = tf.keras.losses.BinaryCrossentropy()
+            # Initialize and read config supplied weight training parameters
             self.epochs = ast.literal_eval(config['EVALUATION']['evaluation_epochs'])
             self.batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
             logging.info("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
@@ -39,6 +43,7 @@ class XOREnvironment(BaseEnvironment):
 
     def eval_genome_fitness(self, genome) -> float:
         """"""
+        # TO BE OVERRIDEN
         pass
 
     def _eval_genome_fitness_weight_training(self, genome) -> float:
@@ -64,21 +69,15 @@ class XOREnvironment(BaseEnvironment):
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
         """"""
-        raise NotImplementedError()
+        # Evaluate and return its fitness by calling genome directly with input
+        evaluated_fitness = float(100 * (1 - self.loss_function(self.y, genome(self.x))))
+        return round(evaluated_fitness, 3)
 
     def replay_genome(self, genome):
         """"""
-        raise NotImplementedError()
-        '''
-        model = genome.get_model()
-        print("Replaying Genome {}...".format(genome.get_id()))
-        print("Solution Values:\n{}".format(self.y))
-        print("Predicted Values:\n{}".format(model.predict(self.x)))
-
-        print("Replaying Genome {}...".format(genome.get_id()))
-        print("Solution Values:\n{}".format(self.y))
-        print("Predicted Values:\n{}".format(genome(self.x)))
-        '''
+        print("Replaying Genome #{}:".format(genome.get_id()))
+        print("Solution Values: \t{}\n".format(self.y))
+        print("Predicted Values:\t{}\n".format(genome(self.x)))
 
     def is_weight_training(self) -> bool:
         """"""
