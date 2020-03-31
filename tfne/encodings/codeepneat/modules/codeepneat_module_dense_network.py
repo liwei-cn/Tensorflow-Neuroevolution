@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 
@@ -17,7 +16,7 @@ class CoDeepNEATModuleDenseNetwork:
         if self.dropout_flag:
             self.dropout = tf.keras.layers.Dropout(rate=dropout_rate, dtype=dtype)
 
-    def __call__(self, inputs) -> np.ndarray:
+    def __call__(self, inputs) -> tf.Tensor:
         """"""
         outputs = self.dense(inputs)
         if self.dropout_flag:

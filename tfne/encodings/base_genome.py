@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-import numpy as np
 import tensorflow as tf
 
 
@@ -8,7 +7,7 @@ class BaseGenome(object, metaclass=ABCMeta):
     """"""
 
     @abstractmethod
-    def __call__(self, inputs) -> np.ndarray:
+    def __call__(self, inputs) -> tf.Tensor:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement '__call__()'")
 

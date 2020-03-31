@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 from absl import logging
 
@@ -34,7 +33,7 @@ class CoDeepNEATGenome(BaseGenome):
                                      bp_assigned_modules=self.bp_assigned_modules,
                                      dtype=self.dtype)
 
-    def __call__(self, inputs) -> np.ndarray:
+    def __call__(self, inputs) -> tf.Tensor:
         """"""
         return self.model.predict(inputs)
 

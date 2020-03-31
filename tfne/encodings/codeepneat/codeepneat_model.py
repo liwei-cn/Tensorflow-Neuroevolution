@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 
@@ -15,6 +14,11 @@ class CoDeepNEATModel(tf.keras.Model):
         # node, the nodes the current node depends upon, a flag if a merge is required due to multiple dependencies, the
         # actual merge method and finally the actual callable TF network representing the node.
         self.compute_graph = list()
+
+        # Create list of custom layer object in which the actual TF layers of the created modules are collected as due
+        # the complicated architecture the standard collection process of collecting custom layers for tf.Model is not
+        # working. Overwrite self._layers with custom_layers
+        custom_layers = list()
 
         # Request preprocessed information from blueprint required for TF model creation
         node_species = blueprint.get_node_species()
@@ -37,8 +41,9 @@ class CoDeepNEATModel(tf.keras.Model):
                 else:
                     merge_method = None
 
-                # Create actual module
+                # Create actual module and collect its layers
                 node_network = current_node_assigned_module.create_module(dtype=dtype)
+                custom_layers = custom_layers + node_network.get_layers()
 
                 # Create Compute tuple that has to be processed for the current node and append it to the compute graph
                 compute_tuple = (node, current_node_dependencies, merge_flag, merge_method, node_network)
@@ -58,16 +63,20 @@ class CoDeepNEATModel(tf.keras.Model):
         else:
             out_merge_method = None
 
-        # Create actual output module with special output shape and activation
+        # Create actual output module with special output shape and activation and collect its layers
         out_node_network = out_node_assigned_module.create_module(dtype=dtype,
                                                                   output_shape=blueprint.get_output_shape(),
                                                                   output_activation=blueprint.get_output_activation())
+        custom_layers = custom_layers + out_node_network.get_layers()
 
         # Create compute tuple that has to be processed for the output node and append it to the compute graph
         out_compute_tuple = (2, out_node_dependencies, out_merge_flag, out_merge_method, out_node_network)
         self.compute_graph.append(out_compute_tuple)
 
-    def call(self, inputs, **kwargs) -> np.ndarray:
+        # Overwrite self._layers collected internally by tf.Model with custom collected layers from complex architecture
+        self._layers = custom_layers
+
+    def call(self, inputs, **kwargs) -> tf.Tensor:
         """"""
         # Create dict of the node results, with the input node having the model inputs as its node result
         node_outputs = {1: inputs}
