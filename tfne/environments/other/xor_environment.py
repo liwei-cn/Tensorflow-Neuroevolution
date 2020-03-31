@@ -51,6 +51,9 @@ class XOREnvironment(BaseEnvironment):
         # Get model and optimizer required for compilation
         model = genome.get_model()
         optimizer = genome.get_optimizer()
+        if optimizer is None:
+            raise RuntimeError("Genome to evaluate ({}) does not supply a optimizer and there is as of yet no standard "
+                               "optimizer defined for the XOR environment")
 
         # Compile and train model
         model.compile(optimizer=optimizer, loss=self.loss_function)
