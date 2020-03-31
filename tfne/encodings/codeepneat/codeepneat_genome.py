@@ -40,7 +40,7 @@ class CoDeepNEATGenome(BaseGenome):
 
     def __str__(self) -> str:
         """"""
-        return "CoDeepNEATGenome || ID: {:>4} || Fitness {:>4} || Origin Generation: {:>4}" \
+        return "CoDeepNEATGenome || ID: {:>4} || Fitness: {:>6} || Origin Generation: {:>4}" \
             .format(self.genome_id, self.fitness, self.origin_generation)
 
     def visualize(self, view, save_dir):
