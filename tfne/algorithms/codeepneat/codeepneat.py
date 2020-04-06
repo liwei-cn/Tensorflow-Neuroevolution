@@ -440,10 +440,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             mod_genome_fitness_avg = round(statistics.mean(mod_genome_fitness_list), 3)
             self.modules[mod_id].set_fitness(mod_genome_fitness_avg)
 
-        # TODO: Possibly deepcopy best genome as underlying genotype elements (blueprint/modules/etc) might go extinct
-        # from copy import deepcopy
-        # self.best_genome = deepcopy(self.best_genome)
-
         return self.generation_counter, self.best_fitness
 
     def summarize_population(self):
