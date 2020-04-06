@@ -1,4 +1,7 @@
+import typing
 from abc import ABCMeta, abstractmethod
+
+import tensorflow as tf
 
 
 class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
@@ -15,9 +18,9 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
 
     @abstractmethod
-    def create_module(self, dtype, output_shape, output_activation) -> object:
+    def create_module_layers(self, dtype, output_shape, output_activation) -> typing.Tuple[tf.keras.layers.Layer, ...]:
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module()'")
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     def get_id(self) -> int:
         return self.module_id
