@@ -62,10 +62,10 @@ class XOREnvironment(BaseEnvironment):
         # Evaluate and return its fitness
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, model.predict(self.x))))
 
-        # TODO Resolve Workaround
-        # Introduce temporary check for NaN as sometimes loss seems to yield NaN arbitrarily
-        import math
-        if math.isnan(evaluated_fitness):
+        # TODO WORKAROUND FOR BUG
+        # Sometimes loss function randomly returns NaN.
+        # See bug report: https://groups.google.com/a/tensorflow.org/forum/#!topic/developers/XjR6IExmEsI
+        if tf.math.is_nan(evaluated_fitness):
             evaluated_fitness = float(0)
 
         return round(evaluated_fitness, 3)
