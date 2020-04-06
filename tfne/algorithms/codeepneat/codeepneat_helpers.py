@@ -1,7 +1,9 @@
+from typing import Union, Callable
+
 import tensorflow as tf
 
 
-def deserialize_merge_method(input_list):
+def deserialize_merge_method(input_list) -> [Callable, ...]:
     """"""
     deserialized_list = []
     for merge_method in input_list:
@@ -14,7 +16,7 @@ def deserialize_merge_method(input_list):
     return deserialized_list
 
 
-def round_to_nearest_multiple(value, minimum, maximum, multiple):
+def round_to_nearest_multiple(value, minimum, maximum, multiple) -> Union[int, float]:
     """"""
     lower_multiple = int(value / multiple) * multiple
     if value % multiple - (multiple / 2.0) < 0:

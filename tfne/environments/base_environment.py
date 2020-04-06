@@ -20,11 +20,11 @@ class BaseEnvironment(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'is_weight_training()'")
 
     @abstractmethod
-    def get_input_shape(self) -> tuple:
+    def get_input_shape(self) -> (int, ...):
         """"""
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_input_shape()'")
 
     @abstractmethod
-    def get_output_shape(self) -> tuple:
+    def get_output_shape(self) -> (int, ...):
         """"""
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_output_shape()'")

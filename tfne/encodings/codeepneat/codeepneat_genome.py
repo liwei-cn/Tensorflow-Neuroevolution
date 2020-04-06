@@ -1,6 +1,7 @@
 import tensorflow as tf
 from absl import logging
 
+from .codeepneat_blueprint import CoDeepNEATBlueprint
 from .codeepneat_model import CoDeepNEATModel
 from ..base_genome import BaseGenome
 
@@ -62,7 +63,7 @@ class CoDeepNEATGenome(BaseGenome):
         """"""
         return self.optimizer
 
-    def get_genotype(self) -> tuple:
+    def get_genotype(self) -> (CoDeepNEATBlueprint, {int: int}):
         """"""
         return self.blueprint, self.bp_assigned_modules
 

@@ -1,5 +1,3 @@
-import typing
-
 import tensorflow as tf
 
 from .codeepneat_module_base import CoDeepNEATModuleBase
@@ -33,7 +31,7 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
     def create_module_layers(self,
                              dtype,
                              output_shape=None,
-                             output_activation=None) -> typing.Tuple[tf.keras.layers.Layer, ...]:
+                             output_activation=None) -> (tf.keras.layers.Layer, ...):
         """"""
         # Determine if the create layers should have module deviating parameters in case of an output module
         if output_shape is None:

@@ -1,3 +1,4 @@
+from typing import Union
 from abc import ABCMeta, abstractmethod
 
 import tensorflow as tf
@@ -31,11 +32,11 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_model()'")
 
-    def get_optimizer(self) -> None or tf.keras.optimizers.Optimizer:
+    def get_optimizer(self) -> Union[None, tf.keras.optimizers.Optimizer]:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_optimizer()'")
 
-    def get_genotype(self) -> tuple:
+    def get_genotype(self) -> object:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_genotype()'")
 

@@ -115,11 +115,11 @@ class CoDeepNEATBlueprint:
         """"""
         return self.optimizer_factory.create_optimizer()
 
-    def get_blueprint_graph(self) -> dict:
+    def get_blueprint_graph(self) -> {int: object}:
         """"""
         return self.blueprint_graph
 
-    def get_output_shape(self) -> tuple:
+    def get_output_shape(self) -> (int, ...):
         """"""
         return self.output_shape
 
@@ -127,19 +127,19 @@ class CoDeepNEATBlueprint:
         """"""
         return self.output_activation
 
-    def get_species(self) -> set:
+    def get_species(self) -> {int, ...}:
         """"""
         return self.species
 
-    def get_node_species(self) -> dict:
+    def get_node_species(self) -> {int: int}:
         """"""
         return self.node_species
 
-    def get_node_dependencies(self) -> dict:
+    def get_node_dependencies(self) -> {int: int}:
         """"""
         return self.node_dependencies
 
-    def get_graph_topology(self) -> list:
+    def get_graph_topology(self) -> ({int, ...}, ...):
         """"""
         return self.graph_topology
 
