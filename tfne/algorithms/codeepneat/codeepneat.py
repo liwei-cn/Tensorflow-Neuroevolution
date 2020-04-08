@@ -559,7 +559,48 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             raise NotImplementedError("Other blueprint speciation method than 'None' not yet implemented")
 
         #### Select Blueprints ####
-        pass
+        # Remove low performing blueprints and carry over the top blueprints of each species according to specified
+        # elitism
+        new_bp_species = dict()
+        for spec_id, spec_bp_ids in self.bp_species.items():
+            # Determine number of blueprints to remove and to carry over as integers
+            spec_size = len(spec_bp_ids)
+            if self.bp_removal_type == 'fixed':
+                blueprints_to_remove = self.bp_removal
+            else:  # if self.bp_removal_type == 'threshold':
+                blueprints_to_remove = math.floor(spec_size * self.bp_removal_threshold)
+            if self.bp_elitism_type == 'fixed':
+                blueprints_to_carry_over = self.bp_elitism
+            else:  # if self.bp_elitism_type == 'threshold':
+                blueprints_to_carry_over = spec_size - math.ceil(spec_size * self.bp_elitism_threshold)
+
+            # Elitism has higher precedence than removal. Therefore, if more blueprints are carried over than are
+            # present in the species (can occur if elitism specified as absolut integer), carry over all blueprints
+            # without removing anything. If more blueprints are to be removed and carried over than are present in the
+            # species, decrease in blueprints that are to be removed.
+            if blueprints_to_carry_over >= spec_size:
+                blueprints_to_remove = 0
+                blueprints_to_carry_over = spec_size
+            elif blueprints_to_remove + blueprints_to_carry_over > spec_size:
+                blueprints_to_remove = spec_size - blueprints_to_carry_over
+
+            # Sort species blueprint ids according to their fitness in order to remove/carry over the determined amount
+            # of blueprints
+            spec_bp_ids_sorted = sorted(spec_bp_ids, key=lambda x: self.blueprints[x].get_fitness(), reverse=True)
+
+            # Carry over fittest blueprints to new blueprint_species, according to elitism
+            new_bp_species[spec_id] = spec_bp_ids_sorted[:blueprints_to_carry_over]
+
+            # Delete low performing blueprints from memory of the blueprint container as well as from the blueprint
+            # species assignment
+            if blueprints_to_remove > 0:
+                # Remove blueprints
+                blueprint_ids_to_remove = spec_bp_ids_sorted[-blueprints_to_remove:]
+                for bp_id_to_remove in blueprint_ids_to_remove:
+                    del self.blueprints[bp_id_to_remove]
+
+                # Assign blueprint id list without low performing blueprints to species
+                self.bp_species[spec_id] = spec_bp_ids_sorted[:-blueprints_to_remove]
 
         #### Evolve Modules ####
         pass
