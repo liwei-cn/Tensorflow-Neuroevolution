@@ -69,12 +69,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Read and process the speciation config values for modules in the CoDeepNEAT algorithm
         self.mod_speciation_type = ast.literal_eval(config['MODULE_SPECIATION']['mod_speciation_type'])
-        if self.mod_speciation_type is 'Basic':
+        if self.mod_speciation_type == 'Basic':
             logging.info("Config value for 'MODULE_SPECIATION/mod_speciation_type': {}"
                          .format(self.mod_speciation_type))
         elif self.mod_speciation_type == 'k-means':
             # TODO
             raise NotImplementedError("MOD speciation type of k-means not yet implemented")
+        else:
+            raise NotImplementedError("MOD speciation type of '{}' not implemented".format(self.mod_speciation_type))
 
         # Read and process the selection config values for modules in the CoDeepNEAT algorithm
         if config.has_option('MODULE_SELECTION', 'mod_removal'):
@@ -124,6 +126,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         elif self.bp_speciation_type == 'k-means':
             # TODO
             raise NotImplementedError("BP speciation type of k-means not yet implemented")
+        else:
+            raise NotImplementedError("BP speciation type of '{}' not implemented".format(self.bp_speciation_type))
 
         # Read and process the selection config values for blueprints in the CoDeepNEAT algorithm
         if config.has_option('BP_SELECTION', 'bp_removal'):
@@ -459,8 +463,115 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evolve_population(self) -> bool:
         """"""
-        self.generation_counter += 1
+        #### Speciate Modules ####
+        if self.mod_speciation_type == 'Basic':
+            # Population is already speciated solely according to their module type. As speciation is configured to
+            # 'Basic' is therefore no further speciation necessary
+            pass
+
+            #### New Modules Species Size Calculation ####
+            # Determine the intended size for the module species after evolution, depending on the average fitness of
+            # the current modules in the species. This is performed before the species is selected to accurately judge
+            # the fitness of the whole species and not only of the fittest members of the species.
+
+            # Determine the specific average fitness for each species as well as the total fitness of all species
+            species_fitness = dict()
+            for spec_id, spec_mod_ids in self.mod_species.items():
+                spec_fitness = 0
+                for module_id in spec_mod_ids:
+                    spec_fitness += self.modules[module_id].get_fitness()
+                species_fitness[spec_id] = spec_fitness
+            total_fitness = sum(species_fitness.values())
+
+            # Calculate the new_mod_species_size depending on the species fitness share of the total fitness. Decimal
+            # places are floored and a species is given an additional slot in the new size if it has the highest
+            # decimal point value that was floored.
+            new_mod_species_size = dict()
+            new_mod_species_size_rest = dict()
+            current_total_size = 0
+            for spec_id, spec_fitness in species_fitness.items():
+                spec_size_float = (spec_fitness / total_fitness) * self.mod_pop_size
+                spec_size_floored = math.floor(spec_size_float)
+
+                new_mod_species_size[spec_id] = spec_size_floored
+                new_mod_species_size_rest[spec_id] = spec_size_float - spec_size_floored
+                current_total_size += spec_size_floored
+
+            # Sort the decimal point values that were cut and award the species with the highest floored decimal point
+            # values an additional slot in the new module species size, until preset module population size is reached
+            increment_order = sorted(new_mod_species_size_rest.keys(), key=new_mod_species_size_rest.get, reverse=True)
+            increment_counter = 0
+            while current_total_size < self.mod_pop_size:
+                new_mod_species_size[increment_order[increment_counter]] += 1
+                increment_counter += 1
+                current_total_size += 1
+        else:
+            raise NotImplementedError("Other module speciation method than 'Basic' not yet implemented")
+
+        #### Select Modules ####
+        # Remove low performing modules and carry over the top modules of each species according to specified elitism
+        new_mod_species = dict()
+        for spec_id, spec_mod_ids in self.mod_species.items():
+            # Determine number of modules to remove and to carry over as integers
+            spec_size = len(spec_mod_ids)
+            if self.mod_removal_type == 'fixed':
+                modules_to_remove = self.mod_removal
+            else:  # if self.mod_removal_type == 'threshold':
+                modules_to_remove = math.floor(spec_size * self.mod_removal_threshold)
+            if self.mod_elitism_type == 'fixed':
+                modules_to_carry_over = self.mod_elitism
+            else:  # if self.mod_elitism_type == 'threshold':
+                modules_to_carry_over = spec_size - math.ceil(spec_size * self.mod_elitism_threshold)
+
+            # Elitism has higher precedence than removal. Therefore, if more modules are carried over than are present
+            # in the species (can occur if elitism specified as absolut integer), carry over all modules without
+            # removing anything. If more modules are to be removed and carried over than are present in the species,
+            # decrease in modules that are to be removed.
+            if modules_to_carry_over >= spec_size:
+                modules_to_remove = 0
+                modules_to_carry_over = spec_size
+            elif modules_to_remove + modules_to_carry_over > spec_size:
+                modules_to_remove = spec_size - modules_to_carry_over
+
+            # Sort species module ids according to their fitness in order to remove/carry over the determined amount of
+            # modules.
+            spec_mod_ids_sorted = sorted(spec_mod_ids, key=lambda x: self.modules[x].get_fitness(), reverse=True)
+
+            # Carry over fittest modules to new mod_species, according to elitism
+            new_mod_species[spec_id] = spec_mod_ids_sorted[:modules_to_carry_over]
+
+            # Delete low performing modules from memory of the module container as well as from the module species
+            # assignment
+            if modules_to_remove > 0:
+                # Remove modules
+                module_ids_to_remove = spec_mod_ids_sorted[-modules_to_remove:]
+                for mod_id_to_remove in module_ids_to_remove:
+                    del self.modules[mod_id_to_remove]
+
+                # Assign module id list without low performing modules to species
+                self.mod_species[spec_id] = spec_mod_ids_sorted[:-modules_to_remove]
+
+        #### Speciate Blueprints ####
+        if self.bp_speciation_type is None:
+            # Explicitely don't speciate the blueprints and leave them all assigned to species 1
+            pass
+        else:
+            raise NotImplementedError("Other blueprint speciation method than 'None' not yet implemented")
+
+        #### Select Blueprints ####
         pass
+
+        #### Evolve Modules ####
+        pass
+
+        #### Evolve Blueprints ####
+        pass
+
+        # Adjust internal variables of evolutionary process and determine if population extinct
+        self.generation_counter += 1
+        population_extinct = False
+
+        return population_extinct
 
     '''
     def evolve(self):
