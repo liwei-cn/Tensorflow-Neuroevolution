@@ -41,3 +41,8 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
     def save_population(self, save_file_path):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'save_population()'")
+
+    @abstractmethod
+    def visualize_population(self, save_file_path):
+        """"""
+        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'visualize_population()'")

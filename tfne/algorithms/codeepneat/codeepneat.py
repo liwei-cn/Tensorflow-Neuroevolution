@@ -727,3 +727,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def save_population(self, save_file_path):
         """"""
         raise NotImplementedError()
+
+    def visualize_population(self, save_file_path):
+        """"""
+        raise NotImplementedError()
