@@ -386,7 +386,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 # Append newly create blueprint to blueprint container and to only initial blueprint species
                 self.blueprints[blueprint_id] = blueprint
-                self.bp_species[1].append(blueprint)
+                self.bp_species[1].append(blueprint_id)
 
         else:
             raise NotImplementedError("Initializing population with a pre-evolved supplied initial population not yet "
@@ -511,6 +511,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         #### Select Modules ####
         # Remove low performing modules and carry over the top modules of each species according to specified elitism
         new_mod_species = dict()
+        mod_ids_to_remove_after_reproduction = []
         for spec_id, spec_mod_ids in self.mod_species.items():
             # Determine number of modules to remove and to carry over as integers
             spec_size = len(spec_mod_ids)
@@ -540,6 +541,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             # Carry over fittest modules to new mod_species, according to elitism
             new_mod_species[spec_id] = spec_mod_ids_sorted[:modules_to_carry_over]
 
+            # Save module ids that remain in the module species for reproduction, serving as potential parents, but have
+            # to be deleted afterwards as they are also not fit enough to be carried over right away
+            mod_ids_to_remove_after_reproduction += spec_mod_ids_sorted[modules_to_carry_over:-modules_to_remove]
+
             # Delete low performing modules from memory of the module container as well as from the module species
             # assignment
             if modules_to_remove > 0:
@@ -555,6 +560,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         if self.bp_speciation_type is None:
             # Explicitely don't speciate the blueprints and leave them all assigned to species 1
             pass
+
+            # Set the intended size of the blueprints species after evolution to the same size, as no speciation takes
+            # place
+            new_bp_species_size = {1: self.bp_pop_size}
         else:
             raise NotImplementedError("Other blueprint speciation method than 'None' not yet implemented")
 
@@ -562,6 +571,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Remove low performing blueprints and carry over the top blueprints of each species according to specified
         # elitism
         new_bp_species = dict()
+        bp_ids_to_remove_after_reproduction = []
         for spec_id, spec_bp_ids in self.bp_species.items():
             # Determine number of blueprints to remove and to carry over as integers
             spec_size = len(spec_bp_ids)
@@ -591,6 +601,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             # Carry over fittest blueprints to new blueprint_species, according to elitism
             new_bp_species[spec_id] = spec_bp_ids_sorted[:blueprints_to_carry_over]
 
+            # Save blueprint ids that remain in the blueprint species for reproduction, serving as potential parents,
+            # but have to be deleted afterwards as they are also not fit enough to be carried over right away
+            bp_ids_to_remove_after_reproduction += spec_bp_ids_sorted[blueprints_to_carry_over:-blueprints_to_remove]
+
             # Delete low performing blueprints from memory of the blueprint container as well as from the blueprint
             # species assignment
             if blueprints_to_remove > 0:
@@ -603,16 +617,42 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.bp_species[spec_id] = spec_bp_ids_sorted[:-blueprints_to_remove]
 
         #### Evolve Modules ####
-        pass
+        # Traverse through the new module species and add new modules according to the previously specified offpsring
+        for spec_id, carried_over_spec_mod_ids in new_mod_species.items():
+            # Determine offspring and create according amount of new modules
+            for _ in range(new_mod_species_size[spec_id] - len(carried_over_spec_mod_ids)):
+                if random.random() < self.mod_mutation:
+                    ## Create new module through mutation ##
+                    # TODO
+                    pass
+
+                    new_mod_id, new_mod = -1, None
+                else:  # self.mod_mutation =< random.random() < self.mod_crossover + self.mod_mutation
+                    ## Create new module through crossover ##
+                    # TODO
+                    pass
+
+                    new_mod_id, new_mod = -1, None
+
+                # Add newly created module to the module container and its according species
+                self.modules[new_mod_id] = new_mod
+                new_mod_species[spec_id].append(new_mod_id)
+
+            # Delete all those modules remaining in the module container that were not previously removed or carried
+            # over but remained in the species to serve as a potential parent for offspring
+            for mod_id_to_remove in mod_ids_to_remove_after_reproduction:
+                del self.modules[mod_id_to_remove]
+
+        # As new module species dict has now been created, delete the old one and overwrite it with the new mod species
+        self.mod_species = new_mod_species
 
         #### Evolve Blueprints ####
         pass
 
-        # Adjust internal variables of evolutionary process and determine if population extinct
+        # Adjust internal variables of evolutionary process and return False, signalling that the population has not
+        # gone extinct
         self.generation_counter += 1
-        population_extinct = False
-
-        return population_extinct
+        return False
 
     '''
     def evolve(self):
