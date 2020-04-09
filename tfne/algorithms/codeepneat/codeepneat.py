@@ -617,7 +617,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.bp_species[spec_id] = spec_bp_ids_sorted[:-blueprints_to_remove]
 
         #### Evolve Modules ####
-        # Traverse through the new module species and add new modules according to the previously specified offpsring
+        # Traverse through the new module species and add new moduless according to the previously determined dedicated
+        # offpsring
         for spec_id, carried_over_spec_mod_ids in new_mod_species.items():
             # Determine offspring and create according amount of new modules
             for _ in range(new_mod_species_size[spec_id] - len(carried_over_spec_mod_ids)):
@@ -627,7 +628,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     pass
 
                     new_mod_id, new_mod = -1, None
-                else:  # self.mod_mutation =< random.random() < self.mod_crossover + self.mod_mutation
+                else:  # random.random() < self.mod_crossover + self.mod_mutation
                     ## Create new module through crossover ##
                     # TODO
                     pass
@@ -647,7 +648,77 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.mod_species = new_mod_species
 
         #### Evolve Blueprints ####
-        pass
+        # Calculate the brackets for a random_float to fall into in order for the specific evolutionary method to be
+        # chosen
+        bp_mutation_add_node_prob = self.bp_mutation_add_conn + self.bp_mutation_add_node
+        bp_mutation_remove_conn_prob = bp_mutation_add_node_prob + self.bp_mutation_remove_conn
+        bp_mutation_remove_node_prob = bp_mutation_remove_conn_prob + self.bp_mutation_remove_node
+        bp_mutation_node_species_prob = bp_mutation_remove_node_prob + self.bp_mutation_node_species
+        bp_mutation_hp_prob = bp_mutation_node_species_prob + self.bp_mutation_hp
+
+        # Traverse through the new blueprint species and add new blueprints according to the previously determined
+        # dedicated offpsring
+        for spec_id, carried_over_spec_bp_ids in new_bp_species.items():
+            # Determine offspring and create according amount of new blueprints
+            for _ in range(new_bp_species_size[spec_id] - len(carried_over_spec_bp_ids)):
+                random_float = random.random()
+                if random_float < self.bp_mutation_add_conn:
+                    ## Create new blueprint by adding connection ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                elif random_float < bp_mutation_add_node_prob:
+                    ## Create new blueprint by adding node ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                elif random_float < bp_mutation_remove_conn_prob:
+                    ## Create new blueprint by removing connection ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                elif random_float < bp_mutation_remove_node_prob:
+                    ## Create new blueprint by removing node ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                elif random_float < bp_mutation_node_species_prob:
+                    ## Create new blueprint by changing species of nodes ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                elif random_float < bp_mutation_hp_prob:
+                    ## Create new blueprint by mutating the hyperparameters ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+                else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
+                    ## Create new blueprint through crossover ##
+                    # TODO
+                    pass
+
+                    new_bp_id, new_bp = -1, None
+
+                # Add newly created blueprint to the blueprint container and its according species
+                self.blueprints[new_bp_id] = new_bp
+                new_bp_species[spec_id].append(new_bp_id)
+
+            # Delete all those blueprints remaining in the blueprint container that were not previously removed or
+            # carried over but remained in the species to serve as a potential parent for offspring
+            for bp_id_to_remove in bp_ids_to_remove_after_reproduction:
+                del self.blueprints[bp_id_to_remove]
+
+        # As new blueprint species dict has now been created, delete the old one and overwrite it with the new blueprint
+        # species
+        self.bp_species = new_bp_species
+
+        #### Return ####
 
         # Adjust internal variables of evolutionary process and return False, signalling that the population has not
         # gone extinct
