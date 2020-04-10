@@ -1,5 +1,6 @@
 import tensorflow as tf
 from absl import logging
+from graphviz import Digraph
 
 
 class CoDeepNEATBlueprintNode:
@@ -113,34 +114,29 @@ class CoDeepNEATBlueprint:
 
     def visualize(self, view, save_dir_path):
         """"""
-        ### FIXME DRAFT ###
-        ### TODO: optimize, add comments ###
-        from graphviz import Digraph
-
         # Create filename and adjust save_dir_path if not ending in slash, indicating folder path
         filename = "graph_blueprint_{}".format(self.blueprint_id)
         if save_dir_path[-1] != '/':
             save_dir_path += '/'
 
+        # Define label string, summarizing the Blueprint
         label_string = f"CoDeepNEAT Blueprint (ID: {self.blueprint_id})\l" \
-                       f"Fitness: {self.fitness}\l" \
-                       f"Output Shape: {self.output_shape}\l" \
-                       f"Output Activation: {self.output_activation}\l" \
-                       f"Optimizer: {self.optimizer_factory}\l"
+                       f"fitness: {self.fitness}\l" \
+                       f"output shape: {self.output_shape}\l" \
+                       f"output activation: {self.output_activation}\l" \
+                       f"optimizer factory: {self.optimizer_factory}\l"
 
-        graph = Digraph(name=filename)
-        graph.attr(rankdir='BT', label=label_string)
+        # Create graph and set direction of graph starting from bottom to top. Include label string at bottom
+        graph = Digraph(graph_attr={'rankdir': 'BT', 'label': label_string})
 
+        # Traverse the blueprint graph and add edges and nodes to the graph
         for bp_gene in self.blueprint_graph.values():
             try:
                 graph.edge(str(bp_gene.conn_start), str(bp_gene.conn_end))
             except AttributeError:
-                if bp_gene.node == 1:
-                    graph.node('1', label="Node: 1\nSpecies: Input")
-                else:
-                    graph.node(str(bp_gene.node), label="Node: {}\nSpecies: {}".format(bp_gene.node, bp_gene.species))
+                graph.node(str(bp_gene.node), label="node: {}\lspecies: {}\l".format(bp_gene.node, bp_gene.species))
 
-        # Highlight Input and Output Nodes
+        # Highlight Input and Output Nodes with subgraphs
         with graph.subgraph(name='cluster_input') as input_cluster:
             input_cluster.node('1')
             input_cluster.attr(label='Input', color='blue')
@@ -148,6 +144,7 @@ class CoDeepNEATBlueprint:
             output_cluster.node('2')
             output_cluster.attr(label='Output', color='grey')
 
+        # Render, save and optionally display the graph
         graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
 
     def create_optimizer(self) -> tf.keras.optimizers.Optimizer:

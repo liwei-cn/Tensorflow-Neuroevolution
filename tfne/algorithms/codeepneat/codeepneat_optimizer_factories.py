@@ -11,6 +11,10 @@ class SGDFactory:
         self.momentum = momentum
         self.nesterov = nesterov
 
+    def __str__(self) -> str:
+        """"""
+        return "SGD Optimizer (lr: {}; mom: {}; nstv: {}".format(self.learning_rate, self.momentum, self.nesterov)
+
     def create_optimizer(self) -> tf.keras.optimizers.SGD:
         """"""
         return tf.keras.optimizers.SGD(learning_rate=self.learning_rate,

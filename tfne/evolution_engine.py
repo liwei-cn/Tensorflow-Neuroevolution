@@ -1,4 +1,5 @@
 import ray
+import graphviz
 
 from .encodings.base_genome import BaseGenome
 
@@ -25,8 +26,9 @@ class EvolutionEngine:
         # Register the evaluation environment through which the genomes are evaluated at the NE algorithm
         self.ne_algorithm.register_environment(self.environment)
 
-        # Initiate the Multiprocessing library ray
+        # Initiate the Multiprocessing library ray and the graph visualization library
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
+        print("Using graphviz system library v{}.{}.{}".format(*graphviz.version()))
 
         # Create flag if backup agent supplied
         self.backup_agents_supplied = bool(len(self.backup_agents))
