@@ -24,10 +24,6 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         self.dropout_flag = dropout_rate is not None
         self.dropout_rate = dropout_rate
 
-    def __str__(self) -> str:
-        """"""
-        pass
-
     def create_module_layers(self,
                              dtype,
                              output_shape=None,
@@ -54,3 +50,22 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
             return (dense_layer, dropout_layer)
         else:
             return (dense_layer,)
+
+    def get_summary(self, dtype, output_shape=None, output_activation=None) -> str:
+        """"""
+        # Determine if the layers generated through this module had deviating parameters and should accordingly be
+        # summarized as such
+        if output_shape is None:
+            network_units = self.units
+        else:
+            network_units = output_shape[0]
+        network_activation = self.activation if output_activation is None else output_activation
+
+        return f"~~~~ DENSE Module (ID: {self.module_id}) ~~~~\n" \
+               f"units              = {network_units}\n" \
+               f"activation         = {network_activation}\n" \
+               f"kernel_initializer = {self.kernel_initializer}\n" \
+               f"bias_initializer   = {self.bias_initializer}\n" \
+               f"dropout            = {self.dropout_flag}\n" \
+               f"dropout_rate       = {self.dropout_rate}\n" \
+               f"merge_method       = {self.merge_method}\n"
