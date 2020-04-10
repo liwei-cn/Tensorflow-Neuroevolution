@@ -16,7 +16,7 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement '__str__()'")
 
-    def visualize(self, view, save_dir):
+    def visualize(self, view, save_dir_path):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'visualize()'")
 

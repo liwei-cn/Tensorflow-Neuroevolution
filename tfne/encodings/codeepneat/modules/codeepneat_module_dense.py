@@ -65,11 +65,11 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
             network_units = output_shape[0]
         network_activation = self.activation if output_activation is None else output_activation
 
-        return f"~~~~ DENSE Module (ID: {self.module_id}) ~~~~\n" \
-               f"units              = {network_units}\n" \
-               f"activation         = {network_activation}\n" \
-               f"kernel_initializer = {self.kernel_initializer}\n" \
-               f"bias_initializer   = {self.bias_initializer}\n" \
-               f"dropout            = {self.dropout_flag}\n" \
-               f"dropout_rate       = {self.dropout_rate}\n" \
-               f"merge_method       = {self.merge_method}"
+        return f"~~~~ DENSE Module (ID: {self.module_id}) ~~~~\l" \
+               f"units = {network_units}\l" \
+               f"activation = {network_activation}\l" \
+               f"kernel_initializer = {self.kernel_initializer}\l" \
+               f"bias_initializer = {self.bias_initializer}\l" \
+               f"dropout = {self.dropout_flag}\l" \
+               f"dropout_rate = {self.dropout_rate}\l" \
+               f"merge_method = {self.merge_method}\l"
