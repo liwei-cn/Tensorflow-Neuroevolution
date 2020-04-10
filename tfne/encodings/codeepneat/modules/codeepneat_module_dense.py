@@ -68,4 +68,4 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
                f"bias_initializer   = {self.bias_initializer}\n" \
                f"dropout            = {self.dropout_flag}\n" \
                f"dropout_rate       = {self.dropout_rate}\n" \
-               f"merge_method       = {self.merge_method}\n"
+               f"merge_method       = {self.merge_method}"
