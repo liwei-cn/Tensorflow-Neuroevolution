@@ -122,8 +122,14 @@ class CoDeepNEATBlueprint:
         if save_dir_path[-1] != '/':
             save_dir_path += '/'
 
+        label_string = f"CoDeepNEAT Blueprint (ID: {self.blueprint_id})\l" \
+                       f"Fitness: {self.fitness}\l" \
+                       f"Output Shape: {self.output_shape}\l" \
+                       f"Output Activation: {self.output_activation}\l" \
+                       f"Optimizer: {self.optimizer_factory}\l"
+
         graph = Digraph(name=filename)
-        graph.attr(rankdir='BT')
+        graph.attr(rankdir='BT', label=label_string)
 
         for bp_gene in self.blueprint_graph.values():
             try:
@@ -135,10 +141,10 @@ class CoDeepNEATBlueprint:
                     graph.node(str(bp_gene.node), label="Node: {}\nSpecies: {}".format(bp_gene.node, bp_gene.species))
 
         # Highlight Input and Output Nodes
-        with graph.subgraph(name='cluster_1') as input_cluster:
+        with graph.subgraph(name='cluster_input') as input_cluster:
             input_cluster.node('1')
             input_cluster.attr(label='Input', color='blue')
-        with graph.subgraph(name='cluster_2') as output_cluster:
+        with graph.subgraph(name='cluster_output') as output_cluster:
             output_cluster.node('2')
             output_cluster.attr(label='Output', color='grey')
 
