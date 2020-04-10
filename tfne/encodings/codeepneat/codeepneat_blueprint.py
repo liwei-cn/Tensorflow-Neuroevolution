@@ -65,7 +65,7 @@ class CoDeepNEATBlueprint:
 
     def __str__(self) -> str:
         """"""
-        logging.warning("TODO: Implement codeepneat_blueprint.__str__()")
+        return "CoDeepNEAT Blueprint (ID: {}, Fitness: {})".format(self.blueprint_id, self.fitness)
 
     def _process_graph(self):
         """"""

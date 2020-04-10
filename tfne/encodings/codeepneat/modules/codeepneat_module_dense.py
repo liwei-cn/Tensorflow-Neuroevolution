@@ -24,6 +24,10 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         self.dropout_flag = dropout_rate is not None
         self.dropout_rate = dropout_rate
 
+    def __str__(self) -> str:
+        """"""
+        return "CoDeepNEAT DENSE Module (ID: {}, Fitness: {})".format(self.module_id, self.fitness)
+
     def create_module_layers(self,
                              dtype,
                              output_shape=None,
