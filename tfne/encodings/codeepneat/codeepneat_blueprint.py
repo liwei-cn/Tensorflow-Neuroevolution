@@ -116,7 +116,7 @@ class CoDeepNEATBlueprint:
         """"""
         # Create filename and adjust save_dir_path if not ending in slash, indicating folder path
         filename = "graph_blueprint_{}".format(self.blueprint_id)
-        if save_dir_path[-1] != '/':
+        if save_dir_path is not None and save_dir_path[-1] != '/':
             save_dir_path += '/'
 
         # Define label string, summarizing the Blueprint
