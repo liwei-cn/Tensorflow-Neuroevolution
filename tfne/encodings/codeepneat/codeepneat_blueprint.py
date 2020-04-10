@@ -111,6 +111,39 @@ class CoDeepNEATBlueprint:
             for node, dep in node_deps.items():
                 node_deps[node] = dep - dependencyless
 
+    def visualize(self, view, save_dir_path):
+        """"""
+        ### FIXME DRAFT ###
+        ### TODO: optimize, add comments ###
+        from graphviz import Digraph
+
+        # Create filename and adjust save_dir_path if not ending in slash, indicating folder path
+        filename = "graph_blueprint_{}".format(self.blueprint_id)
+        if save_dir_path[-1] != '/':
+            save_dir_path += '/'
+
+        graph = Digraph(name=filename)
+        graph.attr(rankdir='BT')
+
+        for bp_gene in self.blueprint_graph.values():
+            try:
+                graph.edge(str(bp_gene.conn_start), str(bp_gene.conn_end))
+            except AttributeError:
+                if bp_gene.node == 1:
+                    graph.node('1', label="Node: 1\nSpecies: Input")
+                else:
+                    graph.node(str(bp_gene.node), label="Node: {}\nSpecies: {}".format(bp_gene.node, bp_gene.species))
+
+        # Highlight Input and Output Nodes
+        with graph.subgraph(name='cluster_1') as input_cluster:
+            input_cluster.node('1')
+            input_cluster.attr(label='Input', color='blue')
+        with graph.subgraph(name='cluster_2') as output_cluster:
+            output_cluster.node('2')
+            output_cluster.attr(label='Output', color='grey')
+
+        graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
+
     def create_optimizer(self) -> tf.keras.optimizers.Optimizer:
         """"""
         return self.optimizer_factory.create_optimizer()
