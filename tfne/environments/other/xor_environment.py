@@ -64,7 +64,7 @@ class XOREnvironment(BaseEnvironment):
 
         # TODO WORKAROUND FOR BUG
         # Sometimes loss function randomly returns NaN.
-        # See bug report: https://groups.google.com/a/tensorflow.org/forum/#!topic/developers/XjR6IExmEsI
+        # See bug report: https://github.com/tensorflow/tensorflow/issues/38457
         if tf.math.is_nan(evaluated_fitness):
             evaluated_fitness = float(0)
 
