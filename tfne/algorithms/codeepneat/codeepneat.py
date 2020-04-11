@@ -625,12 +625,21 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if random.random() < self.mod_mutation:
                     ## Create new module through mutation ##
                     # TODO
+                    # Choose a random parent from the current species. Mutate a maximum of mod_max_mutations percent of
+                    # its parameters. Mutating categorical parameters means randomly choosing another one. Mutating
+                    # sortable parameters means getting a random value from a normal distribution that has the current
+                    # values as mean and a standard distribution value as (max-min)/param_stddev (e.g. standard value is
+                    # that the whole range of the sortable parameter represent 4 standard deviations)
                     pass
 
                     new_mod_id, new_mod = -1, None
+
                 else:  # random.random() < self.mod_crossover + self.mod_mutation
                     ## Create new module through crossover ##
                     # TODO
+                    # Choose 2 random parents from the current species. Create new module by choosing the categorical
+                    # parameters of the fitter one and choosing the average of both parent values for the sortable
+                    # parameters.
                     pass
 
                     new_mod_id, new_mod = -1, None
@@ -665,42 +674,56 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if random_float < self.bp_mutation_add_conn:
                     ## Create new blueprint by adding connection ##
                     # TODO
+                    # Choose random parent blueprint from species and copy genotype. Count number of connections present
+                    # in genotype. Determine random value of mutation intensity between 0 and bp_max_mutation and
+                    # multiply it with the amount of present connections to determine how many connections will be
+                    # added. Add connections to genotype randomly as in NEAT.
                     pass
 
                     new_bp_id, new_bp = -1, None
+
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
                     # TODO
+                    # Analogoue to 'add_conn' mutation. Choose module species randomly.
                     pass
 
                     new_bp_id, new_bp = -1, None
+
                 elif random_float < bp_mutation_remove_conn_prob:
                     ## Create new blueprint by removing connection ##
-                    # TODO
-                    pass
+                    raise NotImplementedError("Destructive mutations of Blueprints not yet implemented in CoDeepNEAT")
 
-                    new_bp_id, new_bp = -1, None
                 elif random_float < bp_mutation_remove_node_prob:
                     ## Create new blueprint by removing node ##
-                    # TODO
-                    pass
+                    raise NotImplementedError("Destructive mutations of Blueprints not yet implemented in CoDeepNEAT")
 
-                    new_bp_id, new_bp = -1, None
                 elif random_float < bp_mutation_node_species_prob:
                     ## Create new blueprint by changing species of nodes ##
                     # TODO
+                    # Choose random parent blueprint from species and copy genotype. Count number of nodes present
+                    # in genotype. Determine random value of mutation intensity between 0 and bp_max_mutation and
+                    # multiply it with the amount of nodes present to determine how many node species will be
+                    # changed. Uniform Randomly change the species of a each node.
                     pass
 
                     new_bp_id, new_bp = -1, None
+
                 elif random_float < bp_mutation_hp_prob:
                     ## Create new blueprint by mutating the hyperparameters ##
                     # TODO
+                    # Choose random parent blueprint from species. Uniform randomly change its output activation
+                    # (categorical variable). Mutate the Optimizer much like a module is mutated in terms of categorical
+                    # and sortable parameters. Consider the bp_max_mutation.
                     pass
 
                     new_bp_id, new_bp = -1, None
+
                 else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
                     ## Create new blueprint through crossover ##
                     # TODO
+                    # Randomly choose 2 parent blueprints. Carry over output activation and optimizer from fitter
+                    # blueprints. Merge blueprint graph genotype the same way NEAT merges genotypes.
                     pass
 
                     new_bp_id, new_bp = -1, None
