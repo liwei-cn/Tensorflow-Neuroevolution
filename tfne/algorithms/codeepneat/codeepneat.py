@@ -665,12 +665,29 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                             elif param_to_mutate == 4:
                                 module_parameters[4] = random.choice(self.dense_bias_initializers)
                             else:  # param_to_mutate == 5:
-                                perturbed_param = np.random.normal(loc=module_parameters[5],
-                                                                   scale=self.dense_dropout_rate_stddev)
-                                module_parameters[5] = round_to_nearest_multiple(perturbed_param,
-                                                                                 self.dense_dropout_rate[0],
-                                                                                 self.dense_dropout_rate[1],
-                                                                                 self.dense_dropout_rate[2])
+                                # If Module param 5 (dropout rate) is not None is there a 'dropout_probability' chance
+                                # that the dropout parameter will be perturbed. Otherwise it will be set to None. If
+                                # the dropout rate of the parent is None to begin with then there is a
+                                # 'dropout_probability' chance that a new uniorm random dropout rate is created.
+                                # otherweise it will remain None.
+                                if module_parameters[5] is not None:
+                                    if random.random() < self.dense_dropout_probability:
+                                        perturbed_param = np.random.normal(loc=module_parameters[5],
+                                                                           scale=self.dense_dropout_rate_stddev)
+                                        module_parameters[5] = round_to_nearest_multiple(perturbed_param,
+                                                                                         self.dense_dropout_rate[0],
+                                                                                         self.dense_dropout_rate[1],
+                                                                                         self.dense_dropout_rate[2])
+                                    else:
+                                        module_parameters[5] = None
+                                else:
+                                    if random.random() < self.dense_dropout_probability:
+                                        dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
+                                                                              self.dense_dropout_rate[1])
+                                        module_parameters[5] = round_to_nearest_multiple(dropout_rate_uniform,
+                                                                                         self.dense_dropout_rate[0],
+                                                                                         self.dense_dropout_rate[1],
+                                                                                         self.dense_dropout_rate[2])
 
                         # Create new offpsring module with parent mutated parameters
                         new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
@@ -682,13 +699,85 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 else:  # random.random() < self.mod_crossover + self.mod_mutation
                     ## Create new module through crossover ##
-                    # TODO
+
+                    '''
                     # Choose 2 random parents from the current species. Create new module by choosing the categorical
                     # parameters of the fitter one and choosing the average of both parent values for the sortable
                     # parameters.
-                    pass
+                    '''
 
-                    new_mod_id, new_mod = -1, None
+                    # Determine if 2 modules are available in current species, as is required for crossover
+                    possible_parents = self.mod_species[spec_id].copy()
+                    if len(possible_parents) == 1:
+
+                        # If Only 1 module in current species available as parent, create new module with identical
+                        # parameters
+                        parent_module = self.modules[random.choice(self.mod_species[spec_id])]
+                        module_parameters = parent_module.get_parameters()
+
+                        if self.mod_species_type[spec_id] == 'DENSE':
+                            # Create new offspring module with identical parent parameters
+                            new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
+                                                                                    units=module_parameters[1],
+                                                                                    activation=module_parameters[2],
+                                                                                    kernel_initializer=
+                                                                                    module_parameters[3],
+                                                                                    bias_initializer=
+                                                                                    module_parameters[4],
+                                                                                    dropout_rate=module_parameters[5])
+
+                    else:
+                        # Choose 2 random parent modules, both of them different
+                        parent_module_1_id = random.choice(possible_parents)
+                        possible_parents.remove(parent_module_1_id)
+                        parent_module_2_id = random.choice(possible_parents)
+
+                        # Determine fitter parent and save parameters of 'fitter' and 'other' parent
+                        if self.modules[parent_module_1_id].get_fitness() > \
+                                self.modules[parent_module_2_id].get_fitness():
+                            fitter_parent_params = self.modules[parent_module_1_id].get_parameters()
+                            other_parent_params = self.modules[parent_module_2_id].get_parameters()
+                        else:
+                            fitter_parent_params = self.modules[parent_module_2_id].get_parameters()
+                            other_parent_params = self.modules[parent_module_1_id].get_parameters()
+
+                        if self.mod_species_type[spec_id] == 'DENSE':
+                            # Crete offspring parameters by carrying over parameter of fitter parent for categorical
+                            # parameters and calculating average parameter for sortable parameters
+                            offspring_params = [None] * 6
+                            offspring_params[0] = fitter_parent_params[0]
+                            offspring_params[1] = round_to_nearest_multiple(int((fitter_parent_params[1] +
+                                                                                 other_parent_params[1]) / 2),
+                                                                            self.dense_units[0],
+                                                                            self.dense_units[1],
+                                                                            self.dense_units[2])
+                            offspring_params[2] = fitter_parent_params[2]
+                            offspring_params[3] = fitter_parent_params[3]
+                            offspring_params[4] = fitter_parent_params[4]
+                            if fitter_parent_params[5] is not None and other_parent_params[5] is not None:
+                                # If both parents have defined a dropout rate, calculate the average
+                                offspring_params[5] = round_to_nearest_multiple(((fitter_parent_params[5] +
+                                                                                  other_parent_params[5]) / 2),
+                                                                                self.dense_dropout_rate[0],
+                                                                                self.dense_dropout_rate[1],
+                                                                                self.dense_dropout_rate[2])
+                            elif fitter_parent_params[5] is not None:
+                                # If only fitter parent defined dropout rate, carry that dropout rate over
+                                offspring_params[5] = fitter_parent_params[5]
+                            else:
+                                # If neither or only the lesser fit parent defined dropout rate, set dropout rate to
+                                # None
+                                offspring_params[5] = None
+
+                            # Create new offspring module with crossed-over parental parameters
+                            new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=offspring_params[0],
+                                                                                    units=offspring_params[1],
+                                                                                    activation=offspring_params[2],
+                                                                                    kernel_initializer=
+                                                                                    offspring_params[3],
+                                                                                    bias_initializer=
+                                                                                    offspring_params[4],
+                                                                                    dropout_rate=offspring_params[5])
 
                 # Add newly created module to the module container and its according species
                 self.modules[new_mod_id] = new_mod
