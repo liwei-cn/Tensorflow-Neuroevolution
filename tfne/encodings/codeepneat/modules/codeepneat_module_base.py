@@ -27,6 +27,11 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
 
+    @abstractmethod
+    def get_parameters(self) -> list:
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_parameters()'")
+
     def get_id(self) -> int:
         return self.module_id
 

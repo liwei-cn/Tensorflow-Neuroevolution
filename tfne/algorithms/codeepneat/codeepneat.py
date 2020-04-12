@@ -3,6 +3,7 @@ import math
 import random
 import statistics
 
+import numpy as np
 import tensorflow as tf
 from absl import logging
 
@@ -230,14 +231,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 # Create Standard Deviation values for range specified Dense Module HP config values
                 if len(self.dense_units) == 4:
-                    self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
+                    self.dense_units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
                 else:
-                    self.units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
+                    self.dense_units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
                 if len(self.dense_dropout_rate) == 4:
-                    self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
-                                               self.dense_dropout_rate[3]
+                    self.dense_dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
+                                                     self.dense_dropout_rate[3]
                 else:
-                    self.dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
+                    self.dense_dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
             else:
                 raise KeyError("'{}' module set to be available in 'GENOME/available_modules', though handling of "
                                "this module has not yet been implemented".format(available_mod))
@@ -624,15 +625,60 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             for _ in range(new_mod_species_size[spec_id] - len(carried_over_spec_mod_ids)):
                 if random.random() < self.mod_mutation:
                     ## Create new module through mutation ##
-                    # TODO
+
+                    '''
                     # Choose a random parent from the current species. Mutate a maximum of mod_max_mutations percent of
                     # its parameters. Mutating categorical parameters means randomly choosing another one. Mutating
                     # sortable parameters means getting a random value from a normal distribution that has the current
                     # values as mean and a standard distribution value as (max-min)/param_stddev (e.g. standard value is
                     # that the whole range of the sortable parameter represent 4 standard deviations)
-                    pass
+                    '''
 
-                    new_mod_id, new_mod = -1, None
+                    # Determine chosen parent module and its parameters as well as the intensity of the mutation,
+                    # meaning how many parent parameters will be perturbed.
+                    parent_module = self.modules[random.choice(self.mod_species[spec_id])]
+                    module_parameters = parent_module.get_parameters()
+                    mutation_intensity = random.uniform(0, 0.3)
+
+                    if self.mod_species_type[spec_id] == 'DENSE':
+                        # Determine explicit integer amount of parameters to be mutated
+                        param_mutation_count = int(mutation_intensity * 6)
+                        for _ in range(param_mutation_count):
+
+                            # Uniform randomly choose one of the 6 parameters to be mutated. Categorical parameters are
+                            # chosen randomly from all available values. Sortable parameters are perturbed through a
+                            # random normal distribution with the current value as mean and the config specified stddev
+                            param_to_mutate = random.randint(0, 5)
+                            if param_to_mutate == 0:
+                                module_parameters[0] = random.choice(self.dense_merge_methods)
+                            elif param_to_mutate == 1:
+                                perturbed_param = int(np.random.normal(loc=module_parameters[1],
+                                                                       scale=self.dense_units_stddev))
+                                module_parameters[1] = round_to_nearest_multiple(perturbed_param,
+                                                                                 self.dense_units[0],
+                                                                                 self.dense_units[1],
+                                                                                 self.dense_units[2])
+                            elif param_to_mutate == 2:
+                                module_parameters[2] = random.choice(self.dense_activations)
+                            elif param_to_mutate == 3:
+                                module_parameters[3] = random.choice(self.dense_kernel_initializers)
+                            elif param_to_mutate == 4:
+                                module_parameters[4] = random.choice(self.dense_bias_initializers)
+                            else:  # param_to_mutate == 5:
+                                perturbed_param = np.random.normal(loc=module_parameters[5],
+                                                                   scale=self.dense_dropout_rate_stddev)
+                                module_parameters[5] = round_to_nearest_multiple(perturbed_param,
+                                                                                 self.dense_dropout_rate[0],
+                                                                                 self.dense_dropout_rate[1],
+                                                                                 self.dense_dropout_rate[2])
+
+                        # Create new offpsring module with parent mutated parameters
+                        new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
+                                                                                units=module_parameters[1],
+                                                                                activation=module_parameters[2],
+                                                                                kernel_initializer=module_parameters[3],
+                                                                                bias_initializer=module_parameters[4],
+                                                                                dropout_rate=module_parameters[5])
 
                 else:  # random.random() < self.mod_crossover + self.mod_mutation
                     ## Create new module through crossover ##
