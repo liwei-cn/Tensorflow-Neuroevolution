@@ -819,11 +819,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # added. Add connections to genotype randomly as in NEAT.
                     '''
 
+                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+                    # case the amount of connections added to the blueprint graph
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
                     blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.get_parameters()
                     graph_topology = parent_bp.get_graph_topology()
                     mutation_intensity = random.uniform(0, 0.3)
 
+                    # Traverse blueprint graph and collect tuples of connections as well as a list of all present nodes
                     bp_graph_conns = set()
                     bp_graph_nodes = list()
                     for gene in blueprint_graph.values():
@@ -832,25 +835,35 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         else:  # isinstance(gene, CoDeepNEATBlueprintNode)
                             bp_graph_nodes.append(gene.node)
 
+                    # Determine specifically how many connections will be added
                     conns_to_add = int(mutation_intensity * len(bp_graph_conns))
                     if conns_to_add == 0:
                         conns_to_add = 1
 
+                    # Add connections in loop until sufficient amount added
                     added_conns_count = 0
                     while added_conns_count < conns_to_add:
+                        # Choose random start node from all possible nodes. Remove it immediately such that the same
+                        # start node is not used twice, ensuring more complex mutation and a safe loop termination in
+                        # case that all connection additions are exhausted
                         start_node = random.choice(bp_graph_nodes)
                         bp_graph_nodes.remove(start_node)
                         if len(bp_graph_nodes) == 0:
                             break
 
+                        # As graph currently only supports feedforward topologies, ensure that end node is topologically
+                        # behind the start node
                         start_node_level = None
                         for i in range(len(graph_topology)):
                             if start_node in graph_topology[i]:
                                 start_node_level = i
                                 break
 
+                        # Determine set of all possible end nodes that are behind the start node
                         possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
 
+                        # Traverse all possible end nodes randomly and create and add a blueprint connection to the
+                        # blueprint graph if no connection tuple present yet
                         while len(possible_end_nodes) != 0:
                             end_node = random.choice(possible_end_nodes)
                             possible_end_nodes.remove(end_node)
@@ -860,11 +873,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                 blueprint_graph[gene_id] = gene
                                 added_conns_count += 1
 
+                    # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                        output_shape=output_shape,
                                                                        output_activation=output_activation,
                                                                        optimizer_factory=optimizer_factory)
-
 
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
