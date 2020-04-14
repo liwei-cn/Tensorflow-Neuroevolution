@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from .codeepneat_model_helpers import deserialize_merge_method
+from ...helper_functions import deserialize_merge_method
 
 
 class CoDeepNEATModel(tf.keras.Model):

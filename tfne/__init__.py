@@ -11,4 +11,4 @@ from tfne.algorithms.codeepneat.codeepneat import CoDeepNEAT
 from tfne.evolution_engine import EvolutionEngine
 
 # Import functions
-from tfne.config_parser import parse_configuration
+from tfne.helper_functions import parse_configuration

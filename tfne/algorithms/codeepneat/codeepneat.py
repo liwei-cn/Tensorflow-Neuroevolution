@@ -8,9 +8,9 @@ import tensorflow as tf
 from absl import logging
 
 import tfne
-from .codeepneat_helpers import round_to_nearest_multiple
 from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
+from ...helper_functions import round_to_nearest_multiple
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintNode
 
