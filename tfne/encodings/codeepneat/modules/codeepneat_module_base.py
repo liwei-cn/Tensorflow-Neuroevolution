@@ -28,9 +28,9 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
 
     @abstractmethod
-    def get_parameters(self) -> list:
+    def duplicate_parameters(self) -> list:
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_parameters()'")
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'duplicate_parameters()'")
 
     def get_id(self) -> int:
         return self.module_id

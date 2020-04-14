@@ -638,7 +638,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine chosen parent module and its parameters as well as the intensity of the mutation,
                     # meaning how many parent parameters will be perturbed.
                     parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                    module_parameters = parent_module.get_parameters()
+                    module_parameters = parent_module.duplicate_parameters()
                     mutation_intensity = random.uniform(0, 0.3)
 
                     if self.mod_species_type[spec_id] == 'DENSE':
@@ -716,7 +716,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # If Only 1 module in current species available as parent, create new module with identical
                         # parameters
                         parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                        module_parameters = parent_module.get_parameters()
+                        module_parameters = parent_module.duplicate_parameters()
 
                         if self.mod_species_type[spec_id] == 'DENSE':
                             # Create new offspring module with identical parent parameters
@@ -738,11 +738,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # Determine fitter parent and save parameters of 'fitter' and 'other' parent
                         if self.modules[parent_module_1_id].get_fitness() > \
                                 self.modules[parent_module_2_id].get_fitness():
-                            fitter_parent_params = self.modules[parent_module_1_id].get_parameters()
-                            other_parent_params = self.modules[parent_module_2_id].get_parameters()
+                            fitter_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
+                            other_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
                         else:
-                            fitter_parent_params = self.modules[parent_module_2_id].get_parameters()
-                            other_parent_params = self.modules[parent_module_1_id].get_parameters()
+                            fitter_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
+                            other_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
 
                         if self.mod_species_type[spec_id] == 'DENSE':
                             # Crete offspring parameters by carrying over parameter of fitter parent for categorical
@@ -822,7 +822,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of connections added to the blueprint graph
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.get_parameters()
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
                     graph_topology = parent_bp.get_graph_topology()
                     mutation_intensity = random.uniform(0, 0.3)
 
@@ -882,8 +882,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
+
+                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    mutation_intensity = random.uniform(0, 0.3)
+
                     # TODO
-                    # Analogoue to 'add_conn' mutation. Choose module species randomly.
                     pass
 
                     new_bp_id, new_bp = -1, None

@@ -74,7 +74,7 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
                f"dropout_rate = {self.dropout_rate}\l" \
                f"merge_method = {self.merge_method}\l"
 
-    def get_parameters(self) -> [str, int, str, str, str, float]:
+    def duplicate_parameters(self) -> [str, int, str, str, str, float]:
         """"""
         return [self.merge_method, self.units, self.activation, self.kernel_initializer, self.bias_initializer,
                 self.dropout_rate]
