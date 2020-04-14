@@ -826,7 +826,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     bp_graph_conns = set()
                     bp_graph_nodes = list()
-                    for gene in blueprint_graph:
+                    for gene in blueprint_graph.values():
                         if isinstance(gene, CoDeepNEATBlueprintConn):
                             bp_graph_conns.add((gene.conn_start, gene.conn_end))
                         else:  # isinstance(gene, CoDeepNEATBlueprintNode)
