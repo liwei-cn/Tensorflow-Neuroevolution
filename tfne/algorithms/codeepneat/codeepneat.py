@@ -882,12 +882,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
-
-                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-                    mutation_intensity = random.uniform(0, 0.3)
-
                     # TODO
+                    # Analogoue to 'add_conn' mutation. Choose module species randomly.
                     pass
 
                     new_bp_id, new_bp = -1, None
