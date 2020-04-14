@@ -38,7 +38,7 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     def get_fitness(self) -> float:
         return self.fitness
 
-    def get_merge_method(self) -> Callable:
+    def get_merge_method(self) -> str:
         return self.merge_method
 
     def set_fitness(self, fitness):

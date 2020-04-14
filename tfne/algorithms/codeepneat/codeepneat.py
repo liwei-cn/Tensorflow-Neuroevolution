@@ -8,7 +8,7 @@ import tensorflow as tf
 from absl import logging
 
 import tfne
-from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multiple
+from .codeepneat_helpers import round_to_nearest_multiple
 from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
@@ -211,8 +211,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     raise KeyError("'DENSE' module set to be available in 'GENOME/available_modules', though config "
                                    "does not have a 'MODULE_DENSE_HP' section")
                 # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
-                self.dense_merge_methods = deserialize_merge_method(
-                    ast.literal_eval(config['MODULE_DENSE_HP']['merge_methods']))
+                self.dense_merge_methods = ast.literal_eval(config['MODULE_DENSE_HP']['merge_methods'])
                 self.dense_units = ast.literal_eval(config['MODULE_DENSE_HP']['units'])
                 self.dense_activations = ast.literal_eval(config['MODULE_DENSE_HP']['activations'])
                 self.dense_kernel_initializers = ast.literal_eval(config['MODULE_DENSE_HP']['kernel_initializers'])

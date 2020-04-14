@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from .codeepneat_model_helpers import deserialize_merge_method
+
 
 class CoDeepNEATModel(tf.keras.Model):
     """"""
@@ -32,7 +34,7 @@ class CoDeepNEATModel(tf.keras.Model):
                 # Determine if merge needed and if so, configure it
                 merge_flag = len(current_node_dependencies) > 1
                 if merge_flag:
-                    merge_method = current_node_assigned_module.get_merge_method()
+                    merge_method = deserialize_merge_method(current_node_assigned_module.get_merge_method())
                 else:
                     merge_method = None
 
@@ -53,7 +55,7 @@ class CoDeepNEATModel(tf.keras.Model):
         # Determine if merge needed and if so, configure it
         out_merge_flag = len(out_node_dependencies) > 1
         if out_merge_flag:
-            out_merge_method = out_node_assigned_module.get_merge_method()
+            out_merge_method = deserialize_merge_method(out_node_assigned_module.get_merge_method())
         else:
             out_merge_method = None
 

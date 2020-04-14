@@ -1,19 +1,4 @@
-from typing import Union, Callable
-
-import tensorflow as tf
-
-
-def deserialize_merge_method(input_list) -> [Callable, ...]:
-    """"""
-    deserialized_list = []
-    for merge_method in input_list:
-        if merge_method == 'concat':
-            deserialized_list.append(tf.concat)
-        elif merge_method == 'sum':
-            deserialized_list.append(tf.math.reduce_sum)
-        else:
-            raise NotImplementedError("Supplied possible merge method '{}' not implemented".format(merge_method))
-    return deserialized_list
+from typing import Union
 
 
 def round_to_nearest_multiple(value, minimum, maximum, multiple) -> Union[int, float]:
