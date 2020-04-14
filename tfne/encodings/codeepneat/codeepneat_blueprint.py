@@ -73,14 +73,15 @@ class CoDeepNEATBlueprint:
         # Create set of species (self.species, set), assignment of nodes to their species (self.node_species, dict) as
         # well as the assignment of nodes to the nodes they depend upon (self.node_dependencies, dict)
         for gene in self.blueprint_graph.values():
-            if isinstance(gene, CoDeepNEATBlueprintConn):
+            if isinstance(gene, CoDeepNEATBlueprintNode):
+                self.node_species[gene.node] = gene.species
+                self.species.add(gene.species)
+            elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn):
+                # Only consider a connection for the processing if it is enabled
                 if gene.conn_end in self.node_dependencies:
                     self.node_dependencies[gene.conn_end].add(gene.conn_start)
                 else:
                     self.node_dependencies[gene.conn_end] = {gene.conn_start}
-            else:  # if isinstance(gene, CoDeepNEATBlueprintNode):
-                self.node_species[gene.node] = gene.species
-                self.species.add(gene.species)
         # Remove the 'None' species assigned to Input node
         self.species.remove(None)
 

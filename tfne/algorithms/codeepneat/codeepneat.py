@@ -12,7 +12,7 @@ from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multi
 from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
-from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintConn
+from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintNode
 
 
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
@@ -830,10 +830,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     bp_graph_conns = set()
                     bp_graph_nodes = list()
                     for gene in blueprint_graph.values():
-                        if isinstance(gene, CoDeepNEATBlueprintConn):
-                            bp_graph_conns.add((gene.conn_start, gene.conn_end))
-                        else:  # isinstance(gene, CoDeepNEATBlueprintNode)
+                        if isinstance(gene, CoDeepNEATBlueprintNode):
                             bp_graph_nodes.append(gene.node)
+                        elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
+                            # Only consider a connection for bp_graph_conns if it is enabled
+                            bp_graph_conns.add((gene.conn_start, gene.conn_end))
 
                     # Determine specifically how many connections will be added
                     conns_to_add = int(mutation_intensity * len(bp_graph_conns))
