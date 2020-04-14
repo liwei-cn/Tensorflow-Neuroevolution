@@ -21,6 +21,10 @@ class SGDFactory:
                                        momentum=self.momentum,
                                        nesterov=self.nesterov)
 
+    def duplicate(self):
+        """"""
+        return SGDFactory(self.learning_rate, self.momentum, self.nesterov)
+
     def get_parameters(self) -> (float, float, bool):
         """"""
         return self.learning_rate, self.momentum, self.nesterov

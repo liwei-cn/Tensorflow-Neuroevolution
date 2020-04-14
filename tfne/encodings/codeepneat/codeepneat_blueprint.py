@@ -155,7 +155,10 @@ class CoDeepNEATBlueprint:
 
     def get_parameters(self) -> ({int: object}, (int, ...), str, object):
         """"""
-        return deepcopy(self.blueprint_graph), self.output_shape, self.output_activation, self.optimizer_factory
+        return (deepcopy(self.blueprint_graph),
+                self.output_shape,
+                self.output_activation,
+                self.optimizer_factory.duplicate())
 
     def get_blueprint_graph(self) -> {int: object}:
         """"""
