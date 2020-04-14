@@ -626,14 +626,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if random.random() < self.mod_mutation:
                     ## Create new module through mutation ##
 
-                    '''
-                    # Choose a random parent from the current species. Mutate a maximum of mod_max_mutations percent of
-                    # its parameters. Mutating categorical parameters means randomly choosing another one. Mutating
-                    # sortable parameters means getting a random value from a normal distribution that has the current
-                    # values as mean and a standard distribution value as (max-min)/param_stddev (e.g. standard value is
-                    # that the whole range of the sortable parameter represent 4 standard deviations)
-                    '''
-
                     # Determine chosen parent module and its parameters as well as the intensity of the mutation,
                     # meaning how many parent parameters will be perturbed.
                     parent_module = self.modules[random.choice(self.mod_species[spec_id])]
@@ -701,12 +693,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 else:  # random.random() < self.mod_crossover + self.mod_mutation
                     ## Create new module through crossover ##
-
-                    '''
-                    # Choose 2 random parents from the current species. Create new module by choosing the categorical
-                    # parameters of the fitter one and choosing the average of both parent values for the sortable
-                    # parameters.
-                    '''
 
                     # Determine if 2 modules are available in current species, as is required for crossover
                     possible_parents = self.mod_species[spec_id].copy()
@@ -810,13 +796,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 random_float = random.random()
                 if random_float < self.bp_mutation_add_conn:
                     ## Create new blueprint by adding connection ##
-
-                    '''
-                    # Choose random parent blueprint from species and copy genotype. Count number of connections present
-                    # in genotype. Determine random value of mutation intensity between 0 and bp_max_mutation and
-                    # multiply it with the amount of present connections to determine how many connections will be
-                    # added. Add connections to genotype randomly as in NEAT.
-                    '''
 
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of connections added to the blueprint graph
@@ -949,14 +928,47 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_float < bp_mutation_node_species_prob:
                     ## Create new blueprint by changing species of nodes ##
-                    # TODO
-                    # Choose random parent blueprint from species and copy genotype. Count number of nodes present
-                    # in genotype. Determine random value of mutation intensity between 0 and bp_max_mutation and
-                    # multiply it with the amount of nodes present to determine how many node species will be
-                    # changed. Uniform Randomly change the species of a each node.
-                    pass
 
-                    new_bp_id, new_bp = -1, None
+                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+                    # case the amount of nodes changed in the blueprint graph
+                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    mutation_intensity = random.uniform(0, 0.3)
+
+                    # Identify all non-Input nodes in the blueprint graph by ID
+                    bp_graph_node_ids = list()
+                    for gene in blueprint_graph.values():
+                        if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
+                            bp_graph_node_ids.append(gene.gene_id)
+
+                    # Determine specifically how many nodes will be changed
+                    nodes_to_change = int(mutation_intensity * len(bp_graph_node_ids))
+                    if nodes_to_change == 0:
+                        nodes_to_change = 1
+
+                    # Determine possible species to mutate nodes into
+                    available_mod_species = tuple(self.mod_species.keys())
+
+                    # change nodes in loop until sufficient amount
+                    changed_nodes_count = 0
+                    while changed_nodes_count < nodes_to_change:
+                        # Randomly choose gene_id of node to mutate and remove from list of possible node ids in order
+                        # to not mutate the species of a node twice
+                        gene_id_to_mutate = random.choice(bp_graph_node_ids)
+                        bp_graph_node_ids.remove(gene_id_to_mutate)
+
+                        # Randomly choose new species from available ones and assign species to blueprint graph
+                        new_species = random.choice(available_mod_species)
+                        blueprint_graph[gene_id_to_mutate].species = new_species
+
+                        # Increment counter of changed nodes
+                        changed_nodes_count += 1
+
+                    # Create new offpsring blueprint with parent mutated blueprint graph
+                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                       output_shape=output_shape,
+                                                                       output_activation=output_activation,
+                                                                       optimizer_factory=optimizer_factory)
 
                 elif random_float < bp_mutation_hp_prob:
                     ## Create new blueprint by mutating the hyperparameters ##
