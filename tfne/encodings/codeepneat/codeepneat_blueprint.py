@@ -1,5 +1,6 @@
+from copy import deepcopy
+
 import tensorflow as tf
-from absl import logging
 from graphviz import Digraph
 
 
@@ -150,6 +151,10 @@ class CoDeepNEATBlueprint:
     def create_optimizer(self) -> tf.keras.optimizers.Optimizer:
         """"""
         return self.optimizer_factory.create_optimizer()
+
+    def get_parameters(self) -> ({int: object}, (int, ...), str, object):
+        """"""
+        return deepcopy(self.blueprint_graph), self.output_shape, self.output_activation, self.optimizer_factory
 
     def get_blueprint_graph(self) -> {int: object}:
         """"""

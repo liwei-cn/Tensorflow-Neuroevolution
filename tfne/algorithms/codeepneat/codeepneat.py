@@ -12,6 +12,7 @@ from .codeepneat_helpers import deserialize_merge_method, round_to_nearest_multi
 from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
+from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintConn
 
 
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
@@ -641,8 +642,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     mutation_intensity = random.uniform(0, 0.3)
 
                     if self.mod_species_type[spec_id] == 'DENSE':
-                        # Determine explicit integer amount of parameters to be mutated
+                        # Determine explicit integer amount of parameters to be mutated, though minimum is 1
                         param_mutation_count = int(mutation_intensity * 6)
+                        if param_mutation_count == 0:
+                            param_mutation_count = 1
                         for _ in range(param_mutation_count):
 
                             # Uniform randomly choose one of the 6 parameters to be mutated. Categorical parameters are
@@ -808,14 +811,60 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 random_float = random.random()
                 if random_float < self.bp_mutation_add_conn:
                     ## Create new blueprint by adding connection ##
-                    # TODO
+
+                    '''
                     # Choose random parent blueprint from species and copy genotype. Count number of connections present
                     # in genotype. Determine random value of mutation intensity between 0 and bp_max_mutation and
                     # multiply it with the amount of present connections to determine how many connections will be
                     # added. Add connections to genotype randomly as in NEAT.
-                    pass
+                    '''
 
-                    new_bp_id, new_bp = -1, None
+                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.get_parameters()
+                    graph_topology = parent_bp.get_graph_topology()
+                    mutation_intensity = random.uniform(0, 0.3)
+
+                    bp_graph_conns = set()
+                    bp_graph_nodes = list()
+                    for gene in blueprint_graph:
+                        if isinstance(gene, CoDeepNEATBlueprintConn):
+                            bp_graph_conns.add((gene.conn_start, gene.conn_end))
+                        else:  # isinstance(gene, CoDeepNEATBlueprintNode)
+                            bp_graph_nodes.append(gene.node)
+
+                    conns_to_add = int(mutation_intensity * len(bp_graph_conns))
+                    if conns_to_add == 0:
+                        conns_to_add = 1
+
+                    added_conns_count = 0
+                    while added_conns_count < conns_to_add:
+                        start_node = random.choice(bp_graph_nodes)
+                        bp_graph_nodes.remove(start_node)
+                        if len(bp_graph_nodes) == 0:
+                            break
+
+                        start_node_level = None
+                        for i in range(len(graph_topology)):
+                            if start_node in graph_topology[i]:
+                                start_node_level = i
+                                break
+
+                        possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
+
+                        while len(possible_end_nodes) != 0:
+                            end_node = random.choice(possible_end_nodes)
+                            possible_end_nodes.remove(end_node)
+                            if (start_node, end_node) not in bp_graph_conns:
+                                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
+                                                                                    conn_end=end_node)
+                                blueprint_graph[gene_id] = gene
+                                added_conns_count += 1
+
+                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                       output_shape=output_shape,
+                                                                       output_activation=output_activation,
+                                                                       optimizer_factory=optimizer_factory)
+
 
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
