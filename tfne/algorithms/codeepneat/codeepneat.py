@@ -881,11 +881,63 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_float < bp_mutation_add_node_prob:
                     ## Create new blueprint by adding node ##
-                    # TODO
-                    # Analogoue to 'add_conn' mutation. Choose module species randomly.
-                    pass
 
-                    new_bp_id, new_bp = -1, None
+                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+                    # case the amount of nodes added to the blueprint graph
+                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    mutation_intensity = random.uniform(0, 0.3)
+
+                    # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
+                    # count nodes to determine intensity of mutation
+                    node_count = 0
+                    bp_graph_conn_ids = list()
+                    for gene in blueprint_graph.values():
+                        if isinstance(gene, CoDeepNEATBlueprintNode):
+                            node_count += 1
+                        elif gene.enabled:
+                            bp_graph_conn_ids.append(gene.gene_id)
+
+                    # Determine specifically how many nodes will be added
+                    nodes_to_add = int(mutation_intensity * node_count)
+                    if nodes_to_add == 0:
+                        nodes_to_add = 1
+
+                    # Determine possible species for new nodes
+                    available_mod_species = tuple(self.mod_species.keys())
+
+                    # Add nodes in loop until sufficient amount
+                    added_nodes_count = 0
+                    while added_nodes_count < nodes_to_add:
+                        # Randomly choose connection that will be split by choosing conn id and disable it. Then remove
+                        # the chosen id from list of connection ids as to not split the same connection twice.
+                        gene_id_splitted_conn = random.choice(bp_graph_conn_ids)
+                        conn_start = blueprint_graph[gene_id_splitted_conn].conn_start
+                        conn_end = blueprint_graph[gene_id_splitted_conn].conn_end
+                        blueprint_graph[gene_id_splitted_conn].set_enabled(False)
+                        bp_graph_conn_ids.remove(gene_id_splitted_conn)
+
+                        # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
+                        # create the same node. Choose species for new node randomly.
+                        new_node = self.encoding.create_node_from_split(conn_start, conn_end)
+                        new_species = random.choice(available_mod_species)
+
+                        # Create the genes for the new node addition and add to the blueprint graph
+                        gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
+                        blueprint_graph[gene_id] = gene
+                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
+                        blueprint_graph[gene_id] = gene
+                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
+                        blueprint_graph[gene_id] = gene
+
+                        # Increment counter of added nodes
+                        added_nodes_count += 1
+
+                    # Create new offpsring blueprint with parent mutated blueprint graph
+                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                       output_shape=output_shape,
+                                                                       output_activation=output_activation,
+                                                                       optimizer_factory=optimizer_factory)
 
                 elif random_float < bp_mutation_remove_conn_prob:
                     ## Create new blueprint by removing connection ##

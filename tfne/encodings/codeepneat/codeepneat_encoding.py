@@ -23,6 +23,20 @@ class CoDeepNEATEncoding(BaseEncoding):
         # a unique gene id before. If the blueprint gene has already been created before will the same gene id be used.
         self.gene_to_gene_id = dict()
 
+        # Initialize a counter for nodes and a history container, assigning the tuple of connection start and end a
+        # previously assigned node or new node if not yet present in history.
+        self.node_counter = 2
+        self.conn_split_history = dict()
+
+    def create_node_from_split(self, conn_start, conn_end) -> int:
+        """"""
+        conn_key = (conn_start, conn_end)
+        if conn_key not in self.conn_split_history:
+            self.node_counter += 1
+            self.conn_split_history[conn_key] = self.node_counter
+
+        return self.conn_split_history[conn_key]
+
     def create_blueprint_node(self, node, species) -> (int, CoDeepNEATBlueprintNode):
         """"""
         gene_key = (node,)
