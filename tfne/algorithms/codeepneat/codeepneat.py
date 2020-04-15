@@ -817,13 +817,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                             bp_graph_conns.add((gene.conn_start, gene.conn_end))
 
                     # Determine specifically how many connections will be added
-                    conns_to_add = int(mutation_intensity * len(bp_graph_conns))
-                    if conns_to_add == 0:
-                        conns_to_add = 1
+                    conns_to_add_count = int(mutation_intensity * len(bp_graph_conns))
+                    if conns_to_add_count == 0:
+                        conns_to_add_count = 1
 
                     # Add connections in loop until sufficient amount added
                     added_conns_count = 0
-                    while added_conns_count < conns_to_add:
+                    while added_conns_count < conns_to_add_count:
                         # Choose random start node from all possible nodes. Remove it immediately such that the same
                         # start node is not used twice, ensuring more complex mutation and a safe loop termination in
                         # case that all connection additions are exhausted
@@ -880,12 +880,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                             bp_graph_conn_ids.add(gene.gene_id)
 
                     # Determine specifically how many nodes will be added
-                    nodes_to_add = int(mutation_intensity * node_count)
-                    if nodes_to_add == 0:
-                        nodes_to_add = 1
+                    nodes_to_add_count = int(mutation_intensity * node_count)
+                    if nodes_to_add_count == 0:
+                        nodes_to_add_count = 1
 
                     # Uniform randomly choosen connections by ID that are to be split
-                    gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add)
+                    gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
 
                     # Determine possible species for new nodes
                     available_mod_species = tuple(self.mod_species.keys())
@@ -940,12 +940,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                             bp_graph_node_ids.add(gene.gene_id)
 
                     # Determine specifically how many nodes will be changed
-                    nodes_to_change = int(mutation_intensity * len(bp_graph_node_ids))
-                    if nodes_to_change == 0:
-                        nodes_to_change = 1
+                    nodes_to_change_count = int(mutation_intensity * len(bp_graph_node_ids))
+                    if nodes_to_change_count == 0:
+                        nodes_to_change_count = 1
 
                     # Uniform randomly choosen nodes by ID that will get a changed species
-                    gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change)
+                    gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change_count)
 
                     # Determine possible species to mutate nodes into
                     available_mod_species = tuple(self.mod_species.keys())
@@ -964,13 +964,64 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_float < bp_mutation_hp_prob:
                     ## Create new blueprint by mutating the hyperparameters ##
-                    # TODO
-                    # Choose random parent blueprint from species. Uniform randomly change its output activation
-                    # (categorical variable). Mutate the Optimizer much like a module is mutated in terms of categorical
-                    # and sortable parameters. Consider the bp_max_mutation.
-                    pass
 
-                    new_bp_id, new_bp = -1, None
+                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+                    # case the amount of hyperparameters to be changed
+                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    mutation_intensity = random.uniform(0, 0.3)
+
+                    # Uniform randomly determine optimizer to change to
+                    if random.choice(self.available_optimizers) == 'SGD':
+                        # Determine if current optimizer factory of same type as optimizer to change to, as in this case
+                        # the variables will be perturbed instead of created completely new
+                        if isinstance(optimizer_factory, SGDFactory):
+                            # Get current parameters of optimizer
+                            learning_rate, momentum, nesterov = optimizer_factory.get_parameters()
+
+                            # Determine specifically how many hps will be changed
+                            hps_to_change_count = int(mutation_intensity * 4)
+                            if hps_to_change_count == 0:
+                                hps_to_change_count = 1
+
+                            # Create specific list of parameter ids to be changed
+                            parameters_to_change = random.sample(range(4), k=hps_to_change_count)
+
+                            # Traverse through list of parameter ids to change. Categorical hps will be uniform randomly
+                            # chosen anew. Sortable hps will be perturbed with normal distribution and config specified
+                            # standard deviation
+                            for param_to_change in parameters_to_change:
+                                if param_to_change == 0:
+                                    output_activation = random.choice(self.output_activations)
+                                elif param_to_change == 1:
+                                    perturbed_lr = np.random.normal(loc=learning_rate,
+                                                                    scale=self.sgd_learning_rate_stddev)
+                                    learning_rate = round_to_nearest_multiple(perturbed_lr,
+                                                                              self.sgd_learning_rate[0],
+                                                                              self.sgd_learning_rate[1],
+                                                                              self.sgd_learning_rate[2])
+                                elif param_to_change == 2:
+                                    perturbed_momentum = np.random.normal(loc=momentum, scale=self.sgd_momentum_stddev)
+                                    momentum = round_to_nearest_multiple(perturbed_momentum,
+                                                                         self.sgd_momentum[0],
+                                                                         self.sgd_momentum[1],
+                                                                         self.sgd_momentum[2])
+                                elif param_to_change == 3:
+                                    nesterov = random.choice(self.sgd_nesterov)
+
+                            # Create new optimizer factory with newly mutated parameters
+                            optimizer_factory = SGDFactory(learning_rate, momentum, nesterov)
+                        else:
+                            raise NotImplementedError("Handling of conversion to SGD optimizer while the current "
+                                                      "optimizer is not SGD not yet implemented")
+                    else:
+                        raise RuntimeError("Optimizer other than SGD not yet implemented")
+
+                    # Create new offpsring blueprint with parent mutated hyperparameters
+                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                       output_shape=output_shape,
+                                                                       output_activation=output_activation,
+                                                                       optimizer_factory=optimizer_factory)
 
                 else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
                     ## Create new blueprint through crossover ##
