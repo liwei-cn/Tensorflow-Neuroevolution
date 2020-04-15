@@ -28,7 +28,7 @@ class CoDeepNEATEncoding(BaseEncoding):
         self.node_counter = 2
         self.conn_split_history = dict()
 
-    def create_node_from_split(self, conn_start, conn_end) -> int:
+    def get_node_for_split(self, conn_start, conn_end) -> int:
         """"""
         conn_key = (conn_start, conn_end)
         if conn_key not in self.conn_split_history:

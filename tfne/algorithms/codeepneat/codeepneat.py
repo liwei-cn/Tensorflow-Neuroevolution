@@ -697,8 +697,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new module through crossover ##
 
                     # Determine if 2 modules are available in current species, as is required for crossover
-                    possible_parents = self.mod_species[spec_id].copy()
-                    if len(possible_parents) == 1:
+                    if len(self.mod_species[spec_id]) == 1:
 
                         # If Only 1 module in current species available as parent, create new module with identical
                         # parameters
@@ -718,9 +717,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     else:
                         # Choose 2 random parent modules, both of them different
-                        parent_module_1_id = random.choice(possible_parents)
-                        possible_parents.remove(parent_module_1_id)
-                        parent_module_2_id = random.choice(possible_parents)
+                        parent_module_1_id, parent_module_2_id = random.sample(self.mod_species[spec_id], k=2)
 
                         # Determine fitter parent and save parameters of 'fitter' and 'other' parent
                         if self.modules[parent_module_1_id].get_fitness() > \
@@ -802,7 +799,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of connections added to the blueprint graph
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
                     graph_topology = parent_bp.get_graph_topology()
                     mutation_intensity = random.uniform(0, 0.3)
 
@@ -856,7 +853,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=output_shape,
+                                                                       output_shape=self.output_shape,
                                                                        output_activation=output_activation,
                                                                        optimizer_factory=optimizer_factory)
 
@@ -866,7 +863,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of nodes added to the blueprint graph
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
                     mutation_intensity = random.uniform(0, 0.3)
 
                     # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
@@ -899,7 +896,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                         # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
                         # create the same node. Choose species for new node randomly.
-                        new_node = self.encoding.create_node_from_split(conn_start, conn_end)
+                        new_node = self.encoding.get_node_for_split(conn_start, conn_end)
                         new_species = random.choice(available_mod_species)
 
                         # Create the genes for the new node addition and add to the blueprint graph
@@ -912,7 +909,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=output_shape,
+                                                                       output_shape=self.output_shape,
                                                                        output_activation=output_activation,
                                                                        optimizer_factory=optimizer_factory)
 
@@ -930,7 +927,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of nodes changed in the blueprint graph
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
                     mutation_intensity = random.uniform(0, 0.3)
 
                     # Identify all non-Input nodes in the blueprint graph by ID
@@ -958,7 +955,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=output_shape,
+                                                                       output_shape=self.output_shape,
                                                                        output_activation=output_activation,
                                                                        optimizer_factory=optimizer_factory)
 
@@ -968,7 +965,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
                     # case the amount of hyperparameters to be changed
                     parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, output_shape, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
                     mutation_intensity = random.uniform(0, 0.3)
 
                     # Uniform randomly determine optimizer to change to
@@ -1019,18 +1016,67 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                     # Create new offpsring blueprint with parent mutated hyperparameters
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=output_shape,
+                                                                       output_shape=self.output_shape,
                                                                        output_activation=output_activation,
                                                                        optimizer_factory=optimizer_factory)
 
                 else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
                     ## Create new blueprint through crossover ##
-                    # TODO
-                    # Randomly choose 2 parent blueprints. Carry over output activation and optimizer from fitter
-                    # blueprints. Merge blueprint graph genotype the same way NEAT merges genotypes.
-                    pass
 
-                    new_bp_id, new_bp = -1, None
+                    # Determine if 2 blueprints are available in current species, as is required for crossover
+                    if len(self.bp_species[spec_id]) == 1:
+
+                        # If Only 1 blueprint in current species available as parent, create new blueprint with
+                        # identical parameters
+                        parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+                        blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+
+                        # Create new offpsring blueprint with identical parameters
+                        new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                                           output_shape=self.output_shape,
+                                                                           output_activation=output_activation,
+                                                                           optimizer_factory=optimizer_factory)
+
+                    else:
+                        # Choose 2 random though different blueprint ids as parents
+                        parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
+
+                        # Assign the 'base_bp_graph' variable to the fitter blueprint and the 'other_bp_graph' variable
+                        # to the less fitter blueprint. Copy over output activation and optimizer factory from the
+                        # fitter blueprint for the creation of the crossed over bp
+                        if self.blueprints[parent_bp_1_id].get_fitness() > \
+                                self.blueprints[parent_bp_2_id].get_fitness():
+                            base_bp_graph, _, output_activation, optimizer_factory = \
+                                self.blueprints[parent_bp_1_id].duplicate_parameters()
+                            other_bp_graph, _, _, _ = self.blueprints[parent_bp_2_id].duplicate_parameters()
+                        else:
+                            other_bp_graph, _, _, _ = self.blueprints[parent_bp_1_id].duplicate_parameters()
+                            base_bp_graph, _, output_activation, optimizer_factory = \
+                                self.blueprints[parent_bp_2_id].duplicate_parameters()
+
+                        # Create quickly searchable sets of gene ids for the ids present in both the fitter and less fit
+                        # blueprint graphs
+                        base_bp_graph_ids = set(other_bp_graph.keys())
+                        other_bp_graph_ids = set(other_bp_graph.keys())
+                        all_bp_graph_ids = base_bp_graph_ids.union(other_bp_graph_ids)
+
+                        # For all gene ids in the blueprint graphs, choose uniform randomly which blueprint gene is
+                        # carried over to the new blueprint graph if the gene id is joint (both blueprint graph have
+                        # it). Carry over all gene ids to new blueprint graph that are exclusive to either parent
+                        # blueprint graph.
+                        for gene_id in all_bp_graph_ids:
+                            if gene_id in base_bp_graph_ids and gene_id in other_bp_graph_ids:
+                                if random.randint(0, 1) == 0:
+                                    base_bp_graph[gene_id] = other_bp_graph[gene_id]
+                            elif gene_id in other_bp_graph_ids:
+                                base_bp_graph[gene_id] = other_bp_graph[gene_id]
+
+                        # Create new offpsring blueprint with crossed over blueprint graph and hyperparameters of
+                        # fitter parent blueprint
+                        new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=base_bp_graph,
+                                                                           output_shape=self.output_shape,
+                                                                           output_activation=output_activation,
+                                                                           optimizer_factory=optimizer_factory)
 
                 # Add newly created blueprint to the blueprint container and its according species
                 self.blueprints[new_bp_id] = new_bp
