@@ -637,12 +637,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         param_mutation_count = int(mutation_intensity * 6)
                         if param_mutation_count == 0:
                             param_mutation_count = 1
-                        for _ in range(param_mutation_count):
 
-                            # Uniform randomly choose one of the 6 parameters to be mutated. Categorical parameters are
-                            # chosen randomly from all available values. Sortable parameters are perturbed through a
-                            # random normal distribution with the current value as mean and the config specified stddev
-                            param_to_mutate = random.randint(0, 5)
+                        # Uniform randomly choose the parameters to be mutated
+                        parameters_to_mutate = random.sample(range(6), k=param_mutation_count)
+
+                        # Mutate parameters. Categorical parameters are chosen randomly from all available values.
+                        # Sortable parameters are perturbed through a random normal distribution with the current value
+                        # as mean and the config specified stddev
+                        for param_to_mutate in parameters_to_mutate:
                             if param_to_mutate == 0:
                                 module_parameters[0] = random.choice(self.dense_merge_methods)
                             elif param_to_mutate == 1:
@@ -870,31 +872,30 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
                     # count nodes to determine intensity of mutation
                     node_count = 0
-                    bp_graph_conn_ids = list()
+                    bp_graph_conn_ids = set()
                     for gene in blueprint_graph.values():
                         if isinstance(gene, CoDeepNEATBlueprintNode):
                             node_count += 1
                         elif gene.enabled:
-                            bp_graph_conn_ids.append(gene.gene_id)
+                            bp_graph_conn_ids.add(gene.gene_id)
 
                     # Determine specifically how many nodes will be added
                     nodes_to_add = int(mutation_intensity * node_count)
                     if nodes_to_add == 0:
                         nodes_to_add = 1
 
+                    # Uniform randomly choosen connections by ID that are to be split
+                    gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add)
+
                     # Determine possible species for new nodes
                     available_mod_species = tuple(self.mod_species.keys())
 
-                    # Add nodes in loop until sufficient amount
-                    added_nodes_count = 0
-                    while added_nodes_count < nodes_to_add:
-                        # Randomly choose connection that will be split by choosing conn id and disable it. Then remove
-                        # the chosen id from list of connection ids as to not split the same connection twice.
-                        gene_id_splitted_conn = random.choice(bp_graph_conn_ids)
-                        conn_start = blueprint_graph[gene_id_splitted_conn].conn_start
-                        conn_end = blueprint_graph[gene_id_splitted_conn].conn_end
-                        blueprint_graph[gene_id_splitted_conn].set_enabled(False)
-                        bp_graph_conn_ids.remove(gene_id_splitted_conn)
+                    # Actually perform the split and adding of new node for all determined connections
+                    for gene_id_to_split in gene_ids_to_split:
+                        # Determine start and end node of connection and disable it
+                        conn_start = blueprint_graph[gene_id_to_split].conn_start
+                        conn_end = blueprint_graph[gene_id_to_split].conn_end
+                        blueprint_graph[gene_id_to_split].set_enabled(False)
 
                         # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
                         # create the same node. Choose species for new node randomly.
@@ -908,9 +909,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         blueprint_graph[gene_id] = gene
                         gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
                         blueprint_graph[gene_id] = gene
-
-                        # Increment counter of added nodes
-                        added_nodes_count += 1
 
                     # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
@@ -936,33 +934,27 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     mutation_intensity = random.uniform(0, 0.3)
 
                     # Identify all non-Input nodes in the blueprint graph by ID
-                    bp_graph_node_ids = list()
+                    bp_graph_node_ids = set()
                     for gene in blueprint_graph.values():
                         if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
-                            bp_graph_node_ids.append(gene.gene_id)
+                            bp_graph_node_ids.add(gene.gene_id)
 
                     # Determine specifically how many nodes will be changed
                     nodes_to_change = int(mutation_intensity * len(bp_graph_node_ids))
                     if nodes_to_change == 0:
                         nodes_to_change = 1
 
+                    # Uniform randomly choosen nodes by ID that will get a changed species
+                    gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change)
+
                     # Determine possible species to mutate nodes into
                     available_mod_species = tuple(self.mod_species.keys())
 
-                    # change nodes in loop until sufficient amount
-                    changed_nodes_count = 0
-                    while changed_nodes_count < nodes_to_change:
-                        # Randomly choose gene_id of node to mutate and remove from list of possible node ids in order
-                        # to not mutate the species of a node twice
-                        gene_id_to_mutate = random.choice(bp_graph_node_ids)
-                        bp_graph_node_ids.remove(gene_id_to_mutate)
-
+                    # Actually perform the split and adding of new node for all determined connections
+                    for gene_id_to_mutate in gene_ids_to_mutate:
                         # Randomly choose new species from available ones and assign species to blueprint graph
                         new_species = random.choice(available_mod_species)
                         blueprint_graph[gene_id_to_mutate].species = new_species
-
-                        # Increment counter of changed nodes
-                        changed_nodes_count += 1
 
                     # Create new offpsring blueprint with parent mutated blueprint graph
                     new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
