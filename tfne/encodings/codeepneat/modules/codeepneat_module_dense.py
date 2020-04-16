@@ -55,7 +55,7 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         else:
             return (dense_layer,)
 
-    def get_summary(self, dtype, output_shape=None, output_activation=None) -> str:
+    def get_summary(self, output_shape=None, output_activation=None) -> str:
         """"""
         # Determine if the layers generated through this module had deviating parameters and should accordingly be
         # summarized as such

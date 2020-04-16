@@ -1,7 +1,7 @@
-from typing import Callable
 from abc import ABCMeta, abstractmethod
 
 import tensorflow as tf
+from graphviz import Graph
 
 
 class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
@@ -23,7 +23,7 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
-    def get_summary(self, dtype, output_shape, output_activation) -> str:
+    def get_summary(self, output_shape, output_activation) -> str:
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
 
@@ -31,6 +31,17 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     def duplicate_parameters(self) -> list:
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'duplicate_parameters()'")
+
+    def visualize(self, view, save_dir_path):
+        """"""
+        filename = "viz_module_{}".format(self.module_id)
+        if save_dir_path is not None and save_dir_path[-1] != '/':
+            save_dir_path += '/'
+
+        graph = Graph()
+        graph.node("0", label=self.get_summary())
+
+        graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
 
     def get_id(self) -> int:
         return self.module_id

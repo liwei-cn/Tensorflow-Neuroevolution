@@ -17,6 +17,12 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'get_best_genome()'")
 
     @abstractmethod
+    def get_generation_counter(self) -> int:
+        """"""
+        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
+                                  "'get_generation_counter()'")
+
+    @abstractmethod
     def initialize_population(self):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "

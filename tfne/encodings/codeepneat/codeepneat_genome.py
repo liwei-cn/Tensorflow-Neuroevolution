@@ -72,8 +72,7 @@ class CoDeepNEATGenome(BaseGenome):
                 if bp_gene.node == 1:
                     graph.node('1', label='Input Node')
                 elif bp_gene.node == 2:
-                    mod_str = self.bp_assigned_modules[bp_gene.species].get_summary(dtype=self.dtype,
-                                                                                    output_shape=output_shape,
+                    mod_str = self.bp_assigned_modules[bp_gene.species].get_summary(output_shape=output_shape,
                                                                                     output_activation=output_activation)
                     graph.node('2', label=mod_str)
                 else:
