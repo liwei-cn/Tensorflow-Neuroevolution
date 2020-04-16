@@ -3,6 +3,7 @@ from absl import logging
 from graphviz import Digraph
 
 from .codeepneat_blueprint import CoDeepNEATBlueprint
+from .modules.codeepneat_module_base import CoDeepNEATModuleBase
 from .codeepneat_model import CoDeepNEATModel
 from ..base_genome import BaseGenome
 
@@ -41,7 +42,7 @@ class CoDeepNEATGenome(BaseGenome):
 
     def __str__(self) -> str:
         """"""
-        return "CoDeepNEATGenome || ID: {:>4} || Fitness: {:>6} || Origin Generation: {:>4}" \
+        return "CoDeepNEATGenome || ID: {:>6} || Fitness: {:>6} || Origin Generation: {:>4}" \
             .format(self.genome_id, self.fitness, self.origin_generation)
 
     def visualize(self, view, save_dir_path):
@@ -52,10 +53,10 @@ class CoDeepNEATGenome(BaseGenome):
             save_dir_path += '/'
 
         # Define label string, summarizing the Genome
-        label_string = f"CoDeepNEAT Genome (ID: {self.genome_id})\l" \
-                       f"fitness: {self.fitness}\l" \
-                       f"origin_generation: {self.origin_generation}\l" \
-                       f"dtype: {self.dtype}\l"
+        label_string = f"CoDeepNEAT Genome (ID: {self.genome_id}, Fitness: {self.fitness})\l" \
+                       f"Optimizer: {self.blueprint.optimizer_factory}" \
+                       f"dtype: {self.dtype}\l" \
+                       f"origin_generation: {self.origin_generation}\l"
 
         # Create graph and set direction of graph starting from bottom to top. Include label string at bottom
         graph = Digraph(graph_attr={'rankdir': 'BT', 'label': label_string})
@@ -92,11 +93,14 @@ class CoDeepNEATGenome(BaseGenome):
 
     def save_genotype(self, save_dir_path):
         """"""
-        logging.warning("TODO: Implement codeepneat_genome.save_genotype()")
+        logging.warning("CoDeepNEATGenome.save_genotype() NOT YET IMPLEMENTED")
 
     def save_model(self, save_dir_path):
         """"""
-        logging.warning("TODO: Implement codeepneat_genome.save_model()")
+        logging.warning("CoDeepNEATGenome.save_model() NOT YET IMPLEMENTED")
+
+    def set_fitness(self, fitness):
+        self.fitness = fitness
 
     def get_model(self) -> tf.keras.Model:
         """"""
@@ -106,7 +110,7 @@ class CoDeepNEATGenome(BaseGenome):
         """"""
         return self.optimizer
 
-    def get_genotype(self) -> (CoDeepNEATBlueprint, {int: int}):
+    def get_genotype(self) -> (CoDeepNEATBlueprint, {int: CoDeepNEATModuleBase}):
         """"""
         return self.blueprint, self.bp_assigned_modules
 
@@ -115,6 +119,3 @@ class CoDeepNEATGenome(BaseGenome):
 
     def get_fitness(self) -> float:
         return self.fitness
-
-    def set_fitness(self, fitness):
-        self.fitness = fitness

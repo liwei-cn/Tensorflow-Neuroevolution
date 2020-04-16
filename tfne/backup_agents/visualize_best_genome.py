@@ -1,5 +1,3 @@
-from absl import logging
-
 from .base_backup_agent import BaseBackupAgent
 
 

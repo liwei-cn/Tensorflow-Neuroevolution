@@ -1,5 +1,3 @@
-from absl import logging
-
 from .base_backup_agent import BaseBackupAgent
 
 
@@ -13,6 +11,6 @@ class VisualizePopulation(BaseBackupAgent):
     def __call__(self, generation_counter, ne_algorithm):
         """"""
         if generation_counter % self.periodicity == 0:
-            # append current generation count to backup dir and the visualize population
-            gen_backup_dir_path = self.backup_dir_path + "gen_{}/".format(ne_algorithm.get_generation_counter())
+            # Append current generation count to backup dir and then visualize population
+            gen_backup_dir_path = self.backup_dir_path + f"gen_{generation_counter}/"
             ne_algorithm.visualize_population(save_file_path=gen_backup_dir_path)

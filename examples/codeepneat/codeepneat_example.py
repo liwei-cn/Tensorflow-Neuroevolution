@@ -16,9 +16,9 @@ flags.DEFINE_float('max_fitness',
                    default=None, help='TBD')
 
 
-def codeepneat_example(argv):
+def codeepneat_example(_):
     """"""
-    # Set standard configuration not specific to the neuroevolutionary process
+    # Set standard configuration specific to TFNE but not the neuroevolution process
     logging_level = logging.INFO
     config_path = './codeepneat_example_config.cfg'
     num_cpus = None
@@ -60,7 +60,7 @@ def codeepneat_example(argv):
                                                                backup_dir_path='./visualizations_population/')
     backup_agents = (ba_save_best_genome, ba_save_population, ba_viz_best_genome, ba_viz_population)
 
-    # Supply configuration and initialized NE elements to the evolution engine
+    # Initialize evolution engine and supply config as well as initialized NE elements
     engine = tfne.EvolutionEngine(ne_algorithm=ne_algorithm,
                                   environment=environment,
                                   num_cpus=num_cpus,

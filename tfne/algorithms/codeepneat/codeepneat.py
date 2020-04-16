@@ -1111,7 +1111,3 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def get_best_genome(self) -> CoDeepNEATGenome:
         """"""
         return self.best_genome
-
-    def get_generation_counter(self) -> int:
-        """"""
-        return self.generation_counter

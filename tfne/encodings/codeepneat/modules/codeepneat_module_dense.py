@@ -51,7 +51,7 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         # Determine if Dense Module also includes a dropout layer, then return appropriate layer tuple
         if self.dropout_flag:
             dropout_layer = tf.keras.layers.Dropout(rate=self.dropout_rate, dtype=dtype)
-            return (dense_layer, dropout_layer)
+            return dense_layer, dropout_layer
         else:
             return (dense_layer,)
 
@@ -65,7 +65,7 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
             network_units = f"[OVERRIDEN TO] {output_shape[0]}"
         network_activation = self.activation if output_activation is None else f"[OVERRIDEN TO] {output_activation}"
 
-        return f"~ DENSE Module (ID: {self.module_id}) ~\l" \
+        return f"~ DENSE Module (ID: {self.module_id}, Fitness: {self.fitness}) ~\l" \
                f"units = {network_units}\l" \
                f"activation = {network_activation}\l" \
                f"kernel_initializer = {self.kernel_initializer}\l" \

@@ -49,20 +49,20 @@ class CoDeepNEATModel(tf.keras.Model):
         # shape and output activation a special consideration
         # Determine the specific module of the out node and the required nodes the out node depends upon. The out node
         # is per framework specification always node 2
-        out_node_assigned_module = bp_assigned_modules[node_species[2]]
+        out_node_ass_module = bp_assigned_modules[node_species[2]]
         out_node_dependencies = tuple(node_dependencies[2])
 
         # Determine if merge needed and if so, configure it
         out_merge_flag = len(out_node_dependencies) > 1
         if out_merge_flag:
-            out_merge_method = deserialize_merge_method(out_node_assigned_module.get_merge_method())
+            out_merge_method = deserialize_merge_method(out_node_ass_module.get_merge_method())
         else:
             out_merge_method = None
 
         # Create actual output module layers in sequential order with special output shape and activation
-        out_node_layers = out_node_assigned_module.create_module_layers(dtype=dtype,
-                                                                        output_shape=blueprint.get_output_shape(),
-                                                                        output_activation=blueprint.get_output_activation())
+        out_node_layers = out_node_ass_module.create_module_layers(dtype=dtype,
+                                                                   output_shape=blueprint.get_output_shape(),
+                                                                   output_activation=blueprint.get_output_activation())
 
         # Create compute tuple that has to be processed for the output node and append it to the compute graph
         out_compute_tuple = (2, out_node_dependencies, out_merge_flag, out_merge_method, out_node_layers)

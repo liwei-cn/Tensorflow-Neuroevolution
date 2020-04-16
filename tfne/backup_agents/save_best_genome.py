@@ -13,4 +13,4 @@ class SaveBestGenome(BaseBackupAgent):
     def __call__(self, generation_counter, ne_algorithm):
         """"""
         if generation_counter % self.periodicity == 0:
-            logging.info("\t\tToDo: Implement call for BackupAgent 'SaveBestGenome'")
+            logging.warning("SaveBestGenome.__call__() NOT YET IMPLEMENTED")

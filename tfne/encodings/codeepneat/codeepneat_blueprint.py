@@ -122,8 +122,7 @@ class CoDeepNEATBlueprint:
             save_dir_path += '/'
 
         # Define label string, summarizing the Blueprint
-        label_string = f"CoDeepNEAT Blueprint (ID: {self.blueprint_id})\l" \
-                       f"fitness: {self.fitness}\l" \
+        label_string = f"CoDeepNEAT Blueprint (ID: {self.blueprint_id}, Fitness: {self.fitness})\l" \
                        f"output shape: {self.output_shape}\l" \
                        f"output activation: {self.output_activation}\l" \
                        f"optimizer factory: {self.optimizer_factory}\l"
@@ -160,6 +159,9 @@ class CoDeepNEATBlueprint:
                 self.output_activation,
                 self.optimizer_factory.duplicate())
 
+    def set_fitness(self, fitness):
+        self.fitness = fitness
+
     def get_blueprint_graph(self) -> {int: object}:
         """"""
         return self.blueprint_graph
@@ -180,11 +182,11 @@ class CoDeepNEATBlueprint:
         """"""
         return self.node_species
 
-    def get_node_dependencies(self) -> {int: int}:
+    def get_node_dependencies(self) -> {int: {int, ...}}:
         """"""
         return self.node_dependencies
 
-    def get_graph_topology(self) -> ({int, ...}, ...):
+    def get_graph_topology(self) -> [{int, ...}, ...]:
         """"""
         return self.graph_topology
 
@@ -193,6 +195,3 @@ class CoDeepNEATBlueprint:
 
     def get_fitness(self) -> float:
         return self.fitness
-
-    def set_fitness(self, fitness):
-        self.fitness = fitness

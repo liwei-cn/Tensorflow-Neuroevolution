@@ -2,7 +2,6 @@ import ast
 
 import numpy as np
 import tensorflow as tf
-from absl import logging
 
 from ..base_environment import BaseEnvironment
 
@@ -35,8 +34,8 @@ class XOREnvironment(BaseEnvironment):
             # Initialize and read config supplied weight training parameters
             self.epochs = ast.literal_eval(config['EVALUATION']['evaluation_epochs'])
             self.batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
-            logging.info("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
-            logging.info("Config value for 'EVALUATION/evaluation_batch_size': {}".format(self.batch_size))
+            print("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
+            print("Config value for 'EVALUATION/evaluation_batch_size': {}".format(self.batch_size))
         else:
             # Register the NON weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_non_weight_training
@@ -52,8 +51,8 @@ class XOREnvironment(BaseEnvironment):
         model = genome.get_model()
         optimizer = genome.get_optimizer()
         if optimizer is None:
-            raise RuntimeError("Genome to evaluate ({}) does not supply a optimizer and there is as of yet no standard "
-                               "optimizer defined for the XOR environment")
+            raise RuntimeError("Genome to evaluate ({}) does not supply an optimizer and no standard optimizer defined"
+                               "for XOR environment as of yet.")
 
         # Compile and train model
         model.compile(optimizer=optimizer, loss=self.loss_function)
@@ -62,7 +61,7 @@ class XOREnvironment(BaseEnvironment):
         # Evaluate and return its fitness
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, model.predict(self.x))))
 
-        # TODO WORKAROUND FOR BUG
+        # FIXME BUG WORKAROUND
         # Sometimes loss function randomly returns NaN.
         # See bug report: https://github.com/tensorflow/tensorflow/issues/38457
         if tf.math.is_nan(evaluated_fitness):

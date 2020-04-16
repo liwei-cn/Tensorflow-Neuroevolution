@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any
 from abc import ABCMeta, abstractmethod
 
 import tensorflow as tf
@@ -28,6 +28,10 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'save_model()'")
 
+    def set_fitness(self, fitness):
+        """"""
+        raise NotImplementedError("Subclass of BaseGenome does not implement 'set_fitness()'")
+
     def get_model(self) -> tf.keras.Model:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_model()'")
@@ -36,7 +40,7 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_optimizer()'")
 
-    def get_genotype(self) -> object:
+    def get_genotype(self) -> Any:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_genotype()'")
 
@@ -47,7 +51,3 @@ class BaseGenome(object, metaclass=ABCMeta):
     def get_fitness(self) -> float:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_fitness()'")
-
-    def set_fitness(self, fitness):
-        """"""
-        raise NotImplementedError("Subclass of BaseGenome does not implement 'set_fitness()'")

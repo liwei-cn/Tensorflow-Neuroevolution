@@ -13,7 +13,7 @@ class SGDFactory:
 
     def __str__(self) -> str:
         """"""
-        return "SGD Optimizer (lr: {}; mom: {}; nstv: {}".format(self.learning_rate, self.momentum, self.nesterov)
+        return "SGD Optimizer (LR: {}, Mom: {}, Nstv: {})".format(self.learning_rate, self.momentum, self.nesterov)
 
     def create_optimizer(self) -> tf.keras.optimizers.SGD:
         """"""

@@ -23,7 +23,7 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
-    def get_summary(self, output_shape, output_activation) -> str:
+    def get_summary(self, output_shape=None, output_activation=None) -> str:
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
 
@@ -34,14 +34,20 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
 
     def visualize(self, view, save_dir_path):
         """"""
+        # Create filename and adjust save_dir_path if not ending in slash, indicating folder path
         filename = "viz_module_{}".format(self.module_id)
         if save_dir_path is not None and save_dir_path[-1] != '/':
             save_dir_path += '/'
 
+        # Set up a basic graph to render the module in a node
         graph = Graph()
         graph.node("0", label=self.get_summary())
 
+        # Render, save and optionally display the module
         graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
+
+    def set_fitness(self, fitness):
+        self.fitness = fitness
 
     def get_id(self) -> int:
         return self.module_id
@@ -51,6 +57,3 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
 
     def get_merge_method(self) -> str:
         return self.merge_method
-
-    def set_fitness(self, fitness):
-        self.fitness = fitness
