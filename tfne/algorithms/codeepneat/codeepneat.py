@@ -353,6 +353,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # fitness of the genomes in which a module is involved in later and assign it as the module's fitness
         mod_genome_fitness = dict()
 
+        # Initialize Progress counter variables for evaluate population progress bar. Print notice of evaluation start
+        genome_pop_size = self.bp_pop_size * self.genomes_per_bp
+        genome_eval_counter = 0
+        genome_eval_counter_div = round(genome_pop_size / 20.0, 4)
+        print("Evaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
+
         for blueprint in self.blueprints.values():
             bp_species = blueprint.get_species()
 
@@ -371,10 +377,19 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 # Create genome, using the specific blueprint, a dict of modules for each species and the current
                 # generation
-                _, genome = self.encoding.create_genome(blueprint, bp_assigned_modules, self.generation_counter)
+                genome_id, genome = self.encoding.create_genome(blueprint, bp_assigned_modules, self.generation_counter)
 
                 # Now evaluate genome on registered environment
                 genome_fitness = self.environment.eval_genome_fitness(genome)
+
+                # Print population evaluation progress bar
+                genome_eval_counter += 1
+                progress_mult = int(round(genome_eval_counter / genome_eval_counter_div, 4))
+                print("[{:20}] {}/{} Genomes | Genome ID {} achieved fitness of {}".format("=" * progress_mult,
+                                                                                           genome_eval_counter,
+                                                                                           genome_pop_size,
+                                                                                           genome_id,
+                                                                                           genome_fitness))
 
                 # Assign the genome fitness to the blueprint and all modules used for the creation of the genome
                 bp_genome_fitness.append(genome_fitness)
