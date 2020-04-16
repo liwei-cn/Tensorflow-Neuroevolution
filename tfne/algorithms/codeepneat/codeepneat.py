@@ -259,14 +259,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.input_shape = environment.get_input_shape()
         self.output_shape = environment.get_output_shape()
 
-    def get_best_genome(self) -> CoDeepNEATGenome:
-        """"""
-        return self.best_genome
-
-    def get_generation_counter(self) -> int:
-        """"""
-        return self.generation_counter
-
     def initialize_population(self):
         """"""
 
@@ -1111,25 +1103,18 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def visualize_population(self, save_file_path):
         """"""
 
+        # Visualize all blueprints to specified path
         for bp in self.blueprints.values():
             bp.visualize(view=False, save_dir_path=save_file_path)
 
+        # Visualize all modules to specified path
         for mod in self.modules.values():
             mod.visualize(view=False, save_dir_path=save_file_path)
 
-        '''
-        filename = save_file_path + "viz_population_gen_{}.svg".format(self.generation_counter)
-        bp_svg_dir_path = tempfile.mkdtemp()
-        
-        for bp in self.blueprints.values():
-            bp.visualize(view=False, save_dir_path=bp_svg_dir_path)
+    def get_best_genome(self) -> CoDeepNEATGenome:
+        """"""
+        return self.best_genome
 
-        viz_document = Document()
-        viz_layout = HBoxLayout()
-
-        for bp_viz in os.listdir(path=bp_svg_dir_path):
-            viz_layout.addSVG(bp_viz, alignment=AlignCenter)
-
-        viz_document.setLayout(viz_layout)
-        viz_document.save(filename)
-        '''
+    def get_generation_counter(self) -> int:
+        """"""
+        return self.generation_counter
