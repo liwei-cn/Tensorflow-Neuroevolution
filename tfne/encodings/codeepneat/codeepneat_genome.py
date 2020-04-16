@@ -91,11 +91,11 @@ class CoDeepNEATGenome(BaseGenome):
         # Render, save and optionally display the graph
         graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
 
-    def save_genotype(self, save_dir):
+    def save_genotype(self, save_dir_path):
         """"""
         logging.warning("TODO: Implement codeepneat_genome.save_genotype()")
 
-    def save_model(self, save_dir):
+    def save_model(self, save_dir_path):
         """"""
         logging.warning("TODO: Implement codeepneat_genome.save_model()")
 

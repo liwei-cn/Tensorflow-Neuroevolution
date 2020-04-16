@@ -14,22 +14,6 @@ flags.DEFINE_integer('max_generations',
                      default=None, help='TBD')
 flags.DEFINE_float('max_fitness',
                    default=None, help='TBD')
-flags.DEFINE_integer('save_best_genome_periodicity',
-                     default=None, help='TBD')
-flags.DEFINE_string('save_best_genome_backup_dir_path',
-                    default=None, help='TBD')
-flags.DEFINE_integer('save_population_periodicity',
-                     default=None, help='TBD')
-flags.DEFINE_string('save_population_backup_dir_path',
-                    default=None, help='TBD')
-flags.DEFINE_integer('visualize_best_genome_periodicity',
-                     default=None, help='TBD')
-flags.DEFINE_string('visualize_best_genome_backup_dir_path',
-                    default=None, help='TBD')
-flags.DEFINE_integer('visualize_population_periodicity',
-                     default=None, help='TBD')
-flags.DEFINE_string('visualize_population_backup_dir_path',
-                    default=None, help='TBD')
 
 
 def codeepneat_example(argv):
@@ -39,16 +23,8 @@ def codeepneat_example(argv):
     config_path = './codeepneat_example_config.cfg'
     num_cpus = None
     num_gpus = None
-    max_generations = 1
+    max_generations = 10
     max_fitness = None
-    save_best_genome_periodicity = 1
-    save_best_genome_backup_dir_path = './backups_best_genome/'
-    save_population_periodicity = 10
-    save_population_backup_dir_path = './backups_population/'
-    visualize_best_genome_periodicity = 1
-    visualize_best_genome_backup_dir_path = './visualizations_best_genome/'
-    visualize_population_periodicity = 3
-    visualize_population_backup_dir_path = './visualizations_population/'
 
     # Read in optionally supplied flags, changing the just set standard configuration
     if flags.FLAGS.logging_level is not None:
@@ -63,22 +39,6 @@ def codeepneat_example(argv):
         max_generations = flags.FLAGS.max_generations
     if flags.FLAGS.max_fitness is not None:
         max_fitness = flags.FLAGS.max_fitness
-    if flags.FLAGS.save_best_genome_periodicity is not None:
-        save_best_genome_periodicity = flags.FLAGS.save_best_genome_periodicity
-    if flags.FLAGS.save_best_genome_backup_dir_path is not None:
-        save_best_genome_backup_dir_path = flags.FLAGS.save_best_genome_backup_dir_path
-    if flags.FLAGS.save_population_periodicity is not None:
-        save_population_periodicity = flags.FLAGS.save_population_periodicity
-    if flags.FLAGS.save_population_backup_dir_path is not None:
-        save_population_backup_dir_path = flags.FLAGS.save_population_backup_dir_path
-    if flags.FLAGS.visualize_best_genome_periodicity is not None:
-        visualize_best_genome_periodicity = flags.FLAGS.visualize_best_genome_periodicity
-    if flags.FLAGS.visualize_best_genome_backup_dir_path is not None:
-        visualize_best_genome_backup_dir_path = flags.FLAGS.visualize_best_genome_backup_dir_path
-    if flags.FLAGS.visualize_population_periodicity is not None:
-        visualize_population_periodicity = flags.FLAGS.visualize_population_periodicity
-    if flags.FLAGS.visualize_population_backup_dir_path is not None:
-        visualize_population_backup_dir_path = flags.FLAGS.visualize_population_backup_dir_path
 
     # Set logging, parse config
     logging.set_verbosity(logging_level)
@@ -89,15 +49,16 @@ def codeepneat_example(argv):
     ne_algorithm = tfne.CoDeepNEAT(config)
 
     # Initialize and set up backup agents
-    ba_save_best_genome = tfne.backup_agents.SaveBestGenome(save_best_genome_periodicity,
-                                                            save_best_genome_backup_dir_path)
-    ba_save_population = tfne.backup_agents.SavePopulation(save_population_periodicity,
-                                                           save_population_backup_dir_path)
-    ba_visualize_best_genome = tfne.backup_agents.VisualizeBestGenome(visualize_best_genome_periodicity,
-                                                                      visualize_best_genome_backup_dir_path)
-    ba_visualize_population = tfne.backup_agents.VisualizePopulation(visualize_population_periodicity,
-                                                                     visualize_population_backup_dir_path)
-    backup_agents = (ba_save_best_genome, ba_save_population, ba_visualize_best_genome, ba_visualize_population)
+    ba_save_best_genome = tfne.backup_agents.SaveBestGenome(periodicity=1,
+                                                            backup_dir_path='./backups_best_genome/')
+    ba_save_population = tfne.backup_agents.SavePopulation(periodicity=10,
+                                                           backup_dir_path='./backups_population/')
+    ba_viz_best_genome = tfne.backup_agents.VisualizeBestGenome(periodicity=1,
+                                                                view=False,
+                                                                backup_dir_path='./visualizations_best_genome/')
+    ba_viz_population = tfne.backup_agents.VisualizePopulation(periodicity=1,
+                                                               backup_dir_path='./visualizations_population/')
+    backup_agents = (ba_save_best_genome, ba_save_population, ba_viz_best_genome, ba_viz_population)
 
     # Supply configuration and initialized NE elements to the evolution engine
     engine = tfne.EvolutionEngine(ne_algorithm=ne_algorithm,
@@ -114,9 +75,9 @@ def codeepneat_example(argv):
     # Show string representation of best genome, visualize it and then save it
     print("Best Genome returned by evolution:\n")
     print(best_genome)
-    best_genome.visualize(view=True, save_dir='./')
-    best_genome.save_genotype(save_dir='./')
-    best_genome.save_model(save_dir='./')
+    best_genome.visualize(view=True, save_dir_path='./')
+    best_genome.save_genotype(save_dir_path='./')
+    best_genome.save_model(save_dir_path='./')
 
 
 if __name__ == '__main__':

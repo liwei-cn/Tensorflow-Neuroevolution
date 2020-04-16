@@ -13,4 +13,4 @@ class VisualizePopulation(BaseBackupAgent):
     def __call__(self, generation_counter, ne_algorithm):
         """"""
         if generation_counter % self.periodicity == 0:
-            logging.info("\t\tToDo: Implement call for BackupAgent 'VisualizePopulation'")
+            ne_algorithm.visualize_population(save_file_path=self.backup_dir_path)

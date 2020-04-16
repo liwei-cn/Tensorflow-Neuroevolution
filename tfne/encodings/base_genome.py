@@ -20,11 +20,11 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'visualize()'")
 
-    def save_genotype(self, save_dir):
+    def save_genotype(self, save_dir_path):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'save_genotype()'")
 
-    def save_model(self, save_dir):
+    def save_model(self, save_dir_path):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'save_model()'")
 

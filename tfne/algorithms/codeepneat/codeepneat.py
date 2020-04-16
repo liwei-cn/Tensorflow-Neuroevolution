@@ -256,10 +256,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.input_shape = environment.get_input_shape()
         self.output_shape = environment.get_output_shape()
 
-    def get_best_genome(self) -> CoDeepNEATGenome:
-        """"""
-        return self.best_genome
-
     def initialize_population(self):
         """"""
 
@@ -1103,4 +1099,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def visualize_population(self, save_file_path):
         """"""
-        raise NotImplementedError()
+        # TODO
+        logging.warning("VISUALIZE_POP not yet implemented")
+
+    def get_best_genome(self) -> CoDeepNEATGenome:
+        """"""
+        return self.best_genome
