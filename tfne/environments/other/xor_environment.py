@@ -36,6 +36,9 @@ class XOREnvironment(BaseEnvironment):
             self.batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
             print("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
             print("Config value for 'EVALUATION/evaluation_batch_size': {}".format(self.batch_size))
+
+            # Set standard parameters for weight training evaluation
+            self.verbosity = 1
         else:
             # Register the NON weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_non_weight_training
@@ -56,7 +59,7 @@ class XOREnvironment(BaseEnvironment):
 
         # Compile and train model
         model.compile(optimizer=optimizer, loss=self.loss_function)
-        model.fit(x=self.x, y=self.y, epochs=self.epochs, batch_size=self.batch_size)
+        model.fit(x=self.x, y=self.y, epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbosity)
 
         # Evaluate and return its fitness
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, model.predict(self.x))))
@@ -84,6 +87,10 @@ class XOREnvironment(BaseEnvironment):
     def is_weight_training(self) -> bool:
         """"""
         return self.weight_training_eval
+
+    def set_verbosity(self, verbosity):
+        """"""
+        self.verbosity = verbosity
 
     def get_input_shape(self) -> (int,):
         return self.input_shape

@@ -20,6 +20,11 @@ class BaseEnvironment(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'is_weight_training()'")
 
     @abstractmethod
+    def set_verbosity(self, verbosity):
+        """"""
+        raise NotImplementedError("Subclass of BaseEnvironment does not implement 'set_verbosity()'")
+
+    @abstractmethod
     def get_input_shape(self) -> (int, ...):
         """"""
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_input_shape()'")

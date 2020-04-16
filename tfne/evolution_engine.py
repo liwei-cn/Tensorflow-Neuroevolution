@@ -1,5 +1,6 @@
 import ray
 import graphviz
+from absl import logging
 
 from .encodings.base_genome import BaseGenome
 
@@ -23,8 +24,11 @@ class EvolutionEngine:
         self.max_fitness = max_fitness
         self.backup_agents = backup_agents
 
-        # Register the evaluation environment through which the genomes are evaluated at the NE algorithm
+        # Register the evaluation environment through which the genomes are evaluated at the NE algorithm and set
+        # environment verbosity level according to logging level
         self.ne_algorithm.register_environment(self.environment)
+        if not logging.level_debug():
+            self.environment.set_verbosity(0)
 
         # Initiate the Multiprocessing library ray and the graph visualization library
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
