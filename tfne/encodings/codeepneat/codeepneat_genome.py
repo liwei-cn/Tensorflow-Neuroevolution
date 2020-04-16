@@ -54,7 +54,7 @@ class CoDeepNEATGenome(BaseGenome):
 
         # Define label string, summarizing the Genome
         label_string = f"CoDeepNEAT Genome (ID: {self.genome_id}, Fitness: {self.fitness})\l" \
-                       f"Optimizer: {self.blueprint.optimizer_factory}" \
+                       f"Optimizer: {self.blueprint.optimizer_factory}\l" \
                        f"dtype: {self.dtype}\l" \
                        f"origin_generation: {self.origin_generation}\l"
 
