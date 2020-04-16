@@ -1,9 +1,8 @@
-import ast
-
 import numpy as np
 import tensorflow as tf
 
 from ..base_environment import BaseEnvironment
+from ...helper_functions import read_option_from_config
 
 
 class XOREnvironment(BaseEnvironment):
@@ -32,10 +31,8 @@ class XOREnvironment(BaseEnvironment):
             self.eval_genome_fitness = self._eval_genome_fitness_weight_training
 
             # Initialize and read config supplied weight training parameters
-            self.epochs = ast.literal_eval(config['EVALUATION']['evaluation_epochs'])
-            self.batch_size = ast.literal_eval(config['EVALUATION']['evaluation_batch_size'])
-            print("Config value for 'EVALUATION/evaluation_epochs': {}".format(self.epochs))
-            print("Config value for 'EVALUATION/evaluation_batch_size': {}".format(self.batch_size))
+            self.epochs = read_option_from_config(config, 'EVALUATION', 'evaluation_epochs')
+            self.batch_size = read_option_from_config(config, 'EVALUATION', 'evaluation_batch_size')
 
             # Set standard parameters for weight training evaluation
             self.verbosity = 1

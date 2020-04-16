@@ -1,4 +1,5 @@
-from typing import Union, Callable
+import ast
+from typing import Union, Callable, Any
 from configparser import ConfigParser
 
 import tensorflow as tf
@@ -11,6 +12,13 @@ def parse_configuration(config_path):
         config.read_file(config_file)
 
     return config
+
+
+def read_option_from_config(config, section, option) -> Any:
+    """"""
+    value = ast.literal_eval(config[section][option])
+    print("Config value for '{}/{}': {}".format(section, option, value))
+    return value
 
 
 def deserialize_merge_method(merge_method_str) -> Callable:
