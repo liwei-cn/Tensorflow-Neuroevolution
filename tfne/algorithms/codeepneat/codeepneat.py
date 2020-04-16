@@ -171,9 +171,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             "Config value for 'BP_EVOLUTION/bp_mutation_node_species': {}".format(self.bp_mutation_node_species))
         logging.info("Config value for 'BP_EVOLUTION/bp_mutation_hp': {}".format(self.bp_mutation_hp))
         logging.info("Config value for 'BP_EVOLUTION/bp_crossover': {}".format(self.bp_crossover))
-        if self.bp_mutation_add_conn + self.bp_mutation_add_node + self.bp_mutation_remove_conn \
-                + self.bp_mutation_remove_node + self.bp_mutation_node_species + self.bp_mutation_hp \
-                + self.bp_crossover != 1.0:
+        if round(self.bp_mutation_add_conn + self.bp_mutation_add_node + self.bp_mutation_remove_conn
+                 + self.bp_mutation_remove_node + self.bp_mutation_node_species + self.bp_mutation_hp
+                 + self.bp_crossover, 4) != 1.0:
             raise KeyError("'BP_EVOLUTION/bp_mutation_*' and 'BP_EVOLUTION/bp_crossover' values dont add up to 1")
 
         # Read and process the hyperparameter config values for each optimizer
