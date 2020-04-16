@@ -1,8 +1,6 @@
-import os
 import ast
 import math
 import random
-import tempfile
 import statistics
 
 import numpy as np
@@ -11,7 +9,6 @@ from absl import logging
 
 import tfne
 from .codeepneat_optimizer_factories import SGDFactory
-from .svg_stack import Document, HBoxLayout, AlignCenter
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...helper_functions import round_to_nearest_multiple
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
