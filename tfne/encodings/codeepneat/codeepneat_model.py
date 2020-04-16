@@ -71,7 +71,7 @@ class CoDeepNEATModel(tf.keras.Model):
     def call(self, inputs, **kwargs) -> tf.Tensor:
         """"""
         # Create dict of the node results, with the input node having the model inputs as its node result
-        node_outputs = {1: inputs}
+        node_outputs = {1: tf.cast(inputs, dtype=self.dtype)}
 
         # Process compute graph by iterating over its topologically sorted list, ensuring that no node is processed out
         # of order. The results of each node are calculated and appended to node_outputs by checking the results of the
