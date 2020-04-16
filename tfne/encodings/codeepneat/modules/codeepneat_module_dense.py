@@ -62,8 +62,8 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
         if output_shape is None:
             network_units = self.units
         else:
-            network_units = output_shape[0]
-        network_activation = self.activation if output_activation is None else output_activation
+            network_units = f"[OVERRIDEN TO] {output_shape[0]}"
+        network_activation = self.activation if output_activation is None else f"[OVERRIDEN TO] {output_activation}"
 
         return f"~ DENSE Module (ID: {self.module_id}) ~\l" \
                f"units = {network_units}\l" \

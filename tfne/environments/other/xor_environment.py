@@ -66,15 +66,15 @@ class XOREnvironment(BaseEnvironment):
         # Sometimes loss function randomly returns NaN.
         # See bug report: https://github.com/tensorflow/tensorflow/issues/38457
         if tf.math.is_nan(evaluated_fitness):
-            evaluated_fitness = float(0)
+            evaluated_fitness = 0.0
 
-        return round(evaluated_fitness, 3)
+        return round(evaluated_fitness, 4)
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
         """"""
         # Evaluate and return its fitness by calling genome directly with input
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, genome(self.x))))
-        return round(evaluated_fitness, 3)
+        return round(evaluated_fitness, 4)
 
     def replay_genome(self, genome):
         """"""
