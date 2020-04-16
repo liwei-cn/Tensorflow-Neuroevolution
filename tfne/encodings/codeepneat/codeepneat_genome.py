@@ -76,7 +76,7 @@ class CoDeepNEATGenome(BaseGenome):
                                                                                     output_activation=output_activation)
                     graph.node('2', label=mod_str)
                 else:
-                    mod_str = self.bp_assigned_modules[bp_gene.species].get_summary(dtype=self.dtype)
+                    mod_str = self.bp_assigned_modules[bp_gene.species].get_summary()
                     graph.node(str(bp_gene.node), label=mod_str)
 
         # Highlight Input and Output Nodes with subgraphs
