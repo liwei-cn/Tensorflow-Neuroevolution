@@ -357,7 +357,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Initialize Progress counter variables for evaluate population progress bar. Print notice of evaluation start
         genome_pop_size = self.bp_pop_size * self.genomes_per_bp
         genome_eval_counter = 0
-        genome_eval_counter_div = round(genome_pop_size / 20.0, 4)
+        genome_eval_counter_div = round(genome_pop_size / 40.0, 4)
         print("\nEvaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
 
         for blueprint in self.blueprints.values():
@@ -386,7 +386,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Print population evaluation progress bar
                 genome_eval_counter += 1
                 progress_mult = int(round(genome_eval_counter / genome_eval_counter_div, 4))
-                print_str = "\r[{:20}] {}/{} Genomes | Genome ID {} achieved fitness of {}".format("#" * progress_mult,
+                print_str = "\r[{:40}] {}/{} Genomes | Genome ID {} achieved fitness of {}".format("=" * progress_mult,
                                                                                                    genome_eval_counter,
                                                                                                    genome_pop_size,
                                                                                                    genome_id,
@@ -421,18 +421,69 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def summarize_population(self):
         """"""
-        print("\nTODO: Improve this preliminary dev summary of the population\n"
-              "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n"
-              "Generation: {}\n"
-              "Blueprints population size: {}\n"
-              "Modules population size: {}\n"
-              "Best genome: {}\n"
-              "Best genome fitness: {}\n"
-              .format(self.generation_counter,
-                      self.bp_pop_size,
-                      self.mod_pop_size,
-                      self.best_genome,
-                      self.best_fitness))
+
+        # Calculate average fitnesses of each module species and total module pop. Determine best module of each species
+        mod_species_avg_fitness = dict()
+        mod_species_best_id = dict()
+        for spec_id, spec_mod_ids in self.mod_species.items():
+            spec_total_fitness = 0
+            mod_species_best_id[spec_id] = None
+            for mod_id in spec_mod_ids:
+                mod_fitness = self.modules[mod_id].get_fitness()
+                spec_total_fitness += mod_fitness
+                if mod_species_best_id[spec_id] is None or mod_fitness > mod_species_best_id[spec_id]:
+                    mod_species_best_id[spec_id] = mod_id
+            mod_species_avg_fitness[spec_id] = round(spec_total_fitness / len(spec_mod_ids), 4)
+        modules_avg_fitness = round(sum(mod_species_avg_fitness.values()) / len(mod_species_avg_fitness), 4)
+
+        # Calculate average fitnesses of each bp species and total bp pop. Determine best bp of each species
+        bp_species_avg_fitness = dict()
+        bp_species_best_id = dict()
+        for spec_id, spec_bp_ids in self.bp_species.items():
+            spec_total_fitness = 0
+            bp_species_best_id[spec_id] = None
+            for bp_id in spec_bp_ids:
+                bp_fitness = self.blueprints[bp_id].get_fitness()
+                spec_total_fitness += bp_fitness
+                if bp_species_best_id[spec_id] is None or bp_fitness > bp_species_best_id[spec_id]:
+                    bp_species_best_id[spec_id] = bp_id
+            bp_species_avg_fitness[spec_id] = round(spec_total_fitness / len(spec_bp_ids), 4)
+        blueprints_avg_fitness = round(sum(bp_species_avg_fitness.values()) / len(bp_species_avg_fitness), 4)
+
+        # Print summary header
+        print("\n\n\n\033[1m{}  Population Summary  {}\n\n"
+              "Generation: {:>4}  ||  Best Genome Fitness: {:>8}  ||  Average Blueprint Fitness: {:>8}  ||  "
+              "Average Module Fitness: {:>8}\033[0m\n"
+              "Best Genome: {}\n".format('#' * 60,
+                                         '#' * 60,
+                                         self.generation_counter,
+                                         self.best_fitness,
+                                         blueprints_avg_fitness,
+                                         modules_avg_fitness,
+                                         self.best_genome))
+
+        # Print summary of blueprint species
+        print("\033[1mBP Species                || BP Species Avg Fitness                || BP Species Size\n"
+              "Best BP of Species\033[0m")
+        for spec_id, spec_bp_avg_fitness in bp_species_avg_fitness.items():
+            print("{:>6}                    || {:>8}                              || {:>8}\n{}"
+                  .format(spec_id,
+                          spec_bp_avg_fitness,
+                          len(self.bp_species[spec_id]),
+                          self.blueprints[bp_species_best_id[spec_id]]))
+
+        # Print summary of module species
+        print("\n\033[1mModule Species            || Module Species Avg Fitness            || "
+              "Module Species Size\nBest Module of Species\033[0m")
+        for spec_id, spec_mod_avg_fitness in mod_species_avg_fitness.items():
+            print("{:>6}                    || {:>8}                              || {:>8}\n{}"
+                  .format(spec_id,
+                          spec_mod_avg_fitness,
+                          len(self.mod_species[spec_id]),
+                          self.modules[mod_species_best_id[spec_id]]))
+
+        # Print summary footer
+        print("\n\033[1m" + '#' * 142 + "\033[0m\n")
 
     def evolve_population(self) -> bool:
         """"""

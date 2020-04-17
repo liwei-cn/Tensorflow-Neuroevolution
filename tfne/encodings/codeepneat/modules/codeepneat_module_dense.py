@@ -26,8 +26,9 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
 
     def __str__(self) -> str:
         """"""
+        dropout_rate_print = "None" if self.dropout_rate is None else self.dropout_rate
         return "CoDeepNEAT DENSE Module | ID: {:>6} | Fitness: {:>6} | Units: {:>4} | Activ: {:>6} | Dropout: {:>4}" \
-            .format('#' + str(self.module_id), self.fitness, self.units, self.activation, self.dropout_rate)
+            .format('#' + str(self.module_id), self.fitness, self.units, self.activation, dropout_rate_print)
 
     def create_module_layers(self,
                              dtype,
