@@ -26,7 +26,8 @@ class CoDeepNEATModuleDense(CoDeepNEATModuleBase):
 
     def __str__(self) -> str:
         """"""
-        return "CoDeepNEAT DENSE Module (ID: {}, Fitness: {})".format(self.module_id, self.fitness)
+        return "CoDeepNEAT DENSE Module | ID: {:>6} | Fitness: {:>6} | Units: {:>4} | Activ: {:>6} | Dropout: {:>4}" \
+            .format('#' + str(self.module_id), self.fitness, self.units, self.activation, self.dropout_rate)
 
     def create_module_layers(self,
                              dtype,

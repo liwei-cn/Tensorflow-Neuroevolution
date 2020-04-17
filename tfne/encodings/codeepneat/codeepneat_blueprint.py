@@ -66,7 +66,12 @@ class CoDeepNEATBlueprint:
 
     def __str__(self) -> str:
         """"""
-        return "CoDeepNEAT Blueprint (ID: {}, Fitness: {})".format(self.blueprint_id, self.fitness)
+        return "CoDeepNEAT Blueprint | ID: {:>6} | Fitness: {:>6} | Nodes: {:>4} | Module Species: {} | Optimizer: {}" \
+            .format('#' + str(self.blueprint_id),
+                    self.fitness,
+                    len(self.node_species),
+                    self.species,
+                    self.optimizer_factory.get_type())
 
     def _process_graph(self):
         """"""

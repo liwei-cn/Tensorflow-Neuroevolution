@@ -42,8 +42,13 @@ class CoDeepNEATGenome(BaseGenome):
 
     def __str__(self) -> str:
         """"""
-        return "CoDeepNEATGenome || ID: {:>6} || Fitness: {:>6} || Origin Generation: {:>4}" \
-            .format(self.genome_id, self.fitness, self.origin_generation)
+        return "CoDeepNEAT Genome | ID: {:>6} | Fitness: {:>6} | Blueprint ID: {:>6} | Module Species: {} | " \
+               "Optimizer: {:>6} | Origin Gen: {:>4}".format(self.genome_id,
+                                                             self.fitness,
+                                                             self.blueprint.get_id(),
+                                                             self.blueprint.get_species(),
+                                                             self.blueprint.optimizer_factory.get_type(),
+                                                             self.origin_generation)
 
     def visualize(self, view, save_dir_path):
         """"""
