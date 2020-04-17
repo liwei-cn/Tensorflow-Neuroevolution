@@ -258,10 +258,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     if random.random() < self.dense_dropout_probability:
                         chosen_dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
                                                                      self.dense_dropout_rate[1])
-                        chosen_dropout_rate = round_to_nearest_multiple(chosen_dropout_rate_uniform,
-                                                                        self.dense_dropout_rate[0],
-                                                                        self.dense_dropout_rate[1],
-                                                                        self.dense_dropout_rate[2])
+                        chosen_dropout_rate = round(round_to_nearest_multiple(chosen_dropout_rate_uniform,
+                                                                              self.dense_dropout_rate[0],
+                                                                              self.dense_dropout_rate[1],
+                                                                              self.dense_dropout_rate[2]), 4)
                     else:
                         chosen_dropout_rate = None
 
@@ -314,15 +314,15 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 chosen_optimizer = random.choice(self.available_optimizers)
                 if chosen_optimizer == 'SGD':
                     chosen_learning_rate_uniform = random.uniform(self.sgd_learning_rate[0], self.sgd_learning_rate[1])
-                    chosen_learning_rate = round_to_nearest_multiple(chosen_learning_rate_uniform,
-                                                                     self.sgd_learning_rate[0],
-                                                                     self.sgd_learning_rate[1],
-                                                                     self.sgd_learning_rate[2])
+                    chosen_learning_rate = round(round_to_nearest_multiple(chosen_learning_rate_uniform,
+                                                                           self.sgd_learning_rate[0],
+                                                                           self.sgd_learning_rate[1],
+                                                                           self.sgd_learning_rate[2]), 4)
                     chosen_momentum_uniform = random.uniform(self.sgd_momentum[0], self.sgd_momentum[1])
-                    chosen_momentum = round_to_nearest_multiple(chosen_momentum_uniform,
-                                                                self.sgd_momentum[0],
-                                                                self.sgd_momentum[1],
-                                                                self.sgd_momentum[2])
+                    chosen_momentum = round(round_to_nearest_multiple(chosen_momentum_uniform,
+                                                                      self.sgd_momentum[0],
+                                                                      self.sgd_momentum[1],
+                                                                      self.sgd_momentum[2]), 4)
                     chosen_nesterov = random.choice(self.sgd_nesterov)
 
                     optimizer_factory = SGDFactory(learning_rate=chosen_learning_rate,
@@ -361,7 +361,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         print("\nEvaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
 
         for blueprint in self.blueprints.values():
-            bp_species = blueprint.get_species()
+            bp_mod_species = blueprint.get_species()
 
             # Create container collecting the fitness of the genomes that involve that specific blueprint.
             bp_genome_fitness = list()
@@ -371,7 +371,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # blueprint nodes are referring to.
                 bp_assigned_module_ids = dict()
                 bp_assigned_modules = dict()
-                for i in bp_species:
+                for i in bp_mod_species:
                     chosen_module_id = random.choice(self.mod_species[i])
                     bp_assigned_module_ids[i] = chosen_module_id
                     bp_assigned_modules[i] = self.modules[chosen_module_id]
@@ -397,9 +397,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Assign the genome fitness to the blueprint and all modules used for the creation of the genome
                 bp_genome_fitness.append(genome_fitness)
                 for mod_id in bp_assigned_module_ids.values():
-                    try:
+                    if mod_id in mod_genome_fitness:
                         mod_genome_fitness[mod_id].append(genome_fitness)
-                    except:
+                    else:
                         mod_genome_fitness[mod_id] = [genome_fitness]
 
                 # Acutally assign fitness to the genome and register it as new best if it exhibits better fitness
@@ -409,12 +409,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     self.best_fitness = genome_fitness
 
             # Average out collected fitness of genomes the blueprint was invovled in. Then assign to blueprint
-            bp_genome_fitness_avg = round(statistics.mean(bp_genome_fitness), 3)
+            bp_genome_fitness_avg = round(statistics.mean(bp_genome_fitness), 4)
             blueprint.set_fitness(bp_genome_fitness_avg)
 
         # Average out collected fitness of genomes each module was invovled in. Then assign to module
         for mod_id, mod_genome_fitness_list in mod_genome_fitness.items():
-            mod_genome_fitness_avg = round(statistics.mean(mod_genome_fitness_list), 3)
+            mod_genome_fitness_avg = round(statistics.mean(mod_genome_fitness_list), 4)
             self.modules[mod_id].set_fitness(mod_genome_fitness_avg)
 
         return self.generation_counter, self.best_fitness
