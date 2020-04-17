@@ -1,3 +1,4 @@
+import sys
 import math
 import random
 import statistics
@@ -357,7 +358,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         genome_pop_size = self.bp_pop_size * self.genomes_per_bp
         genome_eval_counter = 0
         genome_eval_counter_div = round(genome_pop_size / 20.0, 4)
-        print("Evaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
+        print("\nEvaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
 
         for blueprint in self.blueprints.values():
             bp_species = blueprint.get_species()
@@ -385,11 +386,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Print population evaluation progress bar
                 genome_eval_counter += 1
                 progress_mult = int(round(genome_eval_counter / genome_eval_counter_div, 4))
-                print("[{:20}] {}/{} Genomes | Genome ID {} achieved fitness of {}".format("=" * progress_mult,
-                                                                                           genome_eval_counter,
-                                                                                           genome_pop_size,
-                                                                                           genome_id,
-                                                                                           genome_fitness))
+                print_str = "\r[{:20}] {}/{} Genomes | Genome ID {} achieved fitness of {}".format("#" * progress_mult,
+                                                                                                   genome_eval_counter,
+                                                                                                   genome_pop_size,
+                                                                                                   genome_id,
+                                                                                                   genome_fitness)
+                sys.stdout.write(print_str)
+                sys.stdout.flush()
 
                 # Assign the genome fitness to the blueprint and all modules used for the creation of the genome
                 bp_genome_fitness.append(genome_fitness)
