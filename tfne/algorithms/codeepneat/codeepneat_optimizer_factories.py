@@ -30,6 +30,6 @@ class SGDFactory:
         return self.learning_rate, self.momentum, self.nesterov
 
     @staticmethod
-    def get_type(self):
+    def get_type():
         """"""
         return "SGD"
