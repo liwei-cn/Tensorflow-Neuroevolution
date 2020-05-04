@@ -1,5 +1,4 @@
 # Import packages
-from tfne import backup_agents
 from tfne import encodings
 from tfne import environments
 from tfne import experimental

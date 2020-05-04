@@ -1,6 +1,7 @@
+import os
+from datetime import datetime
+
 import ray
-import graphviz
-from absl import logging
 
 from .encodings.base_genome import BaseGenome
 
@@ -10,32 +11,32 @@ class EvolutionEngine:
 
     def __init__(self,
                  ne_algorithm,
-                 environment,
+                 backup_dir_path,
                  num_cpus=None,
                  num_gpus=None,
                  max_generations=None,
-                 max_fitness=None,
-                 backup_agents=None):
+                 max_fitness=None):
         """"""
         # Register parameters
         self.ne_algorithm = ne_algorithm
-        self.environment = environment
         self.max_generations = max_generations
         self.max_fitness = max_fitness
-        self.backup_agents = backup_agents
-
-        # Register the evaluation environment through which the genomes are evaluated at the NE algorithm and set
-        # environment verbosity level according to logging level
-        self.ne_algorithm.register_environment(self.environment)
-        if not logging.level_debug():
-            self.environment.set_verbosity(0)
+        print("Using Neuroevolution algorithm: {}".format(ne_algorithm.__class__.__name__))
+        print("Maximum number of generations to evolve the population: {}".format(max_generations))
+        print("Maximum fitness value to evolve population up to: {}".format(max_fitness))
 
         # Initiate the Multiprocessing library ray and the graph visualization library
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
-        print("Using graphviz system library v{}.{}.{}".format(*graphviz.version()))
+        print("Initialized the ray library with {} CPUs and {} GPUs".format(ray.available_resources()['CPU'],
+                                                                            len(ray.get_gpu_ids())))
 
-        # Create flag if backup agent supplied
-        self.backup_agents_supplied = bool(len(self.backup_agents))
+        # Create the directory into wich the training process will backup the population each generation
+        self.backup_dir_path = os.path.abspath(backup_dir_path)
+        if self.backup_dir_path[-1] != '/':
+            self.backup_dir_path += '/'
+        self.backup_dir_path += datetime.now(tz=datetime.now().astimezone().tzinfo).strftime("run_%Y-%b-%d_%H-%M-%S/")
+        os.makedirs(self.backup_dir_path)
+        print("Backing up population to directory: {}".format(self.backup_dir_path))
 
     def train(self) -> BaseGenome:
         """"""
@@ -49,10 +50,9 @@ class EvolutionEngine:
             generation_counter, best_fitness = self.ne_algorithm.evaluate_population()
             self.ne_algorithm.summarize_population()
 
-            # Call backup agents if supplied
-            if self.backup_agents_supplied:
-                for backup_agent in self.backup_agents:
-                    backup_agent(generation_counter, self.ne_algorithm)
+            # Backup population in according gen directory
+            gen_backup_dir_path = self.backup_dir_path + f"gen_{generation_counter}/"
+            self.ne_algorithm.save_population(save_dir_path=gen_backup_dir_path)
 
             # Exit training loop if maximum number of generations or maximum fitness has been reached
             if self.max_fitness is not None and best_fitness >= self.max_fitness:

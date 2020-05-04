@@ -7,11 +7,6 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
     """"""
 
     @abstractmethod
-    def register_environment(self, environment):
-        """"""
-        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'register_environment()'")
-
-    @abstractmethod
     def initialize_population(self):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
@@ -33,14 +28,9 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'evolve_population()'")
 
     @abstractmethod
-    def save_population(self, save_file_path):
+    def save_population(self, save_dir_path):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'save_population()'")
-
-    @abstractmethod
-    def visualize_population(self, save_file_path):
-        """"""
-        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'visualize_population()'")
 
     @abstractmethod
     def get_best_genome(self) -> BaseGenome:

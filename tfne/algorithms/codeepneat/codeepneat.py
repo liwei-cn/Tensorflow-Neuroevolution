@@ -4,6 +4,7 @@ import random
 import statistics
 
 import numpy as np
+from absl import logging
 
 import tfne
 from .codeepneat_optimizer_factories import SGDFactory
@@ -16,8 +17,36 @@ from ...helper_functions import round_to_nearest_multiple, read_option_from_conf
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
 
-    def __init__(self, config, initial_population_file_path=None):
+    def __init__(self, config, environment_factory, initial_population_file_path=None):
         """"""
+
+        # TODO
+        return
+
+        '''
+        
+    def register_environment(self, environment):
+        """"""
+        # Check if the registered environment is weight training
+        if not environment.set_weight_training(True):
+            raise AssertionError("The registered environment '{}' is not weight training, which is a requirement for "
+                                 "CoDeepNEAT as CoDeepNEAT is specified to first train the weights of created genome "
+                                 "phenotypes for a set amount of epochs before assigning a fitness score"
+                                 .format(environment))
+
+
+        if not logging.level_debug():
+            verbosity = 0
+        else:
+            verbosity = 1
+
+        # Register environment and its input/output shapes
+        self.environment = environment
+        self.input_shape = environment.get_input_shape()
+        self.output_shape = environment.get_output_shape()
+        
+        '''
+
         # Read and process the supplied config and register the possibly supplied initial population
         self._process_config(config)
         self.initial_population_file_path = initial_population_file_path
@@ -201,19 +230,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             else:
                 raise KeyError("'{}' module set to be available in 'GENOME/available_modules', though handling of "
                                "this module has not yet been implemented".format(available_mod))
-
-    def register_environment(self, environment):
-        """"""
-        # Check if the registered environment is weight training
-        if not environment.is_weight_training():
-            raise AssertionError("The registered environment '{}' is not weight training, which is a requirement for "
-                                 "CoDeepNEAT as CoDeepNEAT is specified to first train the weights of created genome "
-                                 "phenotypes for a set amount of epochs before assigning a fitness score"
-                                 .format(environment))
-        # Register environment and its input/output shapes
-        self.environment = environment
-        self.input_shape = environment.get_input_shape()
-        self.output_shape = environment.get_output_shape()
 
     def initialize_population(self):
         """"""
@@ -1120,20 +1136,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.generation_counter += 1
         return False
 
-    def save_population(self, save_file_path):
+    def save_population(self, save_dir_path):
         """"""
-        raise NotImplementedError()
-
-    def visualize_population(self, save_file_path):
-        """"""
-
-        # Visualize all blueprints to specified path
-        for bp in self.blueprints.values():
-            bp.visualize(view=False, save_dir_path=save_file_path)
-
-        # Visualize all modules to specified path
-        for mod in self.modules.values():
-            mod.visualize(view=False, save_dir_path=save_file_path)
+        logging.warning("codeepneat.save_population() NOT YET IMPLEMENTED")
 
     def get_best_genome(self) -> CoDeepNEATGenome:
         """"""
