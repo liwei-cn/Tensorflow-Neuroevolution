@@ -25,8 +25,10 @@ class EvolutionEngine:
         print("Maximum number of generations to evolve the population: {}".format(max_generations))
         print("Maximum fitness value to evolve population up to: {}".format(max_fitness))
 
-        # Initiate the Multiprocessing library ray and the graph visualization library
+        # Initiate the Multiprocessing library ray and order the NE algorithm to initialize the according number of
+        # parallel evaluation instances
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
+        ne_algorithm.initialize_environments(parallel_instances=ray.available_resources()['CPU'])
         print("Initialized the ray library with {} CPUs and {} GPUs".format(ray.available_resources()['CPU'],
                                                                             len(ray.get_gpu_ids())))
 

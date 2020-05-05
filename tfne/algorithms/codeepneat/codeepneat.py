@@ -24,41 +24,17 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self._process_config(config)
         self.initial_population_file_path = initial_population_file_path
 
-        # TODO
-        return
-
-        '''
-        
-    def register_environment(self, environment):
-        """"""
-        # Check if the registered environment is weight training
-        if not environment.set_weight_training(True):
-            raise AssertionError("The registered environment '{}' is not weight training, which is a requirement for "
-                                 "CoDeepNEAT as CoDeepNEAT is specified to first train the weights of created genome "
-                                 "phenotypes for a set amount of epochs before assigning a fitness score"
-                                 .format(environment))
-
-
-        if not logging.level_debug():
-            verbosity = 0
-        else:
-            verbosity = 1
-
-        # Register environment and its input/output shapes
-        self.environment = environment
-        self.input_shape = environment.get_input_shape()
-        self.output_shape = environment.get_output_shape()
-        
-        '''
-
-        # Initialize and register the CoDeepNEAT encoding
-        self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
-
-        # Declare variables of the environment and its input/output shape that will be initialized ones the environment
-        # is registered
+        # Declare variables of the environment, its creation factory and its input/output shape and dimension, which
+        # will be initialized by the evolution engine through self.initialize_environment()
+        self.environment_factory = environment_factory
         self.environment = None
         self.input_shape = None
+        self.input_dim = None
         self.output_shape = None
+        self.output_dim = None
+
+        # Initialize and register the associated CoDeepNEAT encoding
+        self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
 
         # Declare internal variables of the population
         self.generation_counter = None
@@ -159,8 +135,30 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                      + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob
                      + self.bp_mutation_optimizer_prob, 4) == 1.0
 
+    def initialize_environments(self, parallel_instances):
+        """"""
+
+        # TODO: CoDeepNEAT only supports a single eval instance as of now. Parallel eval comes later.
+        if parallel_instances != 1:
+            import warnings
+            warnings.warn("CoDeepNEAT only supports a single eval instance as of now. Setting parallel eval to 1")
+
+        # TODO: Only creating a single environment as of now. Parallel eval comes later
+        verbosity = 0 if not logging.level_debug() else 1
+        self.environment = self.environment_factory.create_environment(verbosity=verbosity,
+                                                                       weight_training=True,
+                                                                       epochs=self.eval_epochs,
+                                                                       batch_size=self.eval_batch_size)
+        self.input_shape = self.environment.get_input_shape()
+        self.input_dim = len(self.input_shape)
+        self.output_shape = self.environment.get_output_shape()
+        self.output_dim = len(self.output_shape)
+
     def initialize_population(self):
         """"""
+
+        # TODO Continue here
+        exit()
 
         if self.initial_population_file_path is None:
             print("Initializing a new population of {} blueprints and {} modules..."

@@ -7,6 +7,12 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
     """"""
 
     @abstractmethod
+    def initialize_environments(self, parallel_instances):
+        """"""
+        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
+                                  "'initialize_environments()'")
+
+    @abstractmethod
     def initialize_population(self):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
