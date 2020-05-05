@@ -20,6 +20,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def __init__(self, config, environment_factory, initial_population_file_path=None):
         """"""
 
+        # Read and process the supplied config and register the optionally supplied initial population
+        self._process_config(config)
+        self.initial_population_file_path = initial_population_file_path
+
         # TODO
         return
 
@@ -46,10 +50,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.output_shape = environment.get_output_shape()
         
         '''
-
-        # Read and process the supplied config and register the possibly supplied initial population
-        self._process_config(config)
-        self.initial_population_file_path = initial_population_file_path
 
         # Initialize and register the CoDeepNEAT encoding
         self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
@@ -78,158 +78,86 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _process_config(self, config):
         """"""
-        # Read and process the general config values for the CoDeepNEAT algorithm
+        # Read and process the general config values for CoDeepNEAT
         self.dtype = read_option_from_config(config, 'GENERAL', 'dtype')
-        self.mod_pop_size = read_option_from_config(config, 'GENERAL', 'mod_pop_size')
         self.bp_pop_size = read_option_from_config(config, 'GENERAL', 'bp_pop_size')
+        self.mod_pop_size = read_option_from_config(config, 'GENERAL', 'mod_pop_size')
         self.genomes_per_bp = read_option_from_config(config, 'GENERAL', 'genomes_per_bp')
+        self.eval_epochs = read_option_from_config(config, 'GENERAL', 'eval_epochs')
+        self.eval_batch_size = read_option_from_config(config, 'GENERAL', 'eval_batch_size')
 
-        # Read and process the config values that concern the created genomes for the CoDeepNEAT algorithm
+        # Read and process the config values that concern the genome creation for CoDeepNEAT
         self.available_modules = read_option_from_config(config, 'GENOME', 'available_modules')
         self.available_optimizers = read_option_from_config(config, 'GENOME', 'available_optimizers')
-        self.output_activations = read_option_from_config(config, 'GENOME', 'output_activations')
+        self.preprocessing = read_option_from_config(config, 'GENOME', 'preprocessing')
+        self.output_layers = read_option_from_config(config, 'GENOME', 'output_layers')
 
-        # Read and process the speciation config values for modules in the CoDeepNEAT algorithm
-        self.mod_speciation_type = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_speciation_type')
-        if self.mod_speciation_type == 'Basic':
-            pass
-        elif self.mod_speciation_type == 'k-means':
-            # TODO
-            raise NotImplementedError("MOD speciation type of k-means not yet implemented")
+        # Read and process the config values that concern the module speciation for CoDeepNEAT
+        self.mod_spec_type = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_type')
+        if self.mod_spec_type == 'basic':
+            self.mod_spec_min_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_min_size')
+            self.mod_spec_max_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_max_size')
+            self.mod_spec_elitism = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_elitism')
+            self.mod_spec_removal_frac = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_removal_frac')
         else:
-            raise NotImplementedError("MOD speciation type of '{}' not implemented".format(self.mod_speciation_type))
+            raise NotImplementedError(f"Module speciation type '{self.mod_spec_type}' not yet implemented")
 
-        # Read and process the selection config values for modules in the CoDeepNEAT algorithm
-        if config.has_option('MODULE_SELECTION', 'mod_removal'):
-            self.mod_removal_type = 'fixed'
-            self.mod_removal = read_option_from_config(config, 'MODULE_SELECTION', 'mod_removal')
-        elif config.has_option('MODULE_SELECTION', 'mod_removal_threshold'):
-            self.mod_removal_type = 'threshold'
-            self.mod_removal_threshold = read_option_from_config(config, 'MODULE_SELECTION', 'mod_removal_threshold')
-        else:
-            raise KeyError("'MODLUE_SELECTION/mod_removal' or 'MODLUE_SELECTION/mod_removal_threshold' not specified")
-        if config.has_option('MODULE_SELECTION', 'mod_elitism'):
-            self.mod_elitism_type = 'fixed'
-            self.mod_elitism = read_option_from_config(config, 'MODULE_SELECTION', 'mod_elitism')
-        elif config.has_option('MODULE_SELECTION', 'mod_elitism_threshold'):
-            self.mod_elitism_type = 'threshold'
-            self.mod_elitism_threshold = read_option_from_config(config, 'MODULE_SELECTION', 'mod_elitism_threshold')
-        else:
-            raise KeyError("'MODULE_SELECTION/mod_elitism' or 'MODULE_SELECTION/mod_elitism_threshold' not specified")
-
-        # Read and process the evolution config values for modules in the CoDeepNEAT algorithm
+        # Read and process the config values that concern the evolution of modules for CoDeepNEAT
         self.mod_max_mutation = read_option_from_config(config, 'MODULE_EVOLUTION', 'mod_max_mutation')
-        self.mod_mutation = read_option_from_config(config, 'MODULE_EVOLUTION', 'mod_mutation')
-        self.mod_crossover = read_option_from_config(config, 'MODULE_EVOLUTION', 'mod_crossover')
-        if round(self.mod_mutation + self.mod_crossover, 4) != 1.0:
-            raise KeyError("'MODULE_EVOLUTION/mod_mutation' and 'MODULE_EVOLUTION/mod_crossover' values "
-                           "dont add up to 1")
+        self.mod_mutation_prob = read_option_from_config(config, 'MODULE_EVOLUTION', 'mod_mutation_prob')
+        self.mod_crossover_prob = read_option_from_config(config, 'MODULE_EVOLUTION', 'mod_crossover_prob')
 
-        # Read and process the speciation config values for blueprints in the CoDeepNEAT algorithm
-        self.bp_speciation_type = read_option_from_config(config, 'BP_SPECIATION', 'bp_speciation_type')
-        if self.bp_speciation_type is None:
-            pass
-        elif self.bp_speciation_type == 'fixed-threshold':
-            # TODO
-            raise NotImplementedError("BP speciation type of fixed-threshold not yet implemented")
-        elif self.bp_speciation_type == 'dynamic-threshold':
-            # TODO
-            raise NotImplementedError("BP speciation type of dynamic-threshold not yet implemented")
-        elif self.bp_speciation_type == 'k-means':
-            # TODO
-            raise NotImplementedError("BP speciation type of k-means not yet implemented")
+        # Read and process the config values that concern the blueprint speciation for CoDeepNEAT
+        self.bp_spec_type = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_type')
+        if self.bp_spec_type == 'basic':
+            self.bp_spec_elitism = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_elitism')
+            self.bp_spec_removal_frac = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_removal_frac')
         else:
-            raise NotImplementedError("BP speciation type of '{}' not implemented".format(self.bp_speciation_type))
+            raise NotImplementedError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
-        # Read and process the selection config values for blueprints in the CoDeepNEAT algorithm
-        if config.has_option('BP_SELECTION', 'bp_removal'):
-            self.bp_removal_type = 'fixed'
-            self.bp_removal = read_option_from_config(config, 'BP_SELECTION', 'bp_removal')
-        elif config.has_option('BP_SELECTION', 'bp_removal_threshold'):
-            self.bp_removal_type = 'threshold'
-            self.bp_removal_threshold = read_option_from_config(config, 'BP_SELECTION', 'bp_removal_threshold')
-        else:
-            raise KeyError("'BP_SELECTION/bp_removal' or 'BP_SELECTION/bp_removal_threshold' not specified")
-        if config.has_option('BP_SELECTION', 'bp_elitism'):
-            self.bp_elitism_type = 'fixed'
-            self.bp_elitism = read_option_from_config(config, 'BP_SELECTION', 'bp_elitism')
-        elif config.has_option('BP_SELECTION', 'bp_elitism_threshold'):
-            self.bp_elitism_type = 'threshold'
-            self.bp_elitism_threshold = read_option_from_config(config, 'BP_SELECTION', 'bp_elitism_threshold')
-        else:
-            raise KeyError("'BP_SELECTION/bp_elitism' or 'BP_SELECTION/bp_elitism_threshold' not specified")
-
-        # Read and process the evolution config values for blueprints in the CoDeepNEAT algorithm
+        # Read and process the config values that concern the evolution of blueprints for CoDeepNEAT
         self.bp_max_mutation = read_option_from_config(config, 'BP_EVOLUTION', 'bp_max_mutation')
-        self.bp_mutation_add_conn = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_add_conn')
-        self.bp_mutation_add_node = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_add_node')
-        self.bp_mutation_remove_conn = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_remove_conn')
-        self.bp_mutation_remove_node = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_remove_node')
-        self.bp_mutation_node_species = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_node_species')
-        self.bp_mutation_hp = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_hp')
-        self.bp_crossover = read_option_from_config(config, 'BP_EVOLUTION', 'bp_crossover')
-        if round(self.bp_mutation_add_conn + self.bp_mutation_add_node + self.bp_mutation_remove_conn
-                 + self.bp_mutation_remove_node + self.bp_mutation_node_species + self.bp_mutation_hp
-                 + self.bp_crossover, 4) != 1.0:
-            raise KeyError("'BP_EVOLUTION/bp_mutation_*' and 'BP_EVOLUTION/bp_crossover' values dont add up to 1")
+        self.bp_mutation_add_conn_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_add_conn_prob')
+        self.bp_mutation_add_node_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_add_node_prob')
+        self.bp_mutation_rem_conn_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_rem_conn_prob')
+        self.bp_mutation_rem_node_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_rem_node_prob')
+        self.bp_mutation_node_spec_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_node_spec_prob')
+        self.bp_mutation_optimizer_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_mutation_optimizer_prob')
+        self.bp_crossover_prob = read_option_from_config(config, 'BP_EVOLUTION', 'bp_crossover_prob')
 
-        # Read and process the hyperparameter config values for each optimizer
-        for available_opt in self.available_optimizers:
-            if available_opt == 'SGD':
-                if not config.has_section('SGD_HP'):
-                    raise KeyError("'SGD' optimizer set to be available in 'GENOME/available_optimizers', though "
-                                   "config does not have a 'SGD_HP' section")
-                # Read and process the hyperparameter config values for the SGD optimizer in the CoDeepNEAT algorithm
-                self.sgd_learning_rate = read_option_from_config(config, 'SGD_HP', 'learning_rate')
-                self.sgd_momentum = read_option_from_config(config, 'SGD_HP', 'momentum')
-                self.sgd_nesterov = read_option_from_config(config, 'SGD_HP', 'nesterov')
-
-                # Create Standard Deviation values for range specified global HP config values
-                if len(self.sgd_learning_rate) == 4:
-                    self.sgd_learning_rate_stddev = float(self.sgd_learning_rate[1] - self.sgd_learning_rate[0]) / \
-                                                    self.sgd_learning_rate[3]
-                else:
-                    self.sgd_learning_rate_stddev = float(self.sgd_learning_rate[1] - self.sgd_learning_rate[0]) / 4
-                if len(self.sgd_momentum) == 4:
-                    self.sgd_momentum_stddev = float(self.sgd_momentum[1] - self.sgd_momentum[0]) / self.sgd_momentum[3]
-                else:
-                    self.sgd_momentum_stddev = float(self.sgd_momentum[1] - self.sgd_momentum[0]) / 4
-            else:
-                raise KeyError("'{}' optimizer set to be available in 'GENOME/available_optimizers', though handling "
-                               "of this module has not yet been implemented".format(available_opt))
-
-        # Read and process the hyperparameter config values for each module
+        # Read and process the config values that concern the parameter range of the modules for CoDeepNEAT
+        self.available_mod_params = dict()
         for available_mod in self.available_modules:
-            if available_mod == 'DENSE':
-                if not config.has_section('MODULE_DENSE_HP'):
-                    raise KeyError("'DENSE' module set to be available in 'GENOME/available_modules', though config "
-                                   "does not have a 'MODULE_DENSE_HP' section")
-                # Read and process the hyperparameter config values for Dense modules in the CoDeepNEAT algorithm
-                self.dense_merge_methods = read_option_from_config(config, 'MODULE_DENSE_HP', 'merge_methods')
-                self.dense_units = read_option_from_config(config, 'MODULE_DENSE_HP', 'units')
-                self.dense_activations = read_option_from_config(config, 'MODULE_DENSE_HP', 'activations')
-                self.dense_kernel_initializers = read_option_from_config(config,
-                                                                         'MODULE_DENSE_HP',
-                                                                         'kernel_initializers')
-                self.dense_bias_initializers = read_option_from_config(config, 'MODULE_DENSE_HP', 'bias_initializers')
-                self.dense_dropout_probability = read_option_from_config(config,
-                                                                         'MODULE_DENSE_HP',
-                                                                         'dropout_probability')
-                self.dense_dropout_rate = read_option_from_config(config, 'MODULE_DENSE_HP', 'dropout_rate')
+            # Determine a dict of all supplied configuration values as literal evals
+            config_section_str = 'MODULE_' + available_mod.upper()
+            config_section_options = config.options(config_section_str)
+            mod_section_dict = dict()
+            for mod_param in config_section_options:
+                mod_section_dict[mod_param] = read_option_from_config(config, config_section_str, mod_param)
 
-                # Create Standard Deviation values for range specified Dense Module HP config values
-                if len(self.dense_units) == 4:
-                    self.dense_units_stddev = float(self.dense_units[1] - self.dense_units[0]) / self.dense_units[3]
-                else:
-                    self.dense_units_stddev = float(self.dense_units[1] - self.dense_units[0]) / 4
-                if len(self.dense_dropout_rate) == 4:
-                    self.dense_dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / \
-                                                     self.dense_dropout_rate[3]
-                else:
-                    self.dense_dropout_rate_stddev = float(self.dense_dropout_rate[1] - self.dense_dropout_rate[0]) / 4
-            else:
-                raise KeyError("'{}' module set to be available in 'GENOME/available_modules', though handling of "
-                               "this module has not yet been implemented".format(available_mod))
+            # Assign that dict of all available parameters for the module to the instance variable
+            self.available_mod_params[available_mod] = mod_section_dict
+
+        # Read and process the config values that concern the parameter range of the optimizers for CoDeepNEAT
+        self.available_opt_params = dict()
+        for available_opt in self.available_optimizers:
+            # Determine a dict of all supplied configuration values as literal evals
+            config_section_str = 'OPTIMIZER_' + available_opt.upper()
+            config_section_options = config.options(config_section_str)
+            opt_section_dict = dict()
+            for opt_param in config_section_options:
+                opt_section_dict[opt_param] = read_option_from_config(config, config_section_str, opt_param)
+
+            # Assign that dict of all available parameters for the optimizers to the instance variable
+            self.available_opt_params[available_opt] = opt_section_dict
+
+        # Perform some basic sanity checks of the configuration
+        assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
+        assert self.mod_spec_max_size * len(self.available_modules) >= self.mod_pop_size
+        assert round(self.mod_mutation_prob + self.mod_crossover_prob, 4) == 1.0
+        assert round(self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob + self.bp_mutation_rem_conn_prob
+                     + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob
+                     + self.bp_mutation_optimizer_prob, 4) == 1.0
 
     def initialize_population(self):
         """"""

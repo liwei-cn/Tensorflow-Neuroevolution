@@ -17,6 +17,8 @@ def parse_configuration(config_path):
 def read_option_from_config(config, section, option) -> Any:
     """"""
     value = ast.literal_eval(config[section][option])
+    if isinstance(value, list):
+        value = tuple(value)
     print("Config value for '{}/{}': {}".format(section, option, value))
     return value
 
