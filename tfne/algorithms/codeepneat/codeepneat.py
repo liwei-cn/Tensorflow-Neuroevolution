@@ -11,7 +11,7 @@ import tfne
 from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
-from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintNode
+from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode
 from ...encodings.codeepneat.modules import CoDeepNEATModuleDenseDropout
 from ...helper_functions import read_option_from_config, round_with_step
 
@@ -194,12 +194,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.modules[module_id] = module
                 self.mod_species[chosen_species].append(module_id)
 
-            # TODO continue here
-            exit()
-
             #### Initialize Blueprint Population ####
             # Initialize blueprint population with a minimal blueprint graph, only consisting of an input node (with
-            # not species or the 'input' species respectively) and a single output node, having a randomly assigned
+            # None species or the 'input' species respectively) and a single output node, having a randomly assigned
             # species. All hyperparameters of the blueprint are uniform randomly chosen. All blueprints are not
             # speciated in the beginning and are assigned to species 1.
 
@@ -208,60 +205,17 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             available_mod_species = tuple(self.mod_species.keys())
 
             for _ in range(self.bp_pop_size):
-                # Determine the module species of the output (and only) node
-                output_node_species = random.choice(available_mod_species)
+                # Determine the module species of the initial (and only) node
+                initial_node_species = random.choice(available_mod_species)
 
-                # Create a minimal blueprint graph with an input node, an output node with the chosen module species and
-                # a connection between them
-                blueprint_graph = dict()
-                gene_id, gene = self.encoding.create_blueprint_node(node=1, species=None)
-                blueprint_graph[gene_id] = gene
-                gene_id, gene = self.encoding.create_blueprint_node(node=2, species=output_node_species)
-                blueprint_graph[gene_id] = gene
-                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
-                blueprint_graph[gene_id] = gene
-
-                # Uniform randomly choose an output activation
-                chosen_output_activation = random.choice(self.output_activations)
-
-                # Uniform Randomly choose an optimizer and its hyperparameters for the blueprint. Then create a factory
-                # for that optimizer.
-                chosen_optimizer = random.choice(self.available_optimizers)
-                if chosen_optimizer == 'SGD':
-                    chosen_learning_rate_uniform = random.uniform(self.sgd_learning_rate[0], self.sgd_learning_rate[1])
-                    chosen_learning_rate = round(round_to_nearest_multiple(chosen_learning_rate_uniform,
-                                                                           self.sgd_learning_rate[0],
-                                                                           self.sgd_learning_rate[1],
-                                                                           self.sgd_learning_rate[2]), 4)
-                    chosen_momentum_uniform = random.uniform(self.sgd_momentum[0], self.sgd_momentum[1])
-                    chosen_momentum = round(round_to_nearest_multiple(chosen_momentum_uniform,
-                                                                      self.sgd_momentum[0],
-                                                                      self.sgd_momentum[1],
-                                                                      self.sgd_momentum[2]), 4)
-                    chosen_nesterov = random.choice(self.sgd_nesterov)
-
-                    optimizer_factory = SGDFactory(learning_rate=chosen_learning_rate,
-                                                   momentum=chosen_momentum,
-                                                   nesterov=chosen_nesterov)
-                elif chosen_optimizer == 'RMSprop':
-                    raise NotImplementedError()
-                else:
-                    raise RuntimeError("Optimizer type '{}' could not be identified during initialization"
-                                       .format(chosen_optimizer))
-
-                # Create blueprint
-                blueprint_id, blueprint = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                         output_shape=self.output_shape,
-                                                                         output_activation=chosen_output_activation,
-                                                                         optimizer_factory=optimizer_factory)
+                # Initialize a new blueprint with minimal graph only using initial node species
+                blueprint_id, blueprint = self._create_initial_blueprint(initial_node_species)
 
                 # Append newly create blueprint to blueprint container and to only initial blueprint species
                 self.blueprints[blueprint_id] = blueprint
                 self.bp_species[1].append(blueprint_id)
-
         else:
-            raise NotImplementedError("Initializing population with a pre-evolved supplied initial population not yet "
-                                      "implemented")
+            raise NotImplementedError("Initializing population with pre-evolved initial population not yet implemented")
 
     def _create_initial_dense_dropout_module(self) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
@@ -287,7 +241,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             dropout_rate = None
 
-        # Call encoding with just created random parameters
+        # Create just defined initial DenseDropout module through encoding
         return self.encoding.create_dense_dropout_module(merge_method=merge_method,
                                                          units=units,
                                                          activation=activation,
@@ -295,8 +249,52 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                          bias_init=bias_init,
                                                          dropout_rate=dropout_rate)
 
+    def _create_initial_blueprint(self, initial_node_species) -> (int, CoDeepNEATBlueprint):
+        """"""
+        # Create a minimal blueprint graph with node 1 being the input node (having no species) and node 2 being the
+        # random initial node species
+        blueprint_graph = dict()
+        gene_id, gene = self.encoding.create_blueprint_node(node=1, species=None)
+        blueprint_graph[gene_id] = gene
+        gene_id, gene = self.encoding.create_blueprint_node(node=2, species=initial_node_species)
+        blueprint_graph[gene_id] = gene
+        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
+        blueprint_graph[gene_id] = gene
+
+        # Randomly choose optimizer from available optimizers and get the parameter dict of the optimizer
+        chosen_optimizer = random.choice(self.available_optimizers)
+        opt_params = self.available_opt_params[chosen_optimizer]
+        if chosen_optimizer == 'SGD':
+            learning_rate_random = random.uniform(opt_params['learning_rate']['min'],
+                                                  opt_params['learning_rate']['max'])
+            learning_rate = round(round_with_step(learning_rate_random,
+                                                  opt_params['learning_rate']['min'],
+                                                  opt_params['learning_rate']['max'],
+                                                  opt_params['learning_rate']['step']), 4)
+            momentum_random = random.uniform(opt_params['momentum']['min'], opt_params['momentum']['max'])
+            momentum = round(round_with_step(momentum_random,
+                                             opt_params['momentum']['min'],
+                                             opt_params['momentum']['max'],
+                                             opt_params['momentum']['step']), 4)
+            nesterov = random.choice(opt_params['nesterov'])
+
+            optimizer_factory = SGDFactory(learning_rate=learning_rate,
+                                           momentum=momentum,
+                                           nesterov=nesterov)
+        else:
+            raise NotImplementedError(f"Optimizer '{chosen_optimizer}' marked as available not yet implemented")
+
+        # Create just defined initial blueprint through encoding
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
+
     def evaluate_population(self) -> (int, int):
         """"""
+
+        # TODO continue here
+        print("EXITING")
+        exit()
+
         # Create container collecting the fitness of the genomes that involve specific modules. Calculate the average
         # fitness of the genomes in which a module is involved in later and assign it as the module's fitness
         mod_genome_fitness = dict()

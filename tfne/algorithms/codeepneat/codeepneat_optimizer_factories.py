@@ -28,8 +28,3 @@ class SGDFactory:
     def get_parameters(self) -> (float, float, bool):
         """"""
         return self.learning_rate, self.momentum, self.nesterov
-
-    @staticmethod
-    def get_type():
-        """"""
-        return "SGD"

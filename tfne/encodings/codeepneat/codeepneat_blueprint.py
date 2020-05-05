@@ -32,19 +32,11 @@ class CoDeepNEATBlueprint:
     def __init__(self,
                  blueprint_id,
                  blueprint_graph,
-                 output_shape,
-                 output_activation,
                  optimizer_factory):
         """"""
-        # Register internal parameters
+        # Register parameters
         self.blueprint_id = blueprint_id
-
-        # Register graph related parameters of blueprint
         self.blueprint_graph = blueprint_graph
-        self.output_shape = output_shape
-        self.output_activation = output_activation
-
-        # Register the optimizer factory
         self.optimizer_factory = optimizer_factory
 
         # Initialize internal variables
@@ -52,8 +44,8 @@ class CoDeepNEATBlueprint:
 
         # Declare graph related internal variables
         # species: set of all species present in blueprint
-        # node_species: mapping of each node to its corresponding species
-        # node dependencies: mapping of nodes to the node upon which they depend upon
+        # node_species: dict mapping of each node to its corresponding species
+        # node dependencies: dict mapping of nodes to the set of node upon which they depend upon
         # graph topology: list of sets of dependency levels, with the first set being the nodes that depend on nothing,
         #                 the second set being the nodes that depend on the first set, and so on
         self.species = set()

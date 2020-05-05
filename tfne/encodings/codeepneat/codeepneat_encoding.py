@@ -45,14 +45,24 @@ class CoDeepNEATEncoding(BaseEncoding):
                                                                  bias_init=bias_init,
                                                                  dropout_rate=dropout_rate)
 
-    def get_node_for_split(self, conn_start, conn_end) -> int:
+    def create_blueprint(self,
+                         blueprint_graph,
+                         optimizer_factory) -> (int, CoDeepNEATBlueprint):
         """"""
-        conn_key = (conn_start, conn_end)
-        if conn_key not in self.conn_split_history:
-            self.node_counter += 1
-            self.conn_split_history[conn_key] = self.node_counter
+        self.bp_id_counter += 1
+        return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
+                                                       blueprint_graph=blueprint_graph,
+                                                       optimizer_factory=optimizer_factory)
 
-        return self.conn_split_history[conn_key]
+    def create_genome(self, blueprint, bp_assigned_modules, generation) -> (int, CoDeepNEATGenome):
+        """"""
+        self.genome_id_counter += 1
+        # Genome genotype: blueprint, bp_assigned_modules (dict mapping species to specific module for that species)
+        return self.genome_id_counter, CoDeepNEATGenome(genome_id=self.genome_id_counter,
+                                                        blueprint=blueprint,
+                                                        bp_assigned_modules=bp_assigned_modules,
+                                                        dtype=self.dtype,
+                                                        origin_generation=generation)
 
     def create_blueprint_node(self, node, species) -> (int, CoDeepNEATBlueprintNode):
         """"""
@@ -74,26 +84,11 @@ class CoDeepNEATEncoding(BaseEncoding):
         bp_gene_id = self.gene_to_gene_id[gene_key]
         return bp_gene_id, CoDeepNEATBlueprintConn(bp_gene_id, conn_start, conn_end)
 
-    def create_blueprint(self,
-                         blueprint_graph,
-                         output_shape,
-                         output_activation,
-                         optimizer_factory) -> (int, CoDeepNEATBlueprint):
+    def get_node_for_split(self, conn_start, conn_end) -> int:
         """"""
-        self.bp_id_counter += 1
+        conn_key = (conn_start, conn_end)
+        if conn_key not in self.conn_split_history:
+            self.node_counter += 1
+            self.conn_split_history[conn_key] = self.node_counter
 
-        return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
-                                                       blueprint_graph=blueprint_graph,
-                                                       output_shape=output_shape,
-                                                       output_activation=output_activation,
-                                                       optimizer_factory=optimizer_factory)
-
-    def create_genome(self, blueprint, bp_assigned_modules, generation) -> (int, CoDeepNEATGenome):
-        """"""
-        self.genome_id_counter += 1
-        # Genome genotype: blueprint, bp_assigned_modules (dict mapping species to specific module for that species)
-        return self.genome_id_counter, CoDeepNEATGenome(genome_id=self.genome_id_counter,
-                                                        blueprint=blueprint,
-                                                        bp_assigned_modules=bp_assigned_modules,
-                                                        dtype=self.dtype,
-                                                        origin_generation=generation)
+        return self.conn_split_history[conn_key]
