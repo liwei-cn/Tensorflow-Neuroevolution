@@ -1,6 +1,6 @@
 from .codeepneat_genome import CoDeepNEATGenome
 from .codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode, CoDeepNEATBlueprintConn
-from .modules import CoDeepNEATModuleDense
+from .modules import CoDeepNEATModuleDenseDropout
 from ..base_encoding import BaseEncoding
 
 
@@ -27,6 +27,23 @@ class CoDeepNEATEncoding(BaseEncoding):
         # previously assigned node or new node if not yet present in history.
         self.node_counter = 2
         self.conn_split_history = dict()
+
+    def create_dense_dropout_module(self,
+                                    merge_method,
+                                    units,
+                                    activation,
+                                    kernel_init,
+                                    bias_init,
+                                    dropout_rate) -> (int, CoDeepNEATModuleDenseDropout):
+        """"""
+        self.mod_id_counter += 1
+        return self.mod_id_counter, CoDeepNEATModuleDenseDropout(module_id=self.mod_id_counter,
+                                                                 merge_method=merge_method,
+                                                                 units=units,
+                                                                 activation=activation,
+                                                                 kernel_init=kernel_init,
+                                                                 bias_init=bias_init,
+                                                                 dropout_rate=dropout_rate)
 
     def get_node_for_split(self, conn_start, conn_end) -> int:
         """"""
@@ -70,24 +87,6 @@ class CoDeepNEATEncoding(BaseEncoding):
                                                        output_shape=output_shape,
                                                        output_activation=output_activation,
                                                        optimizer_factory=optimizer_factory)
-
-    def create_dense_module(self,
-                            merge_method,
-                            units,
-                            activation,
-                            kernel_initializer,
-                            bias_initializer,
-                            dropout_rate) -> (int, CoDeepNEATModuleDense):
-        """"""
-        self.mod_id_counter += 1
-
-        return self.mod_id_counter, CoDeepNEATModuleDense(module_id=self.mod_id_counter,
-                                                          merge_method=merge_method,
-                                                          units=units,
-                                                          activation=activation,
-                                                          kernel_initializer=kernel_initializer,
-                                                          bias_initializer=bias_initializer,
-                                                          dropout_rate=dropout_rate)
 
     def create_genome(self, blueprint, bp_assigned_modules, generation) -> (int, CoDeepNEATGenome):
         """"""

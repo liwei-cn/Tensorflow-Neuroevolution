@@ -1,6 +1,7 @@
 import sys
 import math
 import random
+import warnings
 import statistics
 
 import numpy as np
@@ -11,7 +12,8 @@ from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintNode
-from ...helper_functions import round_to_nearest_multiple, read_option_from_config
+from ...encodings.codeepneat.modules import CoDeepNEATModuleDenseDropout
+from ...helper_functions import read_option_from_config, round_with_step
 
 
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
@@ -140,7 +142,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # TODO: CoDeepNEAT only supports a single eval instance as of now. Parallel eval comes later.
         if parallel_instances != 1:
-            import warnings
             warnings.warn("CoDeepNEAT only supports a single eval instance as of now. Setting parallel eval to 1")
 
         # TODO: Only creating a single environment as of now. Parallel eval comes later
@@ -157,9 +158,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def initialize_population(self):
         """"""
 
-        # TODO Continue here
-        exit()
-
         if self.initial_population_file_path is None:
             print("Initializing a new population of {} blueprints and {} modules..."
                   .format(self.bp_pop_size, self.mod_pop_size))
@@ -169,10 +167,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.best_fitness = 0
 
             #### Initialize Module Population ####
-            # Initialize module population with a basic speciation scheme, only speciating modules according to their
-            # module type. Each module species (and therefore module type) is initiated with the same amount of modules
-            # (or close to the same amount if module pop size not evenly divisble). When parameters of all initial
-            # modules are uniform randomly chosen.
+            # Initialize module population with a basic speciation scheme, even when another speciation type is supplied
+            # as config, only speciating modules according to their module type. Each module species (and therefore
+            # module type) is initiated with the same amount of modules (or close to the same amount if module pop size
+            # not evenly divisble). Parameters of all initial modules are uniform randomly chosen.
 
             # Set initial species counter of basic speciation, initialize module species list and map each species to
             # its type
@@ -185,44 +183,19 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Decide on for which species a new module is added (uniformly distributed)
                 chosen_species = (i % self.mod_species_counter) + 1
 
-                # Initialize a new module according to the module type of the chosen species
-                if self.mod_species_type[chosen_species] == 'DENSE':
-                    # Uniform randomly choose parameters of DENSE module
-                    chosen_merge_method = random.choice(self.dense_merge_methods)
-                    chosen_units_uniform = random.randint(self.dense_units[0], self.dense_units[1])
-                    chosen_units = round_to_nearest_multiple(chosen_units_uniform, self.dense_units[0],
-                                                             self.dense_units[1], self.dense_units[2])
-                    chosen_activation = random.choice(self.dense_activations)
-                    chosen_kernel_initializer = random.choice(self.dense_kernel_initializers)
-                    chosen_bias_initializer = random.choice(self.dense_bias_initializers)
-
-                    # Decide according to dropout_probabilty if there will be a dropout layer at all
-                    if random.random() < self.dense_dropout_probability:
-                        chosen_dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
-                                                                     self.dense_dropout_rate[1])
-                        chosen_dropout_rate = round(round_to_nearest_multiple(chosen_dropout_rate_uniform,
-                                                                              self.dense_dropout_rate[0],
-                                                                              self.dense_dropout_rate[1],
-                                                                              self.dense_dropout_rate[2]), 4)
-                    else:
-                        chosen_dropout_rate = None
-
-                    # Create module
-                    module_id, module = self.encoding.create_dense_module(merge_method=chosen_merge_method,
-                                                                          units=chosen_units,
-                                                                          activation=chosen_activation,
-                                                                          kernel_initializer=chosen_kernel_initializer,
-                                                                          bias_initializer=chosen_bias_initializer,
-                                                                          dropout_rate=chosen_dropout_rate)
-                elif self.mod_species_type[chosen_species] == 'LSTM':
-                    raise NotImplementedError()
+                # Initialize a new module of the chosen species
+                if self.mod_species_type[chosen_species] == 'DenseDropout':
+                    module_id, module = self._create_initial_dense_dropout_module()
                 else:
-                    raise RuntimeError("Species type '{}' could not be identified during initialization"
-                                       .format(self.mod_species_type[chosen_species]))
+                    raise NotImplementedError("Initialization of module '{}' not yet implemented"
+                                              .format(self.mod_species_type[chosen_species]))
 
-                # Append newly created module to module container and to according species
+                # Append newly created initial module to module container and to according species
                 self.modules[module_id] = module
                 self.mod_species[chosen_species].append(module_id)
+
+            # TODO continue here
+            exit()
 
             #### Initialize Blueprint Population ####
             # Initialize blueprint population with a minimal blueprint graph, only consisting of an input node (with
@@ -289,6 +262,38 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             raise NotImplementedError("Initializing population with a pre-evolved supplied initial population not yet "
                                       "implemented")
+
+    def _create_initial_dense_dropout_module(self) -> (int, CoDeepNEATModuleDenseDropout):
+        """"""
+        # Determine module paramater dict of current module to be initialized
+        mod_params = self.available_mod_params['DenseDropout']
+
+        # Determine random parameters for DenseDropout Module
+        merge_method = random.choice(mod_params['merge_methods'])
+        units_random = random.randint(mod_params['units']['min'], mod_params['units']['max'])
+        units = round(round_with_step(units_random,
+                                      mod_params['units']['min'],
+                                      mod_params['units']['max'],
+                                      mod_params['units']['step']), 4)
+        activation = random.choice(mod_params['activations'])
+        kernel_init = random.choice(mod_params['kernel_inits'])
+        bias_init = random.choice(mod_params['bias_inits'])
+        if random.random() < mod_params['dropout_prob']:
+            dropout_rate_random = random.uniform(mod_params['dropout_rate']['min'], mod_params['dropout_rate']['max'])
+            dropout_rate = round(round_with_step(dropout_rate_random,
+                                                 mod_params['dropout_rate']['min'],
+                                                 mod_params['dropout_rate']['max'],
+                                                 mod_params['dropout_rate']['step']), 4)
+        else:
+            dropout_rate = None
+
+        # Call encoding with just created random parameters
+        return self.encoding.create_dense_dropout_module(merge_method=merge_method,
+                                                         units=units,
+                                                         activation=activation,
+                                                         kernel_init=kernel_init,
+                                                         bias_init=bias_init,
+                                                         dropout_rate=dropout_rate)
 
     def evaluate_population(self) -> (int, int):
         """"""

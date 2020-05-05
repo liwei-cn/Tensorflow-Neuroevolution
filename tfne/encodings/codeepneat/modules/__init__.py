@@ -1,3 +1,2 @@
 # Import modules
-from tfne.encodings.codeepneat.modules.codeepneat_module_dense import CoDeepNEATModuleBase
-from tfne.encodings.codeepneat.modules.codeepneat_module_dense import CoDeepNEATModuleDense
+from tfne.encodings.codeepneat.modules.codeepneat_module_densedropout import CoDeepNEATModuleDenseDropout

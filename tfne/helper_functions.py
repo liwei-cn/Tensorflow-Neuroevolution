@@ -33,21 +33,21 @@ def deserialize_merge_method(merge_method_str) -> Callable:
         raise NotImplementedError("Config supplied possible merge method '{}' not implemented".format(merge_method_str))
 
 
-def round_to_nearest_multiple(value, minimum, maximum, multiple) -> Union[int, float]:
+def round_with_step(value, min, max, step) -> Union[int, float]:
     """"""
-    lower_multiple = int(value / multiple) * multiple
-    if value % multiple - (multiple / 2.0) < 0:
-        if minimum <= lower_multiple <= maximum:
-            return lower_multiple
-        if lower_multiple < minimum:
-            return minimum
-        if lower_multiple > maximum:
-            return maximum
+    lower_step = int(value / step) * step
+    if value % step - (step / 2.0) < 0:
+        if min <= lower_step <= max:
+            return lower_step
+        if lower_step < min:
+            return min
+        if lower_step > max:
+            return max
     else:
-        higher_multiple = lower_multiple + multiple
-        if minimum <= higher_multiple <= maximum:
-            return higher_multiple
-        if higher_multiple < minimum:
-            return minimum
-        if higher_multiple > maximum:
-            return maximum
+        higher_step = lower_step + step
+        if min <= higher_step <= max:
+            return higher_step
+        if higher_step < min:
+            return min
+        if higher_step > max:
+            return max
