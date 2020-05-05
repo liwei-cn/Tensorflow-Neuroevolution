@@ -4,9 +4,9 @@ import tfne
 
 flags.DEFINE_string('logging_level',
                     default=None, help='TODO')
-flags.DEFINE_string('config_path',
+flags.DEFINE_string('config_file',
                     default=None, help='TODO')
-flags.DEFINE_string('backup_dir_path',
+flags.DEFINE_string('backup_dir',
                     default=None, help='TODO')
 flags.DEFINE_integer('num_cpus',
                      default=None, help='TODO')
@@ -22,7 +22,7 @@ def codeepneat_example(_):
     """"""
     # Set standard configuration specific to TFNE but not the neuroevolution process
     logging_level = logging.INFO
-    config_path = './codeepneat_example_config.cfg'
+    config_file_path = './codeepneat_example_config.cfg'
     backup_dir_path = './population_backups/'
     num_cpus = None
     num_gpus = None
@@ -32,10 +32,10 @@ def codeepneat_example(_):
     # Read in optionally supplied flags, changing the just set standard configuration
     if flags.FLAGS.logging_level is not None:
         logging_level = flags.FLAGS.logging_level
-    if flags.FLAGS.config_path is not None:
-        config_path = flags.FLAGS.config_path
-    if flags.FLAGS.backup_dir_path is not None:
-        backup_dir_path = flags.FLAGS.backup_dir_path
+    if flags.FLAGS.config_file is not None:
+        config_file_path = flags.FLAGS.config_file
+    if flags.FLAGS.backup_dir is not None:
+        backup_dir_path = flags.FLAGS.backup_dir
     if flags.FLAGS.num_cpus is not None:
         num_cpus = flags.FLAGS.num_cpus
     if flags.FLAGS.num_gpus is not None:
@@ -47,7 +47,7 @@ def codeepneat_example(_):
 
     # Set logging, parse config
     logging.set_verbosity(logging_level)
-    config = tfne.parse_configuration(config_path)
+    config = tfne.parse_configuration(config_file_path)
 
     # Initialize the environment as well as the specific NE algorithm
     environment_factory = tfne.environments.XOREnvironmentFactory()
