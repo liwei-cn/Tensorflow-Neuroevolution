@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import tensorflow as tf
-from graphviz import Digraph
 
 
 class CoDeepNEATBlueprintNode:
@@ -102,11 +101,6 @@ class CoDeepNEATBlueprint:
             for node, dep in node_deps.items():
                 node_deps[node] = dep - dependencyless
 
-    def get_species(self) -> {int, ...}:
-        """"""
-        return self.species
-
-    '''
     def __str__(self) -> str:
         """"""
         return "CoDeepNEAT Blueprint | ID: {:>6} | Fitness: {:>6} | Nodes: {:>4} | Module Species: {} | Optimizer: {}" \
@@ -116,49 +110,13 @@ class CoDeepNEATBlueprint:
                     self.species,
                     self.optimizer_factory.get_type())
 
-    def visualize(self, view, save_dir_path):
-        """"""
-        # Create filename and adjust save_dir_path if not ending in slash, indicating folder path
-        filename = "graph_blueprint_{}".format(self.blueprint_id)
-        if save_dir_path is not None and save_dir_path[-1] != '/':
-            save_dir_path += '/'
-
-        # Define label string, summarizing the Blueprint
-        label_string = f"CoDeepNEAT Blueprint (ID: {self.blueprint_id}, Fitness: {self.fitness})\l" \
-                       f"output shape: {self.output_shape}\l" \
-                       f"output activation: {self.output_activation}\l" \
-                       f"optimizer factory: {self.optimizer_factory}\l"
-
-        # Create graph and set direction of graph starting from bottom to top. Include label string at bottom
-        graph = Digraph(graph_attr={'rankdir': 'BT', 'label': label_string})
-
-        # Traverse the blueprint graph and add edges and nodes to the graph
-        for bp_gene in self.blueprint_graph.values():
-            try:
-                graph.edge(str(bp_gene.conn_start), str(bp_gene.conn_end))
-            except AttributeError:
-                graph.node(str(bp_gene.node), label="node: {}\lspecies: {}\l".format(bp_gene.node, bp_gene.species))
-
-        # Highlight Input and Output Nodes with subgraphs
-        with graph.subgraph(name='cluster_input') as input_cluster:
-            input_cluster.node('1')
-            input_cluster.attr(label='Input', color='blue')
-        with graph.subgraph(name='cluster_output') as output_cluster:
-            output_cluster.node('2')
-            output_cluster.attr(label='Output', color='grey')
-
-        # Render, save and optionally display the graph
-        graph.render(filename=filename, directory=save_dir_path, view=view, cleanup=True, format='svg')
-
     def create_optimizer(self) -> tf.keras.optimizers.Optimizer:
         """"""
         return self.optimizer_factory.create_optimizer()
 
-    def duplicate_parameters(self) -> ({int: object}, (int, ...), str, object):
+    def copy_parameters(self) -> ({int: object}, object):
         """"""
         return (deepcopy(self.blueprint_graph),
-                self.output_shape,
-                self.output_activation,
                 self.optimizer_factory.duplicate())
 
     def set_fitness(self, fitness):
@@ -168,14 +126,9 @@ class CoDeepNEATBlueprint:
         """"""
         return self.blueprint_graph
 
-    def get_output_shape(self) -> (int, ...):
+    def get_species(self) -> {int, ...}:
         """"""
-        return self.output_shape
-
-    def get_output_activation(self) -> str:
-        """"""
-        return self.output_activation
-
+        return self.species
 
     def get_node_species(self) -> {int: int}:
         """"""
@@ -194,4 +147,3 @@ class CoDeepNEATBlueprint:
 
     def get_fitness(self) -> float:
         return self.fitness
-    '''
