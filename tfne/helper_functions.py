@@ -26,28 +26,32 @@ def read_option_from_config(config, section, option) -> Any:
 def deserialize_merge_method(merge_method_str) -> Callable:
     """"""
     if merge_method_str == 'concat':
-        return tf.concat
-    elif merge_method_str == 'sum':
-        return tf.math.reduce_sum
+        return tf.keras.layers.concatenate
+    elif merge_method_str == 'add':
+        return tf.keras.layers.add
+    elif merge_method_str == 'average':
+        return tf.keras.layers.average
+    elif merge_method_str == 'subtract':
+        return tf.keras.layers.subtract
     else:
         raise NotImplementedError("Config supplied possible merge method '{}' not implemented".format(merge_method_str))
 
 
-def round_with_step(value, min, max, step) -> Union[int, float]:
+def round_with_step(value, minimum, maximum, step) -> Union[int, float]:
     """"""
     lower_step = int(value / step) * step
     if value % step - (step / 2.0) < 0:
-        if min <= lower_step <= max:
+        if minimum <= lower_step <= maximum:
             return lower_step
-        if lower_step < min:
-            return min
-        if lower_step > max:
-            return max
+        if lower_step < minimum:
+            return minimum
+        if lower_step > maximum:
+            return maximum
     else:
         higher_step = lower_step + step
-        if min <= higher_step <= max:
+        if minimum <= higher_step <= maximum:
             return higher_step
-        if higher_step < min:
-            return min
-        if higher_step > max:
-            return max
+        if higher_step < minimum:
+            return minimum
+        if higher_step > maximum:
+            return maximum

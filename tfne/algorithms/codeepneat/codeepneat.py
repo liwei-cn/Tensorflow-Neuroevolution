@@ -69,6 +69,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.preprocessing = read_option_from_config(config, 'GENOME', 'preprocessing')
         self.output_layers = read_option_from_config(config, 'GENOME', 'output_layers')
 
+        # Adjust output_layers config to include the configured datatype
+        for out_layer in self.output_layers:
+            out_layer['config']['dtype'] = self.dtype
+
         # Read and process the config values that concern the module speciation for CoDeepNEAT
         self.mod_spec_type = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_type')
         if self.mod_spec_type == 'basic':
@@ -302,9 +306,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     chosen_module_id = random.choice(self.mod_species[i])
                     bp_assigned_modules[i] = self.modules[chosen_module_id]
 
-                # Create genome, using the specific blueprint, a dict of modules for each species and the current
-                # generation
-                genome_id, genome = self.encoding.create_genome(blueprint, bp_assigned_modules, self.generation_counter)
+                # Create genome, using the specific blueprint, a dict of modules for each species, the configured output
+                # layers and input shape as well as the current generation
+                genome_id, genome = self.encoding.create_genome(blueprint,
+                                                                bp_assigned_modules,
+                                                                self.output_layers,
+                                                                self.input_shape,
+                                                                self.generation_counter)
 
                 # Now evaluate genome on registered environment and set its fitness
                 genome_fitness = environment.eval_genome_fitness(genome)
@@ -416,6 +424,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evolve_population(self) -> bool:
         """"""
+
+        # TODO Continue here
+        print("EXITING CLEANLY")
+        exit()
+
         #### Speciate Modules ####
         if self.mod_speciation_type == 'Basic':
             # Population is already speciated solely according to their module type. As speciation is configured to

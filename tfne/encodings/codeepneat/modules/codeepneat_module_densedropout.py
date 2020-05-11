@@ -26,16 +26,28 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
 
     def __str__(self) -> str:
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
+        return "CoDeepNEAT DENSE Module | ID: {:>6} | Fitness: {:>6} | Units: {:>4} | Activ: {:>6} | Dropout: {:>4}" \
+            .format('#' + str(self.module_id),
+                    self.fitness,
+                    self.units,
+                    self.activation,
+                    "None" if self.dropout_rate is None else self.dropout_rate)
 
-    def create_module_layers(self, dtype, output_shape, output_activation) -> (tf.keras.layers.Layer, ...):
+    def create_module_layers(self, dtype) -> (tf.keras.layers.Layer, ...):
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
+        # Create the basic keras Dense layer, needed in both variants of the Dense Module
+        dense_layer = tf.keras.layers.Dense(units=self.units,
+                                            activation=self.activation,
+                                            kernel_initializer=self.kernel_init,
+                                            bias_initializer=self.bias_init,
+                                            dtype=dtype)
+        # Determine if Dense Module also includes a dropout layer, then return appropriate layer tuple
+        if self.dropout_flag:
+            dropout_layer = tf.keras.layers.Dropout(rate=self.dropout_rate, dtype=dtype)
+            return dense_layer, dropout_layer
+        else:
+            return (dense_layer,)
 
-    def get_summary(self, output_shape=None, output_activation=None) -> str:
+    def copy_parameters(self) -> (str, int, str, str, str, float):
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
-
-    def duplicate_parameters(self) -> list:
-        """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'duplicate_parameters()'")
+        return self.merge_method, self.units, self.activation, self.kernel_init, self.bias_init, self.dropout_rate

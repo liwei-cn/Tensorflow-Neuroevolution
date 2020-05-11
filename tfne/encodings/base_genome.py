@@ -16,10 +16,6 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement '__str__()'")
 
-    def visualize(self, view, save_dir_path):
-        """"""
-        raise NotImplementedError("Subclass of BaseGenome does not implement 'visualize()'")
-
     def save_genotype(self, save_dir_path):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'save_genotype()'")
@@ -32,6 +28,10 @@ class BaseGenome(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'set_fitness()'")
 
+    def get_genotype(self) -> Any:
+        """"""
+        raise NotImplementedError("Subclass of BaseGenome does not implement 'get_genotype()'")
+
     def get_model(self) -> tf.keras.Model:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_model()'")
@@ -39,10 +39,6 @@ class BaseGenome(object, metaclass=ABCMeta):
     def get_optimizer(self) -> Union[None, tf.keras.optimizers.Optimizer]:
         """"""
         raise NotImplementedError("Subclass of BaseGenome does not implement 'get_optimizer()'")
-
-    def get_genotype(self) -> Any:
-        """"""
-        raise NotImplementedError("Subclass of BaseGenome does not implement 'get_genotype()'")
 
     def get_id(self) -> int:
         """"""

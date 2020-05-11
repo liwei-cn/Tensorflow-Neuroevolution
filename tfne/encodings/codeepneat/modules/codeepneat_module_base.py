@@ -17,19 +17,14 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
 
     @abstractmethod
-    def create_module_layers(self, dtype, output_shape, output_activation) -> (tf.keras.layers.Layer, ...):
+    def create_module_layers(self, dtype) -> (tf.keras.layers.Layer, ...):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
-    def get_summary(self, output_shape=None, output_activation=None) -> str:
+    def copy_parameters(self) -> tuple:
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'get_summary()'")
-
-    @abstractmethod
-    def duplicate_parameters(self) -> list:
-        """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'duplicate_parameters()'")
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'copy_parameters()'")
 
     def set_fitness(self, fitness):
         self.fitness = fitness

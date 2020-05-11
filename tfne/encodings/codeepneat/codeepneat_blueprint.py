@@ -108,7 +108,7 @@ class CoDeepNEATBlueprint:
                     self.fitness,
                     len(self.node_species),
                     self.species,
-                    self.optimizer_factory.get_type())
+                    self.optimizer_factory.__class__.__name__)
 
     def create_optimizer(self) -> tf.keras.optimizers.Optimizer:
         """"""
