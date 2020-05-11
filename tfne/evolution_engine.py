@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 import ray
+from absl import logging
 
 from .encodings.base_genome import BaseGenome
 
@@ -25,12 +26,14 @@ class EvolutionEngine:
         print("Maximum number of generations to evolve the population: {}".format(max_generations))
         print("Maximum fitness value to evolve population up to: {}".format(max_fitness))
 
-        # Initiate the Multiprocessing library ray and order the NE algorithm to initialize the according number of
-        # parallel evaluation instances
+        # Initiate the Multiprocessing library ray and determine the actually available CPUs and GPUs as well as the
+        # desired verbosity level for the genome evaluation
         ray.init(num_cpus=num_cpus, num_gpus=num_gpus)
-        ne_algorithm.initialize_environments(parallel_instances=ray.available_resources()['CPU'])
-        print("Initialized the ray library with {} CPUs and {} GPUs".format(ray.available_resources()['CPU'],
-                                                                            len(ray.get_gpu_ids())))
+        self.available_num_cpus = ray.available_resources()['CPU']
+        self.available_num_gpus = len(ray.get_gpu_ids())
+        self.verbosity = 0 if not logging.level_debug() else 1
+        print("Initialized the ray library with {} CPUs and {} GPUs".format(self.available_num_cpus,
+                                                                            self.available_num_gpus))
 
         # Create the directory into wich the training process will backup the population each generation
         self.backup_dir_path = os.path.abspath(backup_dir_path)
@@ -49,7 +52,9 @@ class EvolutionEngine:
         # generations or the maximum fitness has been reached
         while True:
             # Evaluate and summarize population
-            generation_counter, best_fitness = self.ne_algorithm.evaluate_population()
+            generation_counter, best_fitness = self.ne_algorithm.evaluate_population(num_cpus=self.available_num_cpus,
+                                                                                     num_gpus=self.available_num_gpus,
+                                                                                     verbosity=self.verbosity)
             self.ne_algorithm.summarize_population()
 
             # Backup population in according gen directory

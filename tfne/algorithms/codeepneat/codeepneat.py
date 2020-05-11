@@ -26,14 +26,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self._process_config(config)
         self.initial_population_file_path = initial_population_file_path
 
-        # Declare variables of the environment, its creation factory and its input/output shape and dimension, which
-        # will be initialized by the evolution engine through self.initialize_environment()
+        # Declare the variables for the environment factory and determine the input shape/dim and output shape/dim of
+        # the created environments
         self.environment_factory = environment_factory
-        self.environment = None
-        self.input_shape = None
-        self.input_dim = None
-        self.output_shape = None
-        self.output_dim = None
+        self.input_shape = self.environment_factory.get_env_input_shape()
+        self.input_dim = len(self.input_shape)
+        self.output_shape = self.environment_factory.get_env_output_shape()
+        self.output_dim = len(self.output_shape)
 
         # Initialize and register the associated CoDeepNEAT encoding
         self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
@@ -136,24 +135,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         assert round(self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob + self.bp_mutation_rem_conn_prob
                      + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob
                      + self.bp_mutation_optimizer_prob, 4) == 1.0
-
-    def initialize_environments(self, parallel_instances):
-        """"""
-
-        # TODO: CoDeepNEAT only supports a single eval instance as of now. Parallel eval comes later.
-        if parallel_instances != 1:
-            warnings.warn("CoDeepNEAT only supports a single eval instance as of now. Setting parallel eval to 1")
-
-        # TODO: Only creating a single environment as of now. Parallel eval comes later
-        verbosity = 0 if not logging.level_debug() else 1
-        self.environment = self.environment_factory.create_environment(verbosity=verbosity,
-                                                                       weight_training=True,
-                                                                       epochs=self.eval_epochs,
-                                                                       batch_size=self.eval_batch_size)
-        self.input_shape = self.environment.get_input_shape()
-        self.input_dim = len(self.input_shape)
-        self.output_shape = self.environment.get_output_shape()
-        self.output_dim = len(self.output_shape)
 
     def initialize_population(self):
         """"""
@@ -288,8 +269,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                               optimizer_factory=optimizer_factory)
 
-    def evaluate_population(self) -> (int, int):
+    def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
         """"""
+
+        # FIXME
+        warnings.warn("CoDeepNEAT as of now only supports a single eval instance. Ignoring num_cpus and num_gpus.")
 
         # TODO continue here
         print("EXITING")

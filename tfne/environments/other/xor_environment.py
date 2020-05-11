@@ -13,10 +13,6 @@ class XOREnvironment(BaseEnvironment):
         self.x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         self.y = np.array([[0], [1], [1], [0]])
 
-        # Initialize input and output shapes of the environment, which a neural network has to abide by
-        self.input_shape = (2,)
-        self.output_shape = (1,)
-
         # Initialize loss function to evaluate performance on either evaluation method
         self.loss_function = tf.keras.losses.BinaryCrossentropy()
 
@@ -77,12 +73,6 @@ class XOREnvironment(BaseEnvironment):
         print("Solution Values: \t{}\n".format(self.y))
         print("Predicted Values:\t{}\n".format(genome(self.x)))
 
-    def get_input_shape(self) -> (int,):
-        return self.input_shape
-
-    def get_output_shape(self) -> (int,):
-        return self.output_shape
-
 
 class XOREnvironmentFactory(BaseEnvironmentFactory):
     """"""
@@ -90,3 +80,11 @@ class XOREnvironmentFactory(BaseEnvironmentFactory):
     def create_environment(self, verbosity, weight_training, epochs=None, batch_size=None) -> XOREnvironment:
         """"""
         return XOREnvironment(verbosity, weight_training, epochs, batch_size)
+
+    def get_env_input_shape(self) -> (int,):
+        """"""
+        return (2,)
+
+    def get_env_output_shape(self) -> (int,):
+        """"""
+        return (1,)

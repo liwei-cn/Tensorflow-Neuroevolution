@@ -14,16 +14,6 @@ class BaseEnvironment(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of BaseEnvironment does not implement 'replay_genome()'")
 
-    @abstractmethod
-    def get_input_shape(self) -> (int, ...):
-        """"""
-        raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_input_shape()'")
-
-    @abstractmethod
-    def get_output_shape(self) -> (int, ...):
-        """"""
-        raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_output_shape()'")
-
 
 class BaseEnvironmentFactory(object, metaclass=ABCMeta):
     """"""
@@ -32,3 +22,13 @@ class BaseEnvironmentFactory(object, metaclass=ABCMeta):
     def create_environment(self, verbosity, weight_training, **kwargs) -> BaseEnvironment:
         """"""
         raise NotImplementedError("Subclass of BaseEnvironmentFactory does not implement 'create_environment()'")
+
+    @abstractmethod
+    def get_env_input_shape(self) -> (int, ...):
+        """"""
+        raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_input_shape()'")
+
+    @abstractmethod
+    def get_env_output_shape(self) -> (int, ...):
+        """"""
+        raise NotImplementedError("Subclass of BaseEnvironment does not implement 'get_output_shape()'")

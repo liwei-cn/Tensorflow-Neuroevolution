@@ -7,19 +7,13 @@ class BaseNeuroevolutionAlgorithm(object, metaclass=ABCMeta):
     """"""
 
     @abstractmethod
-    def initialize_environments(self, parallel_instances):
-        """"""
-        raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
-                                  "'initialize_environments()'")
-
-    @abstractmethod
     def initialize_population(self):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement "
                                   "'initialize_population()'")
 
     @abstractmethod
-    def evaluate_population(self) -> (int, int):
+    def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
         """"""
         raise NotImplementedError("Subclass of BaseNeuroevolutionAlgorithm does not implement 'evaluate_population()'")
 
