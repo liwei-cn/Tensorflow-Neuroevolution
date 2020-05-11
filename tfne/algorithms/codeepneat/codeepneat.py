@@ -1,7 +1,6 @@
 import sys
 import math
 import random
-import warnings
 import statistics
 
 import numpy as np
@@ -276,7 +275,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
         """"""
         # TODO Properly implement parallelization
-        warnings.warn("CoDeepNEAT as of now only supports a single eval instance. Ignoring num_cpus and num_gpus.")
+        logging.warning("CoDeepNEAT as of now only supports a single eval instance. Ignoring num_cpus and num_gpus.")
         environment = self.environment_factory.create_environment(verbosity=verbosity,
                                                                   weight_training=True,
                                                                   epochs=self.eval_epochs,
@@ -364,12 +363,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         mod_species_best_id = dict()
         for spec_id, spec_mod_ids in self.mod_species.items():
             spec_total_fitness = 0
-            mod_species_best_id[spec_id] = None
             for mod_id in spec_mod_ids:
                 mod_fitness = self.modules[mod_id].get_fitness()
                 spec_total_fitness += mod_fitness
-                if mod_species_best_id[spec_id] is None or mod_fitness > mod_species_best_id[spec_id]:
-                    mod_species_best_id[spec_id] = mod_id
+                if spec_id not in mod_species_best_id or mod_fitness > mod_species_best_id[spec_id][1]:
+                    mod_species_best_id[spec_id] = (mod_id, mod_fitness)
             mod_species_avg_fitness[spec_id] = round(spec_total_fitness / len(spec_mod_ids), 4)
         modules_avg_fitness = round(sum(mod_species_avg_fitness.values()) / len(mod_species_avg_fitness), 4)
 
@@ -378,12 +376,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         bp_species_best_id = dict()
         for spec_id, spec_bp_ids in self.bp_species.items():
             spec_total_fitness = 0
-            bp_species_best_id[spec_id] = None
             for bp_id in spec_bp_ids:
                 bp_fitness = self.blueprints[bp_id].get_fitness()
                 spec_total_fitness += bp_fitness
-                if bp_species_best_id[spec_id] is None or bp_fitness > bp_species_best_id[spec_id]:
-                    bp_species_best_id[spec_id] = bp_id
+                if spec_id not in bp_species_best_id or bp_fitness > bp_species_best_id[spec_id][1]:
+                    bp_species_best_id[spec_id] = (bp_id, bp_fitness)
             bp_species_avg_fitness[spec_id] = round(spec_total_fitness / len(spec_bp_ids), 4)
         blueprints_avg_fitness = round(sum(bp_species_avg_fitness.values()) / len(bp_species_avg_fitness), 4)
 
@@ -407,7 +404,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                   .format(spec_id,
                           spec_bp_avg_fitness,
                           len(self.bp_species[spec_id]),
-                          self.blueprints[bp_species_best_id[spec_id]]))
+                          self.blueprints[bp_species_best_id[spec_id][0]]))
 
         # Print summary of module species
         print("\n\033[1mModule Species            || Module Species Avg Fitness            || "
@@ -417,7 +414,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                   .format(spec_id,
                           spec_mod_avg_fitness,
                           len(self.mod_species[spec_id]),
-                          self.modules[mod_species_best_id[spec_id]]))
+                          self.modules[mod_species_best_id[spec_id][0]]))
 
         # Print summary footer
         print("\n\033[1m" + '#' * 142 + "\033[0m\n")
