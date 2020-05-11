@@ -56,15 +56,6 @@ class CoDeepNEATBlueprint:
         # Process graph to set graph related internal variables
         self._process_graph()
 
-    def __str__(self) -> str:
-        """"""
-        return "CoDeepNEAT Blueprint | ID: {:>6} | Fitness: {:>6} | Nodes: {:>4} | Module Species: {} | Optimizer: {}" \
-            .format('#' + str(self.blueprint_id),
-                    self.fitness,
-                    len(self.node_species),
-                    self.species,
-                    self.optimizer_factory.get_type())
-
     def _process_graph(self):
         """"""
         # Create set of species (self.species, set), assignment of nodes to their species (self.node_species, dict) as
@@ -110,6 +101,20 @@ class CoDeepNEATBlueprint:
                 del node_deps[node]
             for node, dep in node_deps.items():
                 node_deps[node] = dep - dependencyless
+
+    def get_species(self) -> {int, ...}:
+        """"""
+        return self.species
+
+    '''
+    def __str__(self) -> str:
+        """"""
+        return "CoDeepNEAT Blueprint | ID: {:>6} | Fitness: {:>6} | Nodes: {:>4} | Module Species: {} | Optimizer: {}" \
+            .format('#' + str(self.blueprint_id),
+                    self.fitness,
+                    len(self.node_species),
+                    self.species,
+                    self.optimizer_factory.get_type())
 
     def visualize(self, view, save_dir_path):
         """"""
@@ -171,9 +176,6 @@ class CoDeepNEATBlueprint:
         """"""
         return self.output_activation
 
-    def get_species(self) -> {int, ...}:
-        """"""
-        return self.species
 
     def get_node_species(self) -> {int: int}:
         """"""
@@ -192,3 +194,4 @@ class CoDeepNEATBlueprint:
 
     def get_fitness(self) -> float:
         return self.fitness
+    '''

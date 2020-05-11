@@ -56,6 +56,11 @@ class CoDeepNEATEncoding(BaseEncoding):
 
     def create_genome(self, blueprint, bp_assigned_modules, generation) -> (int, CoDeepNEATGenome):
         """"""
+
+        # TODO continue here
+        print("EXITING")
+        exit()
+
         self.genome_id_counter += 1
         # Genome genotype: blueprint, bp_assigned_modules (dict mapping species to specific module for that species)
         return self.genome_id_counter, CoDeepNEATGenome(genome_id=self.genome_id_counter,
