@@ -433,9 +433,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         #### Speciate Blueprints ####
         if self.bp_spec_type == 'basic':
-            self._speciate_blueprints_basic()
+            new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_basic()
         elif self.bp_spec_type == 'gene_overlap':
-            self._speciate_blueprints_gene_overlap()
+            new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_gene_overlap()
         else:
             raise RuntimeError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
@@ -522,7 +522,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def _speciate_modules_basic(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
         pass
-        return None, None, None
 
         '''
         #### Speciate Modules ####
@@ -623,7 +622,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         """"""
         raise NotImplementedError()
 
-    def _speciate_blueprints_basic(self):
+    def _speciate_blueprints_basic(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
         pass
 
@@ -689,7 +688,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.bp_species[spec_id] = spec_bp_ids_sorted[:-blueprints_to_remove]
         '''
 
-    def _speciate_blueprints_gene_overlap(self):
+    def _speciate_blueprints_gene_overlap(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
         raise NotImplementedError()
 
