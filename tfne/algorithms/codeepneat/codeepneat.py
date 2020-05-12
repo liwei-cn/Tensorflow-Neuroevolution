@@ -12,6 +12,7 @@ from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode
 from ...encodings.codeepneat.modules import CoDeepNEATModuleDenseDropout
+from ...encodings.codeepneat.modules.codeepneat_module_base import CoDeepNEATModuleBase
 from ...helper_functions import read_option_from_config, round_with_step
 
 
@@ -424,9 +425,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         #### Speciate Modules ####
         if self.mod_spec_type == 'basic':
-            self._speciate_modules_basic()
+            new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_basic()
         elif self.mod_spec_type == 'param_distance':
-            self._speciate_modules_param_distance()
+            new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_param_distance()
         else:
             raise RuntimeError(f"Module speciation type '{self.mod_spec_type}' not yet implemented")
 
@@ -438,491 +439,90 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             raise RuntimeError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
-        #### Return ####
-        # Adjust internal variables of evolutionary process and return False, signalling that the population has not
-        # gone extinct
-        self.generation_counter += 1
-        return False
-
-        '''
         #### Evolve Modules ####
-        # Traverse through the new module species and add new moduless according to the previously determined dedicated
-        # offpsring
-        for spec_id, carried_over_spec_mod_ids in new_mod_species.items():
-            # Determine offspring and create according amount of new modules
-            for _ in range(new_mod_species_size[spec_id] - len(carried_over_spec_mod_ids)):
-                if random.random() < self.mod_mutation:
+        # Traverse through the new module species and add new modules until calculated dedicated spec size is reached
+        for spec_id, carried_over_mod_ids in new_mod_species.items():
+            # Determine amount of offspring and create according amount of new modules
+            for _ in range(new_mod_species_size[spec_id] - len(carried_over_mod_ids)):
+                # Choose randomly between mutation or crossover of module
+                if random.random() < self.mod_mutation_prob:
                     ## Create new module through mutation ##
+                    # TODO
+                    raise NotImplementedError()
 
-                    # Determine chosen parent module and its parameters as well as the intensity of the mutation,
-                    # meaning how many parent parameters will be perturbed.
-                    parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                    module_parameters = parent_module.duplicate_parameters()
-                    mutation_intensity = random.uniform(0, 0.3)
-
-                    if self.mod_species_type[spec_id] == 'DENSE':
-                        # Determine explicit integer amount of parameters to be mutated, though minimum is 1
-                        param_mutation_count = int(mutation_intensity * 6)
-                        if param_mutation_count == 0:
-                            param_mutation_count = 1
-
-                        # Uniform randomly choose the parameters to be mutated
-                        parameters_to_mutate = random.sample(range(6), k=param_mutation_count)
-
-                        # Mutate parameters. Categorical parameters are chosen randomly from all available values.
-                        # Sortable parameters are perturbed through a random normal distribution with the current value
-                        # as mean and the config specified stddev
-                        for param_to_mutate in parameters_to_mutate:
-                            if param_to_mutate == 0:
-                                module_parameters[0] = random.choice(self.dense_merge_methods)
-                            elif param_to_mutate == 1:
-                                perturbed_param = int(np.random.normal(loc=module_parameters[1],
-                                                                       scale=self.dense_units_stddev))
-                                module_parameters[1] = round_to_nearest_multiple(perturbed_param,
-                                                                                 self.dense_units[0],
-                                                                                 self.dense_units[1],
-                                                                                 self.dense_units[2])
-                            elif param_to_mutate == 2:
-                                module_parameters[2] = random.choice(self.dense_activations)
-                            elif param_to_mutate == 3:
-                                module_parameters[3] = random.choice(self.dense_kernel_initializers)
-                            elif param_to_mutate == 4:
-                                module_parameters[4] = random.choice(self.dense_bias_initializers)
-                            else:  # param_to_mutate == 5:
-                                # If Module param 5 (dropout rate) is not None is there a 'dropout_probability' chance
-                                # that the dropout parameter will be perturbed. Otherwise it will be set to None. If
-                                # the dropout rate of the parent is None to begin with then there is a
-                                # 'dropout_probability' chance that a new uniorm random dropout rate is created.
-                                # otherweise it will remain None.
-                                if module_parameters[5] is not None:
-                                    if random.random() < self.dense_dropout_probability:
-                                        perturbed_param = np.random.normal(loc=module_parameters[5],
-                                                                           scale=self.dense_dropout_rate_stddev)
-                                        module_parameters[5] = round_to_nearest_multiple(perturbed_param,
-                                                                                         self.dense_dropout_rate[0],
-                                                                                         self.dense_dropout_rate[1],
-                                                                                         self.dense_dropout_rate[2])
-                                    else:
-                                        module_parameters[5] = None
-                                else:
-                                    if random.random() < self.dense_dropout_probability:
-                                        dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
-                                                                              self.dense_dropout_rate[1])
-                                        module_parameters[5] = round_to_nearest_multiple(dropout_rate_uniform,
-                                                                                         self.dense_dropout_rate[0],
-                                                                                         self.dense_dropout_rate[1],
-                                                                                         self.dense_dropout_rate[2])
-
-                        # Create new offpsring module with parent mutated parameters
-                        new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
-                                                                                units=module_parameters[1],
-                                                                                activation=module_parameters[2],
-                                                                                kernel_initializer=module_parameters[3],
-                                                                                bias_initializer=module_parameters[4],
-                                                                                dropout_rate=module_parameters[5])
-
-                else:  # random.random() < self.mod_crossover + self.mod_mutation
+                else:  # random.random() < self.mod_mutation_prob + self.mod_crossover_prob
                     ## Create new module through crossover ##
-
-                    # Determine if 2 modules are available in current species, as is required for crossover
-                    if len(self.mod_species[spec_id]) == 1:
-
-                        # If Only 1 module in current species available as parent, create new module with identical
-                        # parameters
-                        parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                        module_parameters = parent_module.duplicate_parameters()
-
-                        if self.mod_species_type[spec_id] == 'DENSE':
-                            # Create new offspring module with identical parent parameters
-                            new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
-                                                                                    units=module_parameters[1],
-                                                                                    activation=module_parameters[2],
-                                                                                    kernel_initializer=
-                                                                                    module_parameters[3],
-                                                                                    bias_initializer=
-                                                                                    module_parameters[4],
-                                                                                    dropout_rate=module_parameters[5])
-
-                    else:
-                        # Choose 2 random parent modules, both of them different
-                        parent_module_1_id, parent_module_2_id = random.sample(self.mod_species[spec_id], k=2)
-
-                        # Determine fitter parent and save parameters of 'fitter' and 'other' parent
-                        if self.modules[parent_module_1_id].get_fitness() > \
-                                self.modules[parent_module_2_id].get_fitness():
-                            fitter_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
-                            other_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
-                        else:
-                            fitter_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
-                            other_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
-
-                        if self.mod_species_type[spec_id] == 'DENSE':
-                            # Crete offspring parameters by carrying over parameter of fitter parent for categorical
-                            # parameters and calculating average parameter for sortable parameters
-                            offspring_params = [None] * 6
-                            offspring_params[0] = fitter_parent_params[0]
-                            offspring_params[1] = round_to_nearest_multiple(int((fitter_parent_params[1] +
-                                                                                 other_parent_params[1]) / 2),
-                                                                            self.dense_units[0],
-                                                                            self.dense_units[1],
-                                                                            self.dense_units[2])
-                            offspring_params[2] = fitter_parent_params[2]
-                            offspring_params[3] = fitter_parent_params[3]
-                            offspring_params[4] = fitter_parent_params[4]
-                            if fitter_parent_params[5] is not None and other_parent_params[5] is not None:
-                                # If both parents have defined a dropout rate, calculate the average
-                                offspring_params[5] = round_to_nearest_multiple(((fitter_parent_params[5] +
-                                                                                  other_parent_params[5]) / 2),
-                                                                                self.dense_dropout_rate[0],
-                                                                                self.dense_dropout_rate[1],
-                                                                                self.dense_dropout_rate[2])
-                            elif fitter_parent_params[5] is not None:
-                                # If only fitter parent defined dropout rate, carry that dropout rate over
-                                offspring_params[5] = fitter_parent_params[5]
-                            else:
-                                # If neither or only the lesser fit parent defined dropout rate, set dropout rate to
-                                # None
-                                offspring_params[5] = None
-
-                            # Create new offspring module with crossed-over parental parameters
-                            new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=offspring_params[0],
-                                                                                    units=offspring_params[1],
-                                                                                    activation=offspring_params[2],
-                                                                                    kernel_initializer=
-                                                                                    offspring_params[3],
-                                                                                    bias_initializer=
-                                                                                    offspring_params[4],
-                                                                                    dropout_rate=offspring_params[5])
+                    # TODO
+                    raise NotImplementedError()
 
                 # Add newly created module to the module container and its according species
-                self.modules[new_mod_id] = new_mod
+                new_modules[new_mod_id] = new_mod
                 new_mod_species[spec_id].append(new_mod_id)
 
-            # Delete all those modules remaining in the module container that were not previously removed or carried
-            # over but remained in the species to serve as a potential parent for offspring
-            for mod_id_to_remove in mod_ids_to_remove_after_reproduction:
-                del self.modules[mod_id_to_remove]
-
-        # As new module species dict has now been created, delete the old one and overwrite it with the new mod species
+        # As new module container and species dict have now been fully created, overwrite the old ones
+        self.modules = new_modules
         self.mod_species = new_mod_species
 
         #### Evolve Blueprints ####
-        # Calculate the brackets for a random_float to fall into in order for the specific evolutionary method to be
-        # chosen
-        bp_mutation_add_node_prob = self.bp_mutation_add_conn + self.bp_mutation_add_node
-        bp_mutation_remove_conn_prob = bp_mutation_add_node_prob + self.bp_mutation_remove_conn
-        bp_mutation_remove_node_prob = bp_mutation_remove_conn_prob + self.bp_mutation_remove_node
-        bp_mutation_node_species_prob = bp_mutation_remove_node_prob + self.bp_mutation_node_species
-        bp_mutation_hp_prob = bp_mutation_node_species_prob + self.bp_mutation_hp
+        # Calculate the brackets for a random float to fall into in order to choose a specific evolutionary method
+        bp_mutation_add_node_bracket = self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob
+        bp_mutation_rem_conn_bracket = bp_mutation_add_node_bracket + self.bp_mutation_rem_conn_prob
+        bp_mutation_rem_node_bracket = bp_mutation_rem_conn_bracket + self.bp_mutation_rem_node_prob
+        bp_mutation_node_spec_bracket = bp_mutation_rem_node_bracket + self.bp_mutation_node_spec_prob
+        bp_mutation_optimizer_bracket = bp_mutation_node_spec_bracket + self.bp_mutation_optimizer_prob
 
-        # Traverse through the new blueprint species and add new blueprints according to the previously determined
-        # dedicated offpsring
-        for spec_id, carried_over_spec_bp_ids in new_bp_species.items():
-            # Determine offspring and create according amount of new blueprints
-            for _ in range(new_bp_species_size[spec_id] - len(carried_over_spec_bp_ids)):
-                random_float = random.random()
-                if random_float < self.bp_mutation_add_conn:
+        # Traverse through the new blueprint species and add new blueprints until calculated dedicated spec size reached
+        for spec_id, carried_over_bp_ids in new_bp_species.items():
+            # Determine amount of offspring and create according amount of new blueprints
+            for _ in range(new_bp_species_size[spec_id] - len(carried_over_bp_ids)):
+                # Choose random float vaue determining specific evolutionary method for blueprint
+                random_choice = random.random()
+                if random_choice < self.bp_mutation_add_conn_prob:
                     ## Create new blueprint by adding connection ##
-
-                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-                    # case the amount of connections added to the blueprint graph
-                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-                    graph_topology = parent_bp.get_graph_topology()
-                    mutation_intensity = random.uniform(0, 0.3)
-
-                    # Traverse blueprint graph and collect tuples of connections as well as a list of all present nodes
-                    bp_graph_conns = set()
-                    bp_graph_nodes = list()
-                    for gene in blueprint_graph.values():
-                        if isinstance(gene, CoDeepNEATBlueprintNode):
-                            bp_graph_nodes.append(gene.node)
-                        elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
-                            # Only consider a connection for bp_graph_conns if it is enabled
-                            bp_graph_conns.add((gene.conn_start, gene.conn_end))
-
-                    # Determine specifically how many connections will be added
-                    conns_to_add_count = int(mutation_intensity * len(bp_graph_conns))
-                    if conns_to_add_count == 0:
-                        conns_to_add_count = 1
-
-                    # Add connections in loop until sufficient amount added
-                    added_conns_count = 0
-                    while added_conns_count < conns_to_add_count:
-                        # Choose random start node from all possible nodes. Remove it immediately such that the same
-                        # start node is not used twice, ensuring more complex mutation and a safe loop termination in
-                        # case that all connection additions are exhausted
-                        start_node = random.choice(bp_graph_nodes)
-                        bp_graph_nodes.remove(start_node)
-                        if len(bp_graph_nodes) == 0:
-                            break
-
-                        # As graph currently only supports feedforward topologies, ensure that end node is topologically
-                        # behind the start node
-                        start_node_level = None
-                        for i in range(len(graph_topology)):
-                            if start_node in graph_topology[i]:
-                                start_node_level = i
-                                break
-
-                        # Determine set of all possible end nodes that are behind the start node
-                        possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
-
-                        # Traverse all possible end nodes randomly and create and add a blueprint connection to the
-                        # blueprint graph if no connection tuple present yet
-                        while len(possible_end_nodes) != 0:
-                            end_node = random.choice(possible_end_nodes)
-                            possible_end_nodes.remove(end_node)
-                            if (start_node, end_node) not in bp_graph_conns:
-                                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
-                                                                                    conn_end=end_node)
-                                blueprint_graph[gene_id] = gene
-                                added_conns_count += 1
-
-                    # Create new offpsring blueprint with parent mutated blueprint graph
-                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=self.output_shape,
-                                                                       output_activation=output_activation,
-                                                                       optimizer_factory=optimizer_factory)
-
-                elif random_float < bp_mutation_add_node_prob:
+                    # TODO
+                    raise NotImplementedError()
+                elif random_choice < bp_mutation_add_node_bracket:
                     ## Create new blueprint by adding node ##
-
-                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-                    # case the amount of nodes added to the blueprint graph
-                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-                    mutation_intensity = random.uniform(0, 0.3)
-
-                    # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
-                    # count nodes to determine intensity of mutation
-                    node_count = 0
-                    bp_graph_conn_ids = set()
-                    for gene in blueprint_graph.values():
-                        if isinstance(gene, CoDeepNEATBlueprintNode):
-                            node_count += 1
-                        elif gene.enabled:
-                            bp_graph_conn_ids.add(gene.gene_id)
-
-                    # Determine specifically how many nodes will be added
-                    nodes_to_add_count = int(mutation_intensity * node_count)
-                    if nodes_to_add_count == 0:
-                        nodes_to_add_count = 1
-
-                    # Uniform randomly choosen connections by ID that are to be split
-                    gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
-
-                    # Determine possible species for new nodes
-                    available_mod_species = tuple(self.mod_species.keys())
-
-                    # Actually perform the split and adding of new node for all determined connections
-                    for gene_id_to_split in gene_ids_to_split:
-                        # Determine start and end node of connection and disable it
-                        conn_start = blueprint_graph[gene_id_to_split].conn_start
-                        conn_end = blueprint_graph[gene_id_to_split].conn_end
-                        blueprint_graph[gene_id_to_split].set_enabled(False)
-
-                        # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
-                        # create the same node. Choose species for new node randomly.
-                        new_node = self.encoding.get_node_for_split(conn_start, conn_end)
-                        new_species = random.choice(available_mod_species)
-
-                        # Create the genes for the new node addition and add to the blueprint graph
-                        gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
-                        blueprint_graph[gene_id] = gene
-                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
-                        blueprint_graph[gene_id] = gene
-                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
-                        blueprint_graph[gene_id] = gene
-
-                    # Create new offpsring blueprint with parent mutated blueprint graph
-                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=self.output_shape,
-                                                                       output_activation=output_activation,
-                                                                       optimizer_factory=optimizer_factory)
-
-                elif random_float < bp_mutation_remove_conn_prob:
+                    # TODO
+                    raise NotImplementedError()
+                elif random_choice < bp_mutation_rem_conn_bracket:
                     ## Create new blueprint by removing connection ##
-                    raise NotImplementedError("Destructive mutations of Blueprints not yet implemented in CoDeepNEAT")
-
-                elif random_float < bp_mutation_remove_node_prob:
+                    # TODO
+                    raise NotImplementedError()
+                elif random_choice < bp_mutation_rem_node_bracket:
                     ## Create new blueprint by removing node ##
-                    raise NotImplementedError("Destructive mutations of Blueprints not yet implemented in CoDeepNEAT")
-
-                elif random_float < bp_mutation_node_species_prob:
-                    ## Create new blueprint by changing species of nodes ##
-
-                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-                    # case the amount of nodes changed in the blueprint graph
-                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-                    mutation_intensity = random.uniform(0, 0.3)
-
-                    # Identify all non-Input nodes in the blueprint graph by ID
-                    bp_graph_node_ids = set()
-                    for gene in blueprint_graph.values():
-                        if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
-                            bp_graph_node_ids.add(gene.gene_id)
-
-                    # Determine specifically how many nodes will be changed
-                    nodes_to_change_count = int(mutation_intensity * len(bp_graph_node_ids))
-                    if nodes_to_change_count == 0:
-                        nodes_to_change_count = 1
-
-                    # Uniform randomly choosen nodes by ID that will get a changed species
-                    gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change_count)
-
-                    # Determine possible species to mutate nodes into
-                    available_mod_species = tuple(self.mod_species.keys())
-
-                    # Actually perform the split and adding of new node for all determined connections
-                    for gene_id_to_mutate in gene_ids_to_mutate:
-                        # Randomly choose new species from available ones and assign species to blueprint graph
-                        new_species = random.choice(available_mod_species)
-                        blueprint_graph[gene_id_to_mutate].species = new_species
-
-                    # Create new offpsring blueprint with parent mutated blueprint graph
-                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=self.output_shape,
-                                                                       output_activation=output_activation,
-                                                                       optimizer_factory=optimizer_factory)
-
-                elif random_float < bp_mutation_hp_prob:
-                    ## Create new blueprint by mutating the hyperparameters ##
-
-                    # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-                    # case the amount of hyperparameters to be changed
-                    parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-                    mutation_intensity = random.uniform(0, 0.3)
-
-                    # Uniform randomly determine optimizer to change to
-                    if random.choice(self.available_optimizers) == 'SGD':
-                        # Determine if current optimizer factory of same type as optimizer to change to, as in this case
-                        # the variables will be perturbed instead of created completely new
-                        if isinstance(optimizer_factory, SGDFactory):
-                            # Get current parameters of optimizer
-                            learning_rate, momentum, nesterov = optimizer_factory.get_parameters()
-
-                            # Determine specifically how many hps will be changed
-                            hps_to_change_count = int(mutation_intensity * 4)
-                            if hps_to_change_count == 0:
-                                hps_to_change_count = 1
-
-                            # Create specific list of parameter ids to be changed
-                            parameters_to_change = random.sample(range(4), k=hps_to_change_count)
-
-                            # Traverse through list of parameter ids to change. Categorical hps will be uniform randomly
-                            # chosen anew. Sortable hps will be perturbed with normal distribution and config specified
-                            # standard deviation
-                            for param_to_change in parameters_to_change:
-                                if param_to_change == 0:
-                                    output_activation = random.choice(self.output_activations)
-                                elif param_to_change == 1:
-                                    perturbed_lr = np.random.normal(loc=learning_rate,
-                                                                    scale=self.sgd_learning_rate_stddev)
-                                    learning_rate = round_to_nearest_multiple(perturbed_lr,
-                                                                              self.sgd_learning_rate[0],
-                                                                              self.sgd_learning_rate[1],
-                                                                              self.sgd_learning_rate[2])
-                                elif param_to_change == 2:
-                                    perturbed_momentum = np.random.normal(loc=momentum, scale=self.sgd_momentum_stddev)
-                                    momentum = round_to_nearest_multiple(perturbed_momentum,
-                                                                         self.sgd_momentum[0],
-                                                                         self.sgd_momentum[1],
-                                                                         self.sgd_momentum[2])
-                                elif param_to_change == 3:
-                                    nesterov = random.choice(self.sgd_nesterov)
-
-                            # Create new optimizer factory with newly mutated parameters
-                            optimizer_factory = SGDFactory(learning_rate, momentum, nesterov)
-                        else:
-                            raise NotImplementedError("Handling of conversion to SGD optimizer while the current "
-                                                      "optimizer is not SGD not yet implemented")
-                    else:
-                        raise RuntimeError("Optimizer other than SGD not yet implemented")
-
-                    # Create new offpsring blueprint with parent mutated hyperparameters
-                    new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                       output_shape=self.output_shape,
-                                                                       output_activation=output_activation,
-                                                                       optimizer_factory=optimizer_factory)
-
-                else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
+                    # TODO
+                    raise NotImplementedError()
+                elif random_choice < bp_mutation_node_spec_bracket:
+                    ## Create new blueprint by mutating species in nodes ##
+                    # TODO
+                    raise NotImplementedError()
+                elif random_choice < bp_mutation_optimizer_bracket:
+                    ## Create new blueprint by mutating the associated optimizer ##
+                    # TODO
+                    raise NotImplementedError()
+                else:  # random_choice < bp_crossover_bracket:
                     ## Create new blueprint through crossover ##
-
-                    # Determine if 2 blueprints are available in current species, as is required for crossover
-                    if len(self.bp_species[spec_id]) == 1:
-
-                        # If Only 1 blueprint in current species available as parent, create new blueprint with
-                        # identical parameters
-                        parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-                        blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-
-                        # Create new offpsring blueprint with identical parameters
-                        new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                                           output_shape=self.output_shape,
-                                                                           output_activation=output_activation,
-                                                                           optimizer_factory=optimizer_factory)
-
-                    else:
-                        # Choose 2 random though different blueprint ids as parents
-                        parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
-
-                        # Assign the 'base_bp_graph' variable to the fitter blueprint and the 'other_bp_graph' variable
-                        # to the less fitter blueprint. Copy over output activation and optimizer factory from the
-                        # fitter blueprint for the creation of the crossed over bp
-                        if self.blueprints[parent_bp_1_id].get_fitness() > \
-                                self.blueprints[parent_bp_2_id].get_fitness():
-                            base_bp_graph, _, output_activation, optimizer_factory = \
-                                self.blueprints[parent_bp_1_id].duplicate_parameters()
-                            other_bp_graph, _, _, _ = self.blueprints[parent_bp_2_id].duplicate_parameters()
-                        else:
-                            other_bp_graph, _, _, _ = self.blueprints[parent_bp_1_id].duplicate_parameters()
-                            base_bp_graph, _, output_activation, optimizer_factory = \
-                                self.blueprints[parent_bp_2_id].duplicate_parameters()
-
-                        # Create quickly searchable sets of gene ids for the ids present in both the fitter and less fit
-                        # blueprint graphs
-                        base_bp_graph_ids = set(other_bp_graph.keys())
-                        other_bp_graph_ids = set(other_bp_graph.keys())
-                        all_bp_graph_ids = base_bp_graph_ids.union(other_bp_graph_ids)
-
-                        # For all gene ids in the blueprint graphs, choose uniform randomly which blueprint gene is
-                        # carried over to the new blueprint graph if the gene id is joint (both blueprint graph have
-                        # it). Carry over all gene ids to new blueprint graph that are exclusive to either parent
-                        # blueprint graph.
-                        for gene_id in all_bp_graph_ids:
-                            if gene_id in base_bp_graph_ids and gene_id in other_bp_graph_ids:
-                                if random.randint(0, 1) == 0:
-                                    base_bp_graph[gene_id] = other_bp_graph[gene_id]
-                            elif gene_id in other_bp_graph_ids:
-                                base_bp_graph[gene_id] = other_bp_graph[gene_id]
-
-                        # Create new offpsring blueprint with crossed over blueprint graph and hyperparameters of
-                        # fitter parent blueprint
-                        new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=base_bp_graph,
-                                                                           output_shape=self.output_shape,
-                                                                           output_activation=output_activation,
-                                                                           optimizer_factory=optimizer_factory)
+                    # TODO
+                    raise NotImplementedError()
 
                 # Add newly created blueprint to the blueprint container and its according species
-                self.blueprints[new_bp_id] = new_bp
+                new_blueprints[new_bp_id] = new_bp
                 new_bp_species[spec_id].append(new_bp_id)
 
-            # Delete all those blueprints remaining in the blueprint container that were not previously removed or
-            # carried over but remained in the species to serve as a potential parent for offspring
-            for bp_id_to_remove in bp_ids_to_remove_after_reproduction:
-                del self.blueprints[bp_id_to_remove]
-
-        # As new blueprint species dict has now been created, delete the old one and overwrite it with the new blueprint
-        # species
+        # As new blueprint container and species dict have now been fully created, overwrite the old ones
+        self.blueprints = new_blueprints
         self.bp_species = new_bp_species
-        '''
 
-    def _speciate_modules_basic(self):
+        #### Return ####
+        # Adjust generation counter and return False, signalling that the population has not gone extinct
+        self.generation_counter += 1
+        return False
+
+    def _speciate_modules_basic(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
         pass
+        return None, None, None
 
         '''
         #### Speciate Modules ####
@@ -1019,7 +619,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.mod_species[spec_id] = spec_mod_ids_sorted[:-modules_to_remove]
         '''
 
-    def _speciate_modules_param_distance(self):
+    def _speciate_modules_param_distance(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
         raise NotImplementedError()
 
@@ -1092,6 +692,468 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def _speciate_blueprints_gene_overlap(self):
         """"""
         raise NotImplementedError()
+
+    def _create_mutated_module(self):
+        """"""
+        pass
+        '''
+        if random.random() < self.mod_mutation:
+            ## Create new module through mutation ##
+
+            # Determine chosen parent module and its parameters as well as the intensity of the mutation,
+            # meaning how many parent parameters will be perturbed.
+            parent_module = self.modules[random.choice(self.mod_species[spec_id])]
+            module_parameters = parent_module.duplicate_parameters()
+            mutation_intensity = random.uniform(0, 0.3)
+
+            if self.mod_species_type[spec_id] == 'DENSE':
+                # Determine explicit integer amount of parameters to be mutated, though minimum is 1
+                param_mutation_count = int(mutation_intensity * 6)
+                if param_mutation_count == 0:
+                    param_mutation_count = 1
+
+                # Uniform randomly choose the parameters to be mutated
+                parameters_to_mutate = random.sample(range(6), k=param_mutation_count)
+
+                # Mutate parameters. Categorical parameters are chosen randomly from all available values.
+                # Sortable parameters are perturbed through a random normal distribution with the current value
+                # as mean and the config specified stddev
+                for param_to_mutate in parameters_to_mutate:
+                    if param_to_mutate == 0:
+                        module_parameters[0] = random.choice(self.dense_merge_methods)
+                    elif param_to_mutate == 1:
+                        perturbed_param = int(np.random.normal(loc=module_parameters[1],
+                                                               scale=self.dense_units_stddev))
+                        module_parameters[1] = round_to_nearest_multiple(perturbed_param,
+                                                                         self.dense_units[0],
+                                                                         self.dense_units[1],
+                                                                         self.dense_units[2])
+                    elif param_to_mutate == 2:
+                        module_parameters[2] = random.choice(self.dense_activations)
+                    elif param_to_mutate == 3:
+                        module_parameters[3] = random.choice(self.dense_kernel_initializers)
+                    elif param_to_mutate == 4:
+                        module_parameters[4] = random.choice(self.dense_bias_initializers)
+                    else:  # param_to_mutate == 5:
+                        # If Module param 5 (dropout rate) is not None is there a 'dropout_probability' chance
+                        # that the dropout parameter will be perturbed. Otherwise it will be set to None. If
+                        # the dropout rate of the parent is None to begin with then there is a
+                        # 'dropout_probability' chance that a new uniorm random dropout rate is created.
+                        # otherweise it will remain None.
+                        if module_parameters[5] is not None:
+                            if random.random() < self.dense_dropout_probability:
+                                perturbed_param = np.random.normal(loc=module_parameters[5],
+                                                                   scale=self.dense_dropout_rate_stddev)
+                                module_parameters[5] = round_to_nearest_multiple(perturbed_param,
+                                                                                 self.dense_dropout_rate[0],
+                                                                                 self.dense_dropout_rate[1],
+                                                                                 self.dense_dropout_rate[2])
+                            else:
+                                module_parameters[5] = None
+                        else:
+                            if random.random() < self.dense_dropout_probability:
+                                dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
+                                                                      self.dense_dropout_rate[1])
+                                module_parameters[5] = round_to_nearest_multiple(dropout_rate_uniform,
+                                                                                 self.dense_dropout_rate[0],
+                                                                                 self.dense_dropout_rate[1],
+                                                                                 self.dense_dropout_rate[2])
+
+                # Create new offpsring module with parent mutated parameters
+                new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
+                                                                        units=module_parameters[1],
+                                                                        activation=module_parameters[2],
+                                                                        kernel_initializer=module_parameters[3],
+                                                                        bias_initializer=module_parameters[4],
+                                                                        dropout_rate=module_parameters[5])        
+        '''
+
+    def _create_crossed_over_module(self):
+        """"""
+        pass
+        '''
+        else:  # random.random() < self.mod_crossover + self.mod_mutation
+            ## Create new module through crossover ##
+
+            # Determine if 2 modules are available in current species, as is required for crossover
+            if len(self.mod_species[spec_id]) == 1:
+
+                # If Only 1 module in current species available as parent, create new module with identical
+                # parameters
+                parent_module = self.modules[random.choice(self.mod_species[spec_id])]
+                module_parameters = parent_module.duplicate_parameters()
+
+                if self.mod_species_type[spec_id] == 'DENSE':
+                    # Create new offspring module with identical parent parameters
+                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
+                                                                            units=module_parameters[1],
+                                                                            activation=module_parameters[2],
+                                                                            kernel_initializer=
+                                                                            module_parameters[3],
+                                                                            bias_initializer=
+                                                                            module_parameters[4],
+                                                                            dropout_rate=module_parameters[5])
+            else:
+                # Choose 2 random parent modules, both of them different
+                parent_module_1_id, parent_module_2_id = random.sample(self.mod_species[spec_id], k=2)
+    
+                # Determine fitter parent and save parameters of 'fitter' and 'other' parent
+                if self.modules[parent_module_1_id].get_fitness() > \
+                        self.modules[parent_module_2_id].get_fitness():
+                    fitter_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
+                    other_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
+                else:
+                    fitter_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
+                    other_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
+    
+                if self.mod_species_type[spec_id] == 'DENSE':
+                    # Crete offspring parameters by carrying over parameter of fitter parent for categorical
+                    # parameters and calculating average parameter for sortable parameters
+                    offspring_params = [None] * 6
+                    offspring_params[0] = fitter_parent_params[0]
+                    offspring_params[1] = round_to_nearest_multiple(int((fitter_parent_params[1] +
+                                                                         other_parent_params[1]) / 2),
+                                                                    self.dense_units[0],
+                                                                    self.dense_units[1],
+                                                                    self.dense_units[2])
+                    offspring_params[2] = fitter_parent_params[2]
+                    offspring_params[3] = fitter_parent_params[3]
+                    offspring_params[4] = fitter_parent_params[4]
+                    if fitter_parent_params[5] is not None and other_parent_params[5] is not None:
+                        # If both parents have defined a dropout rate, calculate the average
+                        offspring_params[5] = round_to_nearest_multiple(((fitter_parent_params[5] +
+                                                                          other_parent_params[5]) / 2),
+                                                                        self.dense_dropout_rate[0],
+                                                                        self.dense_dropout_rate[1],
+                                                                        self.dense_dropout_rate[2])
+                    elif fitter_parent_params[5] is not None:
+                        # If only fitter parent defined dropout rate, carry that dropout rate over
+                        offspring_params[5] = fitter_parent_params[5]
+                    else:
+                        # If neither or only the lesser fit parent defined dropout rate, set dropout rate to
+                        # None
+                        offspring_params[5] = None
+    
+                    # Create new offspring module with crossed-over parental parameters
+                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=offspring_params[0],
+                                                                            units=offspring_params[1],
+                                                                            activation=offspring_params[2],
+                                                                            kernel_initializer=
+                                                                            offspring_params[3],
+                                                                            bias_initializer=
+                                                                            offspring_params[4],
+                                                                            dropout_rate=offspring_params[5])        
+        '''
+
+    def _create_mutated_blueprint_add_conn(self):
+        """"""
+        pass
+        '''
+        if random_float < self.bp_mutation_add_conn:
+            ## Create new blueprint by adding connection ##
+
+            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+            # case the amount of connections added to the blueprint graph
+            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+            graph_topology = parent_bp.get_graph_topology()
+            mutation_intensity = random.uniform(0, 0.3)
+
+            # Traverse blueprint graph and collect tuples of connections as well as a list of all present nodes
+            bp_graph_conns = set()
+            bp_graph_nodes = list()
+            for gene in blueprint_graph.values():
+                if isinstance(gene, CoDeepNEATBlueprintNode):
+                    bp_graph_nodes.append(gene.node)
+                elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
+                    # Only consider a connection for bp_graph_conns if it is enabled
+                    bp_graph_conns.add((gene.conn_start, gene.conn_end))
+
+            # Determine specifically how many connections will be added
+            conns_to_add_count = int(mutation_intensity * len(bp_graph_conns))
+            if conns_to_add_count == 0:
+                conns_to_add_count = 1
+
+            # Add connections in loop until sufficient amount added
+            added_conns_count = 0
+            while added_conns_count < conns_to_add_count:
+                # Choose random start node from all possible nodes. Remove it immediately such that the same
+                # start node is not used twice, ensuring more complex mutation and a safe loop termination in
+                # case that all connection additions are exhausted
+                start_node = random.choice(bp_graph_nodes)
+                bp_graph_nodes.remove(start_node)
+                if len(bp_graph_nodes) == 0:
+                    break
+
+                # As graph currently only supports feedforward topologies, ensure that end node is topologically
+                # behind the start node
+                start_node_level = None
+                for i in range(len(graph_topology)):
+                    if start_node in graph_topology[i]:
+                        start_node_level = i
+                        break
+
+                # Determine set of all possible end nodes that are behind the start node
+                possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
+
+                # Traverse all possible end nodes randomly and create and add a blueprint connection to the
+                # blueprint graph if no connection tuple present yet
+                while len(possible_end_nodes) != 0:
+                    end_node = random.choice(possible_end_nodes)
+                    possible_end_nodes.remove(end_node)
+                    if (start_node, end_node) not in bp_graph_conns:
+                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
+                                                                            conn_end=end_node)
+                        blueprint_graph[gene_id] = gene
+                        added_conns_count += 1
+
+            # Create new offpsring blueprint with parent mutated blueprint graph
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)        
+        '''
+
+    def _create_mutated_blueprint_add_node(self):
+        """"""
+        pass
+        '''
+        elif random_float < bp_mutation_add_node_prob:
+            ## Create new blueprint by adding node ##
+
+            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+            # case the amount of nodes added to the blueprint graph
+            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+            mutation_intensity = random.uniform(0, 0.3)
+
+            # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
+            # count nodes to determine intensity of mutation
+            node_count = 0
+            bp_graph_conn_ids = set()
+            for gene in blueprint_graph.values():
+                if isinstance(gene, CoDeepNEATBlueprintNode):
+                    node_count += 1
+                elif gene.enabled:
+                    bp_graph_conn_ids.add(gene.gene_id)
+
+            # Determine specifically how many nodes will be added
+            nodes_to_add_count = int(mutation_intensity * node_count)
+            if nodes_to_add_count == 0:
+                nodes_to_add_count = 1
+
+            # Uniform randomly choosen connections by ID that are to be split
+            gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
+
+            # Determine possible species for new nodes
+            available_mod_species = tuple(self.mod_species.keys())
+
+            # Actually perform the split and adding of new node for all determined connections
+            for gene_id_to_split in gene_ids_to_split:
+                # Determine start and end node of connection and disable it
+                conn_start = blueprint_graph[gene_id_to_split].conn_start
+                conn_end = blueprint_graph[gene_id_to_split].conn_end
+                blueprint_graph[gene_id_to_split].set_enabled(False)
+
+                # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
+                # create the same node. Choose species for new node randomly.
+                new_node = self.encoding.get_node_for_split(conn_start, conn_end)
+                new_species = random.choice(available_mod_species)
+
+                # Create the genes for the new node addition and add to the blueprint graph
+                gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
+                blueprint_graph[gene_id] = gene
+                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
+                blueprint_graph[gene_id] = gene
+                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
+                blueprint_graph[gene_id] = gene
+
+            # Create new offpsring blueprint with parent mutated blueprint graph
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)        
+        '''
+
+    def _create_mutated_blueprint_rem_conn(self):
+        """"""
+        pass
+
+    def _create_mutated_blueprint_rem_node(self):
+        """"""
+        pass
+
+    def _create_mutated_blueprint_node_spec(self):
+        """"""
+        pass
+        '''
+        elif random_float < bp_mutation_node_species_prob:
+            ## Create new blueprint by changing species of nodes ##
+
+            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+            # case the amount of nodes changed in the blueprint graph
+            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+            mutation_intensity = random.uniform(0, 0.3)
+
+            # Identify all non-Input nodes in the blueprint graph by ID
+            bp_graph_node_ids = set()
+            for gene in blueprint_graph.values():
+                if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
+                    bp_graph_node_ids.add(gene.gene_id)
+
+            # Determine specifically how many nodes will be changed
+            nodes_to_change_count = int(mutation_intensity * len(bp_graph_node_ids))
+            if nodes_to_change_count == 0:
+                nodes_to_change_count = 1
+
+            # Uniform randomly choosen nodes by ID that will get a changed species
+            gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change_count)
+
+            # Determine possible species to mutate nodes into
+            available_mod_species = tuple(self.mod_species.keys())
+
+            # Actually perform the split and adding of new node for all determined connections
+            for gene_id_to_mutate in gene_ids_to_mutate:
+                # Randomly choose new species from available ones and assign species to blueprint graph
+                new_species = random.choice(available_mod_species)
+                blueprint_graph[gene_id_to_mutate].species = new_species
+
+            # Create new offpsring blueprint with parent mutated blueprint graph
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)
+        '''
+
+    def _create_mutated_blueprint_optimizer(self):
+        """"""
+        pass
+        '''
+        elif random_float < bp_mutation_hp_prob:
+            ## Create new blueprint by mutating the hyperparameters ##
+
+            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
+            # case the amount of hyperparameters to be changed
+            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+            mutation_intensity = random.uniform(0, 0.3)
+
+            # Uniform randomly determine optimizer to change to
+            if random.choice(self.available_optimizers) == 'SGD':
+                # Determine if current optimizer factory of same type as optimizer to change to, as in this case
+                # the variables will be perturbed instead of created completely new
+                if isinstance(optimizer_factory, SGDFactory):
+                    # Get current parameters of optimizer
+                    learning_rate, momentum, nesterov = optimizer_factory.get_parameters()
+
+                    # Determine specifically how many hps will be changed
+                    hps_to_change_count = int(mutation_intensity * 4)
+                    if hps_to_change_count == 0:
+                        hps_to_change_count = 1
+
+                    # Create specific list of parameter ids to be changed
+                    parameters_to_change = random.sample(range(4), k=hps_to_change_count)
+
+                    # Traverse through list of parameter ids to change. Categorical hps will be uniform randomly
+                    # chosen anew. Sortable hps will be perturbed with normal distribution and config specified
+                    # standard deviation
+                    for param_to_change in parameters_to_change:
+                        if param_to_change == 0:
+                            output_activation = random.choice(self.output_activations)
+                        elif param_to_change == 1:
+                            perturbed_lr = np.random.normal(loc=learning_rate,
+                                                            scale=self.sgd_learning_rate_stddev)
+                            learning_rate = round_to_nearest_multiple(perturbed_lr,
+                                                                      self.sgd_learning_rate[0],
+                                                                      self.sgd_learning_rate[1],
+                                                                      self.sgd_learning_rate[2])
+                        elif param_to_change == 2:
+                            perturbed_momentum = np.random.normal(loc=momentum, scale=self.sgd_momentum_stddev)
+                            momentum = round_to_nearest_multiple(perturbed_momentum,
+                                                                 self.sgd_momentum[0],
+                                                                 self.sgd_momentum[1],
+                                                                 self.sgd_momentum[2])
+                        elif param_to_change == 3:
+                            nesterov = random.choice(self.sgd_nesterov)
+
+                    # Create new optimizer factory with newly mutated parameters
+                    optimizer_factory = SGDFactory(learning_rate, momentum, nesterov)
+                else:
+                    raise NotImplementedError("Handling of conversion to SGD optimizer while the current "
+                                              "optimizer is not SGD not yet implemented")
+            else:
+                raise RuntimeError("Optimizer other than SGD not yet implemented")
+
+            # Create new offpsring blueprint with parent mutated hyperparameters
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)
+        '''
+
+    def _create_crossed_over_blueprint(self):
+        """"""
+        pass
+        '''
+        else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
+        ## Create new blueprint through crossover ##
+    
+        # Determine if 2 blueprints are available in current species, as is required for crossover
+        if len(self.bp_species[spec_id]) == 1:
+    
+            # If Only 1 blueprint in current species available as parent, create new blueprint with
+            # identical parameters
+            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
+            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
+    
+            # Create new offpsring blueprint with identical parameters
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)
+    
+        else:
+            # Choose 2 random though different blueprint ids as parents
+            parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
+    
+            # Assign the 'base_bp_graph' variable to the fitter blueprint and the 'other_bp_graph' variable
+            # to the less fitter blueprint. Copy over output activation and optimizer factory from the
+            # fitter blueprint for the creation of the crossed over bp
+            if self.blueprints[parent_bp_1_id].get_fitness() > \
+                    self.blueprints[parent_bp_2_id].get_fitness():
+                base_bp_graph, _, output_activation, optimizer_factory = \
+                    self.blueprints[parent_bp_1_id].duplicate_parameters()
+                other_bp_graph, _, _, _ = self.blueprints[parent_bp_2_id].duplicate_parameters()
+            else:
+                other_bp_graph, _, _, _ = self.blueprints[parent_bp_1_id].duplicate_parameters()
+                base_bp_graph, _, output_activation, optimizer_factory = \
+                    self.blueprints[parent_bp_2_id].duplicate_parameters()
+    
+            # Create quickly searchable sets of gene ids for the ids present in both the fitter and less fit
+            # blueprint graphs
+            base_bp_graph_ids = set(other_bp_graph.keys())
+            other_bp_graph_ids = set(other_bp_graph.keys())
+            all_bp_graph_ids = base_bp_graph_ids.union(other_bp_graph_ids)
+    
+            # For all gene ids in the blueprint graphs, choose uniform randomly which blueprint gene is
+            # carried over to the new blueprint graph if the gene id is joint (both blueprint graph have
+            # it). Carry over all gene ids to new blueprint graph that are exclusive to either parent
+            # blueprint graph.
+            for gene_id in all_bp_graph_ids:
+                if gene_id in base_bp_graph_ids and gene_id in other_bp_graph_ids:
+                    if random.randint(0, 1) == 0:
+                        base_bp_graph[gene_id] = other_bp_graph[gene_id]
+                elif gene_id in other_bp_graph_ids:
+                    base_bp_graph[gene_id] = other_bp_graph[gene_id]
+    
+            # Create new offpsring blueprint with crossed over blueprint graph and hyperparameters of
+            # fitter parent blueprint
+            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=base_bp_graph,
+                                                               output_shape=self.output_shape,
+                                                               output_activation=output_activation,
+                                                               optimizer_factory=optimizer_factory)
+        '''
 
     def save_population(self, save_dir_path):
         """"""
