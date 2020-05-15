@@ -1,10 +1,10 @@
-.. TFNE documentation master file, created by
-   sphinx-quickstart on Fri May 15 22:40:39 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to TFNE's documentation!
 ================================
+
+Here is some text
+
+See here for pages about the framework!
+=======================================
 
 .. toctree::
    :maxdepth: 2
@@ -12,6 +12,9 @@ Welcome to TFNE's documentation!
 
    framework/framework-overview
 
+
+See here for pages about the algorithms!
+========================================
 
 .. toctree::
    :maxdepth: 2

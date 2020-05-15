@@ -33,7 +33,6 @@ Test Quick start
 
 Assuming you have Python already, this is a command to install sphinx:
 
-.. prompt:: bash $
-
+    bash $
     pip install sphinx
 
