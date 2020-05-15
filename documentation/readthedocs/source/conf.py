@@ -17,6 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
+master_doc = 'index'
 project = 'TFNE'
 copyright = '2020, Paul Pauls'
 author = 'Paul Pauls'
