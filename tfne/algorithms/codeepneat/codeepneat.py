@@ -79,7 +79,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.mod_spec_min_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_min_size')
             self.mod_spec_max_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_max_size')
             self.mod_spec_elitism = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_elitism')
-            self.mod_spec_removal_frac = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_removal_frac')
+            self.mod_spec_reprod_thres = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_reprod_thres')
         else:
             raise NotImplementedError(f"Module speciation type '{self.mod_spec_type}' not yet implemented")
 
@@ -92,7 +92,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.bp_spec_type = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_type')
         if self.bp_spec_type == 'basic':
             self.bp_spec_elitism = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_elitism')
-            self.bp_spec_removal_frac = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_removal_frac')
+            self.bp_spec_reprod_thres = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reprod_thres')
         else:
             raise NotImplementedError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
@@ -521,102 +521,75 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _speciate_modules_basic(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
+
+        #### Module Clustering ####
+        # As module population is by default speciated by module type is further clustering not necessary
         pass
 
-        '''
-        #### Speciate Modules ####
-        if self.mod_speciation_type == 'Basic':
-            # Population is already speciated solely according to their module type. As speciation is configured to
-            # 'Basic' is therefore no further speciation necessary
-            pass
-
-            #### New Modules Species Size Calculation ####
-            # Determine the intended size for the module species after evolution, depending on the average fitness of
-            # the current modules in the species. This is performed before the species is selected to accurately judge
-            # the fitness of the whole species and not only of the fittest members of the species.
-
-            # Determine the specific average fitness for each species as well as the total fitness of all species
-            species_fitness = dict()
-            for spec_id, spec_mod_ids in self.mod_species.items():
-                spec_fitness = 0
-                for module_id in spec_mod_ids:
-                    spec_fitness += self.modules[module_id].get_fitness()
-                species_fitness[spec_id] = spec_fitness
-            total_fitness = sum(species_fitness.values())
-
-            # Calculate the new_mod_species_size depending on the species fitness share of the total fitness. Decimal
-            # places are floored and a species is given an additional slot in the new size if it has the highest
-            # decimal point value that was floored.
-            new_mod_species_size = dict()
-            new_mod_species_size_rest = dict()
-            current_total_size = 0
-            for spec_id, spec_fitness in species_fitness.items():
-                spec_size_float = (spec_fitness / total_fitness) * self.mod_pop_size
-                spec_size_floored = math.floor(spec_size_float)
-
-                new_mod_species_size[spec_id] = spec_size_floored
-                new_mod_species_size_rest[spec_id] = spec_size_float - spec_size_floored
-                current_total_size += spec_size_floored
-
-            # Sort the decimal point values that were cut and award the species with the highest floored decimal point
-            # values an additional slot in the new module species size, until preset module population size is reached
-            increment_order = sorted(new_mod_species_size_rest.keys(), key=new_mod_species_size_rest.get, reverse=True)
-            increment_counter = 0
-            while current_total_size < self.mod_pop_size:
-                new_mod_species_size[increment_order[increment_counter]] += 1
-                increment_counter += 1
-                current_total_size += 1
-        else:
-            raise NotImplementedError("Other module speciation method than 'Basic' not yet implemented")
-
-        #### Select Modules ####
-        # Remove low performing modules and carry over the top modules of each species according to specified elitism
-        new_mod_species = dict()
-        mod_ids_to_remove_after_reproduction = []
+        #### New Species Size Calculation ####
+        # Determine average fitness of each current species as well as the sum of each avg fitness
+        mod_species_avg_fitness = dict()
         for spec_id, spec_mod_ids in self.mod_species.items():
-            # Determine number of modules to remove and to carry over as integers
-            spec_size = len(spec_mod_ids)
-            if self.mod_removal_type == 'fixed':
-                modules_to_remove = self.mod_removal
-            else:  # if self.mod_removal_type == 'threshold':
-                modules_to_remove = math.floor(spec_size * self.mod_removal_threshold)
-            if self.mod_elitism_type == 'fixed':
-                modules_to_carry_over = self.mod_elitism
-            else:  # if self.mod_elitism_type == 'threshold':
-                modules_to_carry_over = spec_size - math.ceil(spec_size * self.mod_elitism_threshold)
+            spec_avg_fitness = statistics.mean([self.modules[mod_id].get_fitness() for mod_id in spec_mod_ids])
+            mod_species_avg_fitness[spec_id] = spec_avg_fitness
+        total_avg_fitness = sum(mod_species_avg_fitness.values())
 
-            # Elitism has higher precedence than removal. Therefore, if more modules are carried over than are present
-            # in the species (can occur if elitism specified as absolut integer), carry over all modules without
-            # removing anything. If more modules are to be removed and carried over than are present in the species,
-            # decrease in modules that are to be removed.
-            if modules_to_carry_over >= spec_size:
-                modules_to_remove = 0
-                modules_to_carry_over = spec_size
-            elif modules_to_remove + modules_to_carry_over > spec_size:
-                modules_to_remove = spec_size - modules_to_carry_over
+        # Calculate the new_mod_species_size depending on the species fitness share of the total fitness.
+        new_mod_species_size = dict()
+        current_total_size = 0
+        for spec_id, spec_avg_fitness in mod_species_avg_fitness.items():
+            spec_size = math.floor((spec_avg_fitness / total_avg_fitness) * self.mod_pop_size)
 
-            # Sort species module ids according to their fitness in order to remove/carry over the determined amount of
-            # modules.
+            # If calculated species size violates config specified min/max size correct it
+            if spec_size > self.mod_spec_max_size:
+                spec_size = self.mod_spec_max_size
+            elif spec_size < self.mod_spec_min_size:
+                spec_size = self.mod_spec_min_size
+
+            new_mod_species_size[spec_id] = spec_size
+            current_total_size += spec_size
+
+        # Flooring / Min / Max species size adjustments likely perturbed the assigned species size in that they don't
+        # sum up to the desired module pop size. Decrease or increase new mod species size accordingly.
+        while current_total_size < self.mod_pop_size:
+            # Increase new mod species size by awarding offspring to species with the currently least assigned offspring
+            min_mod_spec_id = min(new_mod_species_size.keys(), key=new_mod_species_size.get)
+            new_mod_species_size[min_mod_spec_id] += 1
+            current_total_size += 1
+        while current_total_size > self.mod_pop_size:
+            # Decrease new mod species size by removing offspring from species with currently most assigned offspring
+            max_mod_spec_id = max(new_mod_species_size.keys(), key=new_mod_species_size.get)
+            new_mod_species_size[max_mod_spec_id] -= 1
+            current_total_size -= 1
+
+        #### Module Selection ####
+        # Declare new modules container and new module species assignment and carry over x number of best performing
+        # modules of each species according to config specified elitism
+        new_modules = dict()
+        new_mod_species = dict()
+        for spec_id, spec_mod_ids in self.mod_species.items():
+            # Sort module ids in species according to their fitness
             spec_mod_ids_sorted = sorted(spec_mod_ids, key=lambda x: self.modules[x].get_fitness(), reverse=True)
 
-            # Carry over fittest modules to new mod_species, according to elitism
-            new_mod_species[spec_id] = spec_mod_ids_sorted[:modules_to_carry_over]
+            # Determine carried over module ids and module ids prevented from reproduction
+            spec_mod_ids_to_carry_over = spec_mod_ids_sorted[:self.mod_spec_elitism]
+            removal_index_threshold = int(len(spec_mod_ids) * (1 - self.mod_spec_reprod_thres))
+            # Correct removal index threshold if reproduction threshold so high that elitism modules will be removed
+            if removal_index_threshold + len(spec_mod_ids_to_carry_over) < len(spec_mod_ids):
+                removal_index_threshold = len(spec_mod_ids_to_carry_over)
+            spec_mod_ids_to_remove = spec_mod_ids_sorted[removal_index_threshold:]
 
-            # Save module ids that remain in the module species for reproduction, serving as potential parents, but have
-            # to be deleted afterwards as they are also not fit enough to be carried over right away
-            mod_ids_to_remove_after_reproduction += spec_mod_ids_sorted[modules_to_carry_over:-modules_to_remove]
+            # Carry over fittest module ids of species to new container and species assignment
+            new_mod_species[spec_id] = list()
+            for mod_id_to_carry_over in spec_mod_ids_to_carry_over:
+                new_modules[mod_id_to_carry_over] = self.modules[mod_id_to_carry_over]
+                new_mod_species[spec_id].append(mod_id_to_carry_over)
 
-            # Delete low performing modules from memory of the module container as well as from the module species
-            # assignment
-            if modules_to_remove > 0:
-                # Remove modules
-                module_ids_to_remove = spec_mod_ids_sorted[-modules_to_remove:]
-                for mod_id_to_remove in module_ids_to_remove:
-                    del self.modules[mod_id_to_remove]
+            # Delete low performing modules that will not be considered for reproduction from old species assignment
+            for mod_id_to_remove in spec_mod_ids_to_remove:
+                self.mod_species[spec_id].remove(mod_id_to_remove)
 
-                # Assign module id list without low performing modules to species
-                self.mod_species[spec_id] = spec_mod_ids_sorted[:-modules_to_remove]
-        '''
+        return new_modules, new_mod_species, new_mod_species_size
 
     def _speciate_modules_param_distance(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
@@ -624,69 +597,43 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _speciate_blueprints_basic(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
+
+        #### Blueprint Clustering ####
+        # Blueprint clustering unnecessary with basic scheme as all blueprints are assigned to species 1
         pass
 
-        '''
-        #### Speciate Blueprints ####
-        if self.bp_speciation_type is None:
-            # Explicitely don't speciate the blueprints and leave them all assigned to species 1
-            pass
+        #### New Species Size Calculation ####
+        # Species size calculation unnecessary as only one species of blueprints will exist containing all bps
+        new_bp_species_size = {1: self.bp_pop_size}
 
-            # Set the intended size of the blueprints species after evolution to the same size, as no speciation takes
-            # place
-            new_bp_species_size = {1: self.bp_pop_size}
-        else:
-            raise NotImplementedError("Other blueprint speciation method than 'None' not yet implemented")
-
-        #### Select Blueprints ####
-        # Remove low performing blueprints and carry over the top blueprints of each species according to specified
-        # elitism
+        #### Blueprint Selection ####
+        # Declare new blueprints container and new blueprint species assignment and carry over x number of best
+        # performing blueprints of each species according to config specified elitism
+        new_blueprints = dict()
         new_bp_species = dict()
-        bp_ids_to_remove_after_reproduction = []
         for spec_id, spec_bp_ids in self.bp_species.items():
-            # Determine number of blueprints to remove and to carry over as integers
-            spec_size = len(spec_bp_ids)
-            if self.bp_removal_type == 'fixed':
-                blueprints_to_remove = self.bp_removal
-            else:  # if self.bp_removal_type == 'threshold':
-                blueprints_to_remove = math.floor(spec_size * self.bp_removal_threshold)
-            if self.bp_elitism_type == 'fixed':
-                blueprints_to_carry_over = self.bp_elitism
-            else:  # if self.bp_elitism_type == 'threshold':
-                blueprints_to_carry_over = spec_size - math.ceil(spec_size * self.bp_elitism_threshold)
-
-            # Elitism has higher precedence than removal. Therefore, if more blueprints are carried over than are
-            # present in the species (can occur if elitism specified as absolut integer), carry over all blueprints
-            # without removing anything. If more blueprints are to be removed and carried over than are present in the
-            # species, decrease in blueprints that are to be removed.
-            if blueprints_to_carry_over >= spec_size:
-                blueprints_to_remove = 0
-                blueprints_to_carry_over = spec_size
-            elif blueprints_to_remove + blueprints_to_carry_over > spec_size:
-                blueprints_to_remove = spec_size - blueprints_to_carry_over
-
-            # Sort species blueprint ids according to their fitness in order to remove/carry over the determined amount
-            # of blueprints
+            # Sort blueprint ids in species according to their fitness
             spec_bp_ids_sorted = sorted(spec_bp_ids, key=lambda x: self.blueprints[x].get_fitness(), reverse=True)
 
-            # Carry over fittest blueprints to new blueprint_species, according to elitism
-            new_bp_species[spec_id] = spec_bp_ids_sorted[:blueprints_to_carry_over]
+            # Determine carried over blueprint ids and blueprint ids prevented from reproduction
+            spec_bp_ids_to_carry_over = spec_bp_ids_sorted[:self.bp_spec_elitism]
+            removal_index_threshold = int(len(spec_bp_ids) * (1 - self.bp_spec_reprod_thres))
+            # Correct removal index threshold if reproduction threshold so high that elitism blueprints will be removed
+            if removal_index_threshold + len(spec_bp_ids_to_carry_over) < len(spec_bp_ids):
+                removal_index_threshold = len(spec_bp_ids_to_carry_over)
+            spec_bp_ids_to_remove = spec_bp_ids_sorted[removal_index_threshold:]
 
-            # Save blueprint ids that remain in the blueprint species for reproduction, serving as potential parents,
-            # but have to be deleted afterwards as they are also not fit enough to be carried over right away
-            bp_ids_to_remove_after_reproduction += spec_bp_ids_sorted[blueprints_to_carry_over:-blueprints_to_remove]
+            # Carry over fittest blueprint ids of species to new container and species assignment
+            new_bp_species[spec_id] = list()
+            for bp_id_to_carry_over in spec_bp_ids_to_carry_over:
+                new_blueprints[bp_id_to_carry_over] = self.blueprints[bp_id_to_carry_over]
+                new_bp_species[spec_id].append(bp_id_to_carry_over)
 
-            # Delete low performing blueprints from memory of the blueprint container as well as from the blueprint
-            # species assignment
-            if blueprints_to_remove > 0:
-                # Remove blueprints
-                blueprint_ids_to_remove = spec_bp_ids_sorted[-blueprints_to_remove:]
-                for bp_id_to_remove in blueprint_ids_to_remove:
-                    del self.blueprints[bp_id_to_remove]
+            # Delete low performing blueprints that will not be considered for reproduction from old species assignment
+            for bp_id_to_remove in spec_bp_ids_to_remove:
+                self.bp_species[spec_id].remove(bp_id_to_remove)
 
-                # Assign blueprint id list without low performing blueprints to species
-                self.bp_species[spec_id] = spec_bp_ids_sorted[:-blueprints_to_remove]
-        '''
+        return new_blueprints, new_bp_species, new_bp_species_size
 
     def _speciate_blueprints_gene_overlap(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
