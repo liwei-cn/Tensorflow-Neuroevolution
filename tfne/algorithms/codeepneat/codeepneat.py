@@ -439,6 +439,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             raise RuntimeError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
+        # TODO Continue Here
+        print("Exiting Cleanly")
+        exit()
+
         #### Evolve Modules ####
         # Traverse through the new module species and add new modules until calculated dedicated spec size is reached
         for spec_id, carried_over_mod_ids in new_mod_species.items():
@@ -447,8 +451,18 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Choose randomly between mutation or crossover of module
                 if random.random() < self.mod_mutation_prob:
                     ## Create new module through mutation ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Get a new module ID from the encoding, randomly determine the maximum degree of mutation and the
+                    # parent module from the non removed modules of the current species. Then determine the config
+                    # parameters associated with the parent module and let the internal mutation function create a new
+                    # module
+                    mod_offspring_id = self.encoding.get_next_module_id()
+                    max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                    parent_module = self.modules(random.choice(self.mod_species[spec_id]))
+                    config_params = self.available_mod_params[self.mod_species_type[spec_id]]
+
+                    new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
+                                                                        config_params,
+                                                                        max_degree_of_mutation)
 
                 else:  # random.random() < self.mod_mutation_prob + self.mod_crossover_prob
                     ## Create new module through crossover ##

@@ -36,8 +36,8 @@ class CoDeepNEATEncoding(BaseEncoding):
                                     bias_init,
                                     dropout_rate) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
-        self.mod_id_counter += 1
-        return self.mod_id_counter, CoDeepNEATModuleDenseDropout(module_id=self.mod_id_counter,
+        module_id = self.get_next_module_id()
+        return self.mod_id_counter, CoDeepNEATModuleDenseDropout(module_id=module_id,
                                                                  merge_method=merge_method,
                                                                  units=units,
                                                                  activation=activation,
@@ -100,3 +100,8 @@ class CoDeepNEATEncoding(BaseEncoding):
             self.conn_split_history[conn_key] = self.node_counter
 
         return self.conn_split_history[conn_key]
+
+    def get_next_module_id(self) -> int:
+        """"""
+        self.mod_id_counter += 1
+        return self.mod_id_counter

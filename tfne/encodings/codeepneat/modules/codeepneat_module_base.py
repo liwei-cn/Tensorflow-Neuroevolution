@@ -1,5 +1,6 @@
-from abc import ABCMeta, abstractmethod
+from __future__ import annotations
 
+from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 
 
@@ -22,9 +23,21 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
-    def copy_parameters(self) -> tuple:
+    def create_mutation(self,
+                        offspring_id,
+                        config_params,
+                        max_degree_of_mutation) -> (int, CoDeepNEATModuleBase):
         """"""
-        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'copy_parameters()'")
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_mutation()'")
+
+    @abstractmethod
+    def create_crossover(self,
+                         offspring_id,
+                         less_fit_module,
+                         config_params,
+                         max_degree_of_mutation) -> (int, CoDeepNEATModuleBase):
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_crossover()'")
 
     def set_fitness(self, fitness):
         self.fitness = fitness

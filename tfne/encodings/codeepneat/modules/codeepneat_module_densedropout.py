@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import tensorflow as tf
 
 from .codeepneat_module_base import CoDeepNEATModuleBase
@@ -48,6 +50,19 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         else:
             return (dense_layer,)
 
-    def copy_parameters(self) -> (str, int, str, str, str, float):
+    def create_mutation(self,
+                        offspring_id,
+                        config_params,
+                        max_degree_of_mutation) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
-        return self.merge_method, self.units, self.activation, self.kernel_init, self.bias_init, self.dropout_rate
+        pass
+        return None, None
+
+    def create_crossover(self,
+                         offspring_id,
+                         less_fit_module,
+                         config_params,
+                         max_degree_of_mutation) -> (int, CoDeepNEATModuleDenseDropout):
+        """"""
+        raise NotImplementedError()
+        return None, None
