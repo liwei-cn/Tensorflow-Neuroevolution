@@ -111,26 +111,30 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         for available_mod in self.available_modules:
             # Determine a dict of all supplied configuration values as literal evals
             config_section_str = 'MODULE_' + available_mod.upper()
-            config_section_options = config.options(config_section_str)
-            mod_section_dict = dict()
-            for mod_param in config_section_options:
-                mod_section_dict[mod_param] = read_option_from_config(config, config_section_str, mod_param)
+            if not config.has_section(config_section_str):
+                raise RuntimeError(f"Module '{available_mod}' marked as available in config does not have an "
+                                   f"associated config section defining its parameters")
+            mod_section_params = dict()
+            for mod_param in config.options(config_section_str):
+                mod_section_params[mod_param] = read_option_from_config(config, config_section_str, mod_param)
 
             # Assign that dict of all available parameters for the module to the instance variable
-            self.available_mod_params[available_mod] = mod_section_dict
+            self.available_mod_params[available_mod] = mod_section_params
 
         # Read and process the config values that concern the parameter range of the optimizers for CoDeepNEAT
         self.available_opt_params = dict()
         for available_opt in self.available_optimizers:
             # Determine a dict of all supplied configuration values as literal evals
             config_section_str = 'OPTIMIZER_' + available_opt.upper()
-            config_section_options = config.options(config_section_str)
-            opt_section_dict = dict()
-            for opt_param in config_section_options:
-                opt_section_dict[opt_param] = read_option_from_config(config, config_section_str, opt_param)
+            if not config.has_section(config_section_str):
+                raise RuntimeError(f"Optimizer '{available_opt}' marked as available in config does not have an "
+                                   f"associated config section defining its parameters")
+            opt_section_params = dict()
+            for opt_param in config.options(config_section_str):
+                opt_section_params[opt_param] = read_option_from_config(config, config_section_str, opt_param)
 
             # Assign that dict of all available parameters for the optimizers to the instance variable
-            self.available_opt_params[available_opt] = opt_section_dict
+            self.available_opt_params[available_opt] = opt_section_params
 
         # Perform some basic sanity checks of the configuration
         assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
@@ -169,11 +173,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 chosen_species = (i % self.mod_species_counter) + 1
 
                 # Initialize a new module of the chosen species
-                if self.mod_species_type[chosen_species] == 'DenseDropout':
-                    module_id, module = self._create_initial_dense_dropout_module()
-                else:
-                    raise NotImplementedError("Initialization of module '{}' not yet implemented"
-                                              .format(self.mod_species_type[chosen_species]))
+                module_id, module = self._create_initial_module(mod_type=self.mod_species_type[chosen_species])
 
                 # Append newly created initial module to module container and to according species
                 self.modules[module_id] = module
@@ -202,37 +202,53 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             raise NotImplementedError("Initializing population with pre-evolved initial population not yet implemented")
 
-    def _create_initial_dense_dropout_module(self) -> (int, CoDeepNEATModuleDenseDropout):
+    def _create_initial_module(self, mod_type) -> (int, CoDeepNEATModuleBase):
         """"""
-        # Determine module paramater dict of current module to be initialized
-        mod_params = self.available_mod_params['DenseDropout']
+        # Declare container collecting the specific parameters of the module to be created
+        chosen_module_params = dict()
 
-        # Determine random parameters for DenseDropout Module
-        merge_method = random.choice(mod_params['merge_methods'])
-        units_random = random.randint(mod_params['units']['min'], mod_params['units']['max'])
-        units = round(round_with_step(units_random,
-                                      mod_params['units']['min'],
-                                      mod_params['units']['max'],
-                                      mod_params['units']['step']), 4)
-        activation = random.choice(mod_params['activations'])
-        kernel_init = random.choice(mod_params['kernel_inits'])
-        bias_init = random.choice(mod_params['bias_inits'])
-        if random.random() < mod_params['dropout_prob']:
-            dropout_rate_random = random.uniform(mod_params['dropout_rate']['min'], mod_params['dropout_rate']['max'])
-            dropout_rate = round(round_with_step(dropout_rate_random,
-                                                 mod_params['dropout_rate']['min'],
-                                                 mod_params['dropout_rate']['max'],
-                                                 mod_params['dropout_rate']['step']), 4)
-        else:
-            dropout_rate = None
+        # Determine the specific parameter dict of the current module type
+        available_module_params = self.available_mod_params[mod_type]
 
-        # Create just defined initial DenseDropout module through encoding
-        return self.encoding.create_dense_dropout_module(merge_method=merge_method,
-                                                         units=units,
-                                                         activation=activation,
-                                                         kernel_init=kernel_init,
-                                                         bias_init=bias_init,
-                                                         dropout_rate=dropout_rate)
+        # Traverse each possible parameter option and determine a uniformly random value depending on if its a
+        # categorical, sortable or boolean value
+        for mod_param, mod_param_val_range in available_module_params.items():
+            # If the module parameter is a categorical value choose randomly from the list/tuple
+            if isinstance(mod_param_val_range, tuple):
+                chosen_module_params[mod_param] = random.choice(mod_param_val_range)
+            # If the module parameter is sortable, create a random value between the min and max values adhering to the
+            # prescriped step
+            elif isinstance(mod_param_val_range, dict):
+                if isinstance(mod_param_val_range['min'], int) and isinstance(mod_param_val_range['max'], int) \
+                        and isinstance(mod_param_val_range['step'], int):
+                    mod_param_random = random.randint(mod_param_val_range['min'],
+                                                      mod_param_val_range['max'])
+                    chosen_mod_param = round_with_step(mod_param_random,
+                                                       mod_param_val_range['min'],
+                                                       mod_param_val_range['max'],
+                                                       mod_param_val_range['step'])
+                elif isinstance(mod_param_val_range['min'], float) and isinstance(mod_param_val_range['max'], float) \
+                        and isinstance(mod_param_val_range['step'], float):
+                    mod_param_random = random.uniform(mod_param_val_range['min'],
+                                                      mod_param_val_range['max'])
+                    chosen_mod_param = round(round_with_step(mod_param_random,
+                                                             mod_param_val_range['min'],
+                                                             mod_param_val_range['max'],
+                                                             mod_param_val_range['step']), 4)
+                else:
+                    raise NotImplementedError(f"Config parameter '{mod_param}' of the {mod_type} section is of type"
+                                              f"dict though the dict values are not of type int or float")
+                chosen_module_params[mod_param] = chosen_mod_param
+            # If the module parameter is a binary value it is specified as a float with the probablity of that parameter
+            # being set to True
+            elif isinstance(mod_param_val_range, float):
+                chosen_module_params[mod_param] = random.random() < mod_param_val_range
+            else:
+                raise NotImplementedError(f"Config parameter '{mod_param}' of the {mod_type} section is not one of the"
+                                          f"valid types of list, dict or float")
+
+        # Create new module through encoding and return its ID and module
+        return self.encoding.create_module(mod_type=mod_type, module_parameters=chosen_module_params)
 
     def _create_initial_blueprint(self, initial_node_species) -> (int, CoDeepNEATBlueprint):
         """"""
@@ -659,22 +675,22 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         if random.random() < self.mod_mutation:
             ## Create new module through mutation ##
-
+    
             # Determine chosen parent module and its parameters as well as the intensity of the mutation,
             # meaning how many parent parameters will be perturbed.
             parent_module = self.modules[random.choice(self.mod_species[spec_id])]
             module_parameters = parent_module.duplicate_parameters()
             mutation_intensity = random.uniform(0, 0.3)
-
+    
             if self.mod_species_type[spec_id] == 'DENSE':
                 # Determine explicit integer amount of parameters to be mutated, though minimum is 1
                 param_mutation_count = int(mutation_intensity * 6)
                 if param_mutation_count == 0:
                     param_mutation_count = 1
-
+    
                 # Uniform randomly choose the parameters to be mutated
                 parameters_to_mutate = random.sample(range(6), k=param_mutation_count)
-
+    
                 # Mutate parameters. Categorical parameters are chosen randomly from all available values.
                 # Sortable parameters are perturbed through a random normal distribution with the current value
                 # as mean and the config specified stddev
@@ -718,7 +734,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                                  self.dense_dropout_rate[0],
                                                                                  self.dense_dropout_rate[1],
                                                                                  self.dense_dropout_rate[2])
-
+    
                 # Create new offpsring module with parent mutated parameters
                 new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
                                                                         units=module_parameters[1],
@@ -734,15 +750,15 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         else:  # random.random() < self.mod_crossover + self.mod_mutation
             ## Create new module through crossover ##
-
+    
             # Determine if 2 modules are available in current species, as is required for crossover
             if len(self.mod_species[spec_id]) == 1:
-
+    
                 # If Only 1 module in current species available as parent, create new module with identical
                 # parameters
                 parent_module = self.modules[random.choice(self.mod_species[spec_id])]
                 module_parameters = parent_module.duplicate_parameters()
-
+    
                 if self.mod_species_type[spec_id] == 'DENSE':
                     # Create new offspring module with identical parent parameters
                     new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
@@ -811,14 +827,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         if random_float < self.bp_mutation_add_conn:
             ## Create new blueprint by adding connection ##
-
+    
             # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
             # case the amount of connections added to the blueprint graph
             parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
             blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
             graph_topology = parent_bp.get_graph_topology()
             mutation_intensity = random.uniform(0, 0.3)
-
+    
             # Traverse blueprint graph and collect tuples of connections as well as a list of all present nodes
             bp_graph_conns = set()
             bp_graph_nodes = list()
@@ -828,12 +844,12 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
                     # Only consider a connection for bp_graph_conns if it is enabled
                     bp_graph_conns.add((gene.conn_start, gene.conn_end))
-
+    
             # Determine specifically how many connections will be added
             conns_to_add_count = int(mutation_intensity * len(bp_graph_conns))
             if conns_to_add_count == 0:
                 conns_to_add_count = 1
-
+    
             # Add connections in loop until sufficient amount added
             added_conns_count = 0
             while added_conns_count < conns_to_add_count:
@@ -844,7 +860,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 bp_graph_nodes.remove(start_node)
                 if len(bp_graph_nodes) == 0:
                     break
-
+    
                 # As graph currently only supports feedforward topologies, ensure that end node is topologically
                 # behind the start node
                 start_node_level = None
@@ -852,10 +868,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     if start_node in graph_topology[i]:
                         start_node_level = i
                         break
-
+    
                 # Determine set of all possible end nodes that are behind the start node
                 possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
-
+    
                 # Traverse all possible end nodes randomly and create and add a blueprint connection to the
                 # blueprint graph if no connection tuple present yet
                 while len(possible_end_nodes) != 0:
@@ -866,7 +882,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                             conn_end=end_node)
                         blueprint_graph[gene_id] = gene
                         added_conns_count += 1
-
+    
             # Create new offpsring blueprint with parent mutated blueprint graph
             new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                output_shape=self.output_shape,
@@ -880,13 +896,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         elif random_float < bp_mutation_add_node_prob:
             ## Create new blueprint by adding node ##
-
+    
             # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
             # case the amount of nodes added to the blueprint graph
             parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
             blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
             mutation_intensity = random.uniform(0, 0.3)
-
+    
             # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
             # count nodes to determine intensity of mutation
             node_count = 0
@@ -896,30 +912,30 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     node_count += 1
                 elif gene.enabled:
                     bp_graph_conn_ids.add(gene.gene_id)
-
+    
             # Determine specifically how many nodes will be added
             nodes_to_add_count = int(mutation_intensity * node_count)
             if nodes_to_add_count == 0:
                 nodes_to_add_count = 1
-
+    
             # Uniform randomly choosen connections by ID that are to be split
             gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
-
+    
             # Determine possible species for new nodes
             available_mod_species = tuple(self.mod_species.keys())
-
+    
             # Actually perform the split and adding of new node for all determined connections
             for gene_id_to_split in gene_ids_to_split:
                 # Determine start and end node of connection and disable it
                 conn_start = blueprint_graph[gene_id_to_split].conn_start
                 conn_end = blueprint_graph[gene_id_to_split].conn_end
                 blueprint_graph[gene_id_to_split].set_enabled(False)
-
+    
                 # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
                 # create the same node. Choose species for new node randomly.
                 new_node = self.encoding.get_node_for_split(conn_start, conn_end)
                 new_species = random.choice(available_mod_species)
-
+    
                 # Create the genes for the new node addition and add to the blueprint graph
                 gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
                 blueprint_graph[gene_id] = gene
@@ -927,7 +943,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 blueprint_graph[gene_id] = gene
                 gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
                 blueprint_graph[gene_id] = gene
-
+    
             # Create new offpsring blueprint with parent mutated blueprint graph
             new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                output_shape=self.output_shape,
@@ -949,36 +965,36 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         elif random_float < bp_mutation_node_species_prob:
             ## Create new blueprint by changing species of nodes ##
-
+    
             # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
             # case the amount of nodes changed in the blueprint graph
             parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
             blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
             mutation_intensity = random.uniform(0, 0.3)
-
+    
             # Identify all non-Input nodes in the blueprint graph by ID
             bp_graph_node_ids = set()
             for gene in blueprint_graph.values():
                 if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
                     bp_graph_node_ids.add(gene.gene_id)
-
+    
             # Determine specifically how many nodes will be changed
             nodes_to_change_count = int(mutation_intensity * len(bp_graph_node_ids))
             if nodes_to_change_count == 0:
                 nodes_to_change_count = 1
-
+    
             # Uniform randomly choosen nodes by ID that will get a changed species
             gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change_count)
-
+    
             # Determine possible species to mutate nodes into
             available_mod_species = tuple(self.mod_species.keys())
-
+    
             # Actually perform the split and adding of new node for all determined connections
             for gene_id_to_mutate in gene_ids_to_mutate:
                 # Randomly choose new species from available ones and assign species to blueprint graph
                 new_species = random.choice(available_mod_species)
                 blueprint_graph[gene_id_to_mutate].species = new_species
-
+    
             # Create new offpsring blueprint with parent mutated blueprint graph
             new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                output_shape=self.output_shape,
@@ -992,13 +1008,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         '''
         elif random_float < bp_mutation_hp_prob:
             ## Create new blueprint by mutating the hyperparameters ##
-
+    
             # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
             # case the amount of hyperparameters to be changed
             parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
             blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
             mutation_intensity = random.uniform(0, 0.3)
-
+    
             # Uniform randomly determine optimizer to change to
             if random.choice(self.available_optimizers) == 'SGD':
                 # Determine if current optimizer factory of same type as optimizer to change to, as in this case
@@ -1006,15 +1022,15 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if isinstance(optimizer_factory, SGDFactory):
                     # Get current parameters of optimizer
                     learning_rate, momentum, nesterov = optimizer_factory.get_parameters()
-
+    
                     # Determine specifically how many hps will be changed
                     hps_to_change_count = int(mutation_intensity * 4)
                     if hps_to_change_count == 0:
                         hps_to_change_count = 1
-
+    
                     # Create specific list of parameter ids to be changed
                     parameters_to_change = random.sample(range(4), k=hps_to_change_count)
-
+    
                     # Traverse through list of parameter ids to change. Categorical hps will be uniform randomly
                     # chosen anew. Sortable hps will be perturbed with normal distribution and config specified
                     # standard deviation
@@ -1036,7 +1052,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                  self.sgd_momentum[2])
                         elif param_to_change == 3:
                             nesterov = random.choice(self.sgd_nesterov)
-
+    
                     # Create new optimizer factory with newly mutated parameters
                     optimizer_factory = SGDFactory(learning_rate, momentum, nesterov)
                 else:
@@ -1044,7 +1060,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                               "optimizer is not SGD not yet implemented")
             else:
                 raise RuntimeError("Optimizer other than SGD not yet implemented")
-
+    
             # Create new offpsring blueprint with parent mutated hyperparameters
             new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                                                output_shape=self.output_shape,

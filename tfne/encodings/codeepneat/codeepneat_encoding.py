@@ -1,7 +1,11 @@
 from .codeepneat_genome import CoDeepNEATGenome
 from .codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode, CoDeepNEATBlueprintConn
+from .modules.codeepneat_module_base import CoDeepNEATModuleBase
 from .modules import CoDeepNEATModuleDenseDropout
 from ..base_encoding import BaseEncoding
+
+# Association dict of the module string name to its implementation class
+MODULES = {'DenseDropout': CoDeepNEATModuleDenseDropout}
 
 
 class CoDeepNEATEncoding(BaseEncoding):
@@ -28,22 +32,15 @@ class CoDeepNEATEncoding(BaseEncoding):
         self.node_counter = 2
         self.conn_split_history = dict()
 
-    def create_dense_dropout_module(self,
-                                    merge_method,
-                                    units,
-                                    activation,
-                                    kernel_init,
-                                    bias_init,
-                                    dropout_rate) -> (int, CoDeepNEATModuleDenseDropout):
+    def create_module(self, mod_type, module_parameters) -> (int, CoDeepNEATModuleBase):
         """"""
         module_id = self.get_next_module_id()
-        return self.mod_id_counter, CoDeepNEATModuleDenseDropout(module_id=module_id,
-                                                                 merge_method=merge_method,
-                                                                 units=units,
-                                                                 activation=activation,
-                                                                 kernel_init=kernel_init,
-                                                                 bias_init=bias_init,
-                                                                 dropout_rate=dropout_rate)
+        return module_id, MODULES[mod_type](module_id=module_id, **module_parameters)
+
+    def get_next_module_id(self) -> int:
+        """"""
+        self.mod_id_counter += 1
+        return self.mod_id_counter
 
     def create_blueprint(self,
                          blueprint_graph,
@@ -53,24 +50,6 @@ class CoDeepNEATEncoding(BaseEncoding):
         return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
                                                        blueprint_graph=blueprint_graph,
                                                        optimizer_factory=optimizer_factory)
-
-    def create_genome(self,
-                      blueprint,
-                      bp_assigned_modules,
-                      output_layers,
-                      input_shape,
-                      generation) -> (int, CoDeepNEATGenome):
-        """"""
-
-        self.genome_id_counter += 1
-        # Genome genotype: (blueprint, bp_assigned_modules, output_layers)
-        return self.genome_id_counter, CoDeepNEATGenome(genome_id=self.genome_id_counter,
-                                                        blueprint=blueprint,
-                                                        bp_assigned_modules=bp_assigned_modules,
-                                                        output_layers=output_layers,
-                                                        input_shape=input_shape,
-                                                        dtype=self.dtype,
-                                                        origin_generation=generation)
 
     def create_blueprint_node(self, node, species) -> (int, CoDeepNEATBlueprintNode):
         """"""
@@ -101,7 +80,20 @@ class CoDeepNEATEncoding(BaseEncoding):
 
         return self.conn_split_history[conn_key]
 
-    def get_next_module_id(self) -> int:
+    def create_genome(self,
+                      blueprint,
+                      bp_assigned_modules,
+                      output_layers,
+                      input_shape,
+                      generation) -> (int, CoDeepNEATGenome):
         """"""
-        self.mod_id_counter += 1
-        return self.mod_id_counter
+
+        self.genome_id_counter += 1
+        # Genome genotype: (blueprint, bp_assigned_modules, output_layers)
+        return self.genome_id_counter, CoDeepNEATGenome(genome_id=self.genome_id_counter,
+                                                        blueprint=blueprint,
+                                                        bp_assigned_modules=bp_assigned_modules,
+                                                        output_layers=output_layers,
+                                                        input_shape=input_shape,
+                                                        dtype=self.dtype,
+                                                        origin_generation=generation)

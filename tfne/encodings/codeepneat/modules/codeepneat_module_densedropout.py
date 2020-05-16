@@ -15,6 +15,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                  activation,
                  kernel_init,
                  bias_init,
+                 dropout_flag,
                  dropout_rate):
         """"""
         # Register parameters
@@ -23,7 +24,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         self.activation = activation
         self.kernel_init = kernel_init
         self.bias_init = bias_init
-        self.dropout_flag = dropout_rate is not None
+        self.dropout_flag = dropout_flag
         self.dropout_rate = dropout_rate
 
     def __str__(self) -> str:
@@ -33,7 +34,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                     self.fitness,
                     self.units,
                     self.activation,
-                    "None" if self.dropout_rate is None else self.dropout_rate)
+                    "None" if self.dropout_flag is False else self.dropout_rate)
 
     def create_module_layers(self, dtype) -> (tf.keras.layers.Layer, ...):
         """"""
