@@ -120,7 +120,7 @@ class CoDeepNEATGenome(BaseGenome):
                                                              self.fitness,
                                                              self.blueprint.get_id(),
                                                              self.blueprint.get_species(),
-                                                             self.blueprint.optimizer_factory.__class__.__name__,
+                                                             self.blueprint.optimizer_factory.get_name(),
                                                              self.origin_generation)
 
     def save_genotype(self, save_dir_path):

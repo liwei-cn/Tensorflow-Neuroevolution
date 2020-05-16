@@ -1,4 +1,5 @@
 from .codeepneat_genome import CoDeepNEATGenome
+from .codeepneat_optimizer_factory import OptimizerFactory
 from .codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode, CoDeepNEATBlueprintConn
 from .modules.codeepneat_module_base import CoDeepNEATModuleBase
 from .modules import CoDeepNEATModuleDenseDropout
@@ -97,3 +98,8 @@ class CoDeepNEATEncoding(BaseEncoding):
                                                         input_shape=input_shape,
                                                         dtype=self.dtype,
                                                         origin_generation=generation)
+
+    @staticmethod
+    def create_optimizer_factory(optimizer_parameters) -> OptimizerFactory:
+        """"""
+        return OptimizerFactory(optimizer_parameters)

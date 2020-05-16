@@ -7,11 +7,9 @@ import numpy as np
 from absl import logging
 
 import tfne
-from .codeepneat_optimizer_factories import SGDFactory
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
 from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode
-from ...encodings.codeepneat.modules import CoDeepNEATModuleDenseDropout
 from ...encodings.codeepneat.modules.codeepneat_module_base import CoDeepNEATModuleBase
 from ...helper_functions import read_option_from_config, round_with_step
 
@@ -217,7 +215,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             if isinstance(mod_param_val_range, tuple):
                 chosen_module_params[mod_param] = random.choice(mod_param_val_range)
             # If the module parameter is sortable, create a random value between the min and max values adhering to the
-            # prescriped step
+            # configured step
             elif isinstance(mod_param_val_range, dict):
                 if isinstance(mod_param_val_range['min'], int) and isinstance(mod_param_val_range['max'], int) \
                         and isinstance(mod_param_val_range['step'], int):
@@ -262,28 +260,54 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         gene_id, gene = self.encoding.create_blueprint_conn(conn_start=1, conn_end=2)
         blueprint_graph[gene_id] = gene
 
-        # Randomly choose optimizer from available optimizers and get the parameter dict of the optimizer
+        # Randomly choose an optimizer from the available optimizers and create the parameter config dict of it
         chosen_optimizer = random.choice(self.available_optimizers)
-        opt_params = self.available_opt_params[chosen_optimizer]
-        if chosen_optimizer == 'SGD':
-            learning_rate_random = random.uniform(opt_params['learning_rate']['min'],
-                                                  opt_params['learning_rate']['max'])
-            learning_rate = round(round_with_step(learning_rate_random,
-                                                  opt_params['learning_rate']['min'],
-                                                  opt_params['learning_rate']['max'],
-                                                  opt_params['learning_rate']['step']), 4)
-            momentum_random = random.uniform(opt_params['momentum']['min'], opt_params['momentum']['max'])
-            momentum = round(round_with_step(momentum_random,
-                                             opt_params['momentum']['min'],
-                                             opt_params['momentum']['max'],
-                                             opt_params['momentum']['step']), 4)
-            nesterov = random.choice(opt_params['nesterov'])
+        available_optimizer_params = self.available_opt_params[chosen_optimizer]
 
-            optimizer_factory = SGDFactory(learning_rate=learning_rate,
-                                           momentum=momentum,
-                                           nesterov=nesterov)
-        else:
-            raise NotImplementedError(f"Optimizer '{chosen_optimizer}' marked as available not yet implemented")
+        # Declare container collecting the specific parameters of the optimizer to be created, setting the just chosen
+        # optimizer class
+        chosen_optimizer_params = {'class_name': chosen_optimizer, 'config': dict()}
+
+        # Traverse each possible parameter option and determine a uniformly random value depending on if its a
+        # categorical, sortable or boolean value
+        for opt_param, opt_param_val_range in available_optimizer_params.items():
+            # If the optimizer parameter is a categorical value choose randomly from the list/tuple
+            if isinstance(opt_param_val_range, tuple):
+                chosen_optimizer_params['config'][opt_param] = random.choice(opt_param_val_range)
+            # If the optimizer parameter is sortable, create a random value between the min and max values adhering
+            # to the configured step
+            elif isinstance(opt_param_val_range, dict):
+                if isinstance(opt_param_val_range['min'], int) and isinstance(opt_param_val_range['max'], int) \
+                        and isinstance(opt_param_val_range['step'], int):
+                    opt_param_random = random.randint(opt_param_val_range['min'],
+                                                      opt_param_val_range['max'])
+                    chosen_opt_param = round_with_step(opt_param_random,
+                                                       opt_param_val_range['min'],
+                                                       opt_param_val_range['max'],
+                                                       opt_param_val_range['step'])
+                elif isinstance(opt_param_val_range['min'], float) and isinstance(opt_param_val_range['max'], float) \
+                        and isinstance(opt_param_val_range['step'], float):
+                    opt_param_random = random.uniform(opt_param_val_range['min'],
+                                                      opt_param_val_range['max'])
+                    chosen_opt_param = round(round_with_step(opt_param_random,
+                                                             opt_param_val_range['min'],
+                                                             opt_param_val_range['max'],
+                                                             opt_param_val_range['step']), 4)
+                else:
+                    raise NotImplementedError(f"Config parameter '{opt_param}' of the {chosen_optimizer} optimizer "
+                                              f"section is of type dict though the dict values are not of type int or "
+                                              f"float")
+                chosen_optimizer_params['config'][opt_param] = chosen_opt_param
+            # If the optimizer parameter is a binary value it is specified as a float with the probablity of that
+            # parameter being set to True
+            elif isinstance(opt_param_val_range, float):
+                chosen_optimizer_params['config'][opt_param] = random.random() < opt_param_val_range
+            else:
+                raise NotImplementedError(f"Config parameter '{opt_param}' of the {chosen_optimizer} optimizer section "
+                                          f"is not one of the valid types of list, dict or float")
+
+        # Create new optimizer through encoding
+        optimizer_factory = self.encoding.create_optimizer_factory(optimizer_parameters=chosen_optimizer_params)
 
         # Create just defined initial blueprint through encoding
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
