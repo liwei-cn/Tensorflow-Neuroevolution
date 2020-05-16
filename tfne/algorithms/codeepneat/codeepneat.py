@@ -479,10 +479,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         else:
             raise RuntimeError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
-        # TODO Continue Here
-        print("Exiting Cleanly")
-        exit()
-
         #### Evolve Modules ####
         # Traverse through the new module species and add new modules until calculated dedicated spec size is reached
         for spec_id, carried_over_mod_ids in new_mod_species.items():
@@ -506,16 +502,62 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 else:  # random.random() < self.mod_mutation_prob + self.mod_crossover_prob
                     ## Create new module through crossover ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Determine if species has at least 2 modules as required for crossover
+                    if len(self.mod_species[spec_id]) >= 2:
+                        # Determine the 2 parent modules used for crossover
+                        parent_module_1_id, parent_module_2_id = random.sample(self.mod_species[spec_id], k=2)
+                        parent_module_1 = self.modules[parent_module_1_id]
+                        parent_module_2 = self.modules[parent_module_2_id]
+
+                        # Get a new module ID from encoding, randomly determine the maximum degree of mutation and then
+                        # determine the config parameters associated with the modules
+                        mod_offspring_id = self.encoding.get_next_module_id()
+                        max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                        config_params = self.available_mod_params[self.mod_species_type[spec_id]]
+
+                        # Determine the fitter parent module and let its internal crossover function create offspring
+                        if parent_module_1.get_fitness() >= parent_module_2.get_fitness():
+                            new_mod_id, new_mod = parent_module_1.create_crossover(mod_offspring_id,
+                                                                                   parent_module_2,
+                                                                                   config_params,
+                                                                                   max_degree_of_mutation)
+                        else:
+                            new_mod_id, new_mod = parent_module_2.create_crossover(mod_offspring_id,
+                                                                                   parent_module_1,
+                                                                                   config_params,
+                                                                                   max_degree_of_mutation)
+
+                    else:
+                        # As species does not have enough modules for crossover, perform a mutation on the remaining
+                        # module
+                        mod_offspring_id = self.encoding.get_next_module_id()
+                        max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                        parent_module = self.modules(random.choice(self.mod_species[spec_id]))
+                        config_params = self.available_mod_params[self.mod_species_type[spec_id]]
+
+                        new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
+                                                                            config_params,
+                                                                            max_degree_of_mutation)
 
                 # Add newly created module to the module container and its according species
                 new_modules[new_mod_id] = new_mod
                 new_mod_species[spec_id].append(new_mod_id)
 
+        # FIXME REMOVE
+        for mod in self.modules:
+            print(mod)
+
         # As new module container and species dict have now been fully created, overwrite the old ones
         self.modules = new_modules
         self.mod_species = new_mod_species
+
+        # FIXME REMOVE
+        for mod in self.modules:
+            print(mod)
+
+        # TODO Continue Here
+        print("Exiting Cleanly")
+        exit()
 
         #### Evolve Blueprints ####
         # Calculate the brackets for a random float to fall into in order to choose a specific evolutionary method
