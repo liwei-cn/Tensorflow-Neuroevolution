@@ -1,7 +1,5 @@
-CoDeepNEAT Overview
+Framework Overview
 ===========================
-
-Algorithms test
 
 This is a test commit/documentaiton for TFNE
 
@@ -19,7 +17,7 @@ has many great features for writing technical documentation including:
 
 
 Test Quick Start Video
------------------
+----------------------
 
 Test video
 
@@ -31,7 +29,7 @@ Test video
 
 
 Test Quick start
------------
+----------------
 
 Assuming you have Python already, this is a command to install sphinx:
 
