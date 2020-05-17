@@ -493,7 +493,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # module
                     mod_offspring_id = self.encoding.get_next_module_id()
                     max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
-                    parent_module = self.modules(random.choice(self.mod_species[spec_id]))
+                    parent_module = self.modules[random.choice(self.mod_species[spec_id])]
                     config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                     new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
@@ -532,7 +532,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # module
                         mod_offspring_id = self.encoding.get_next_module_id()
                         max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
-                        parent_module = self.modules(random.choice(self.mod_species[spec_id]))
+                        parent_module = self.modules[random.choice(self.mod_species[spec_id])]
                         config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                         new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
@@ -543,17 +543,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 new_modules[new_mod_id] = new_mod
                 new_mod_species[spec_id].append(new_mod_id)
 
-        # FIXME REMOVE
-        for mod in self.modules:
-            print(mod)
-
         # As new module container and species dict have now been fully created, overwrite the old ones
         self.modules = new_modules
         self.mod_species = new_mod_species
-
-        # FIXME REMOVE
-        for mod in self.modules:
-            print(mod)
 
         # TODO Continue Here
         print("Exiting Cleanly")
@@ -734,158 +726,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def _speciate_blueprints_gene_overlap(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
         raise NotImplementedError()
-
-    def _create_mutated_module(self):
-        """"""
-        pass
-        '''
-        if random.random() < self.mod_mutation:
-            ## Create new module through mutation ##
-    
-            # Determine chosen parent module and its parameters as well as the intensity of the mutation,
-            # meaning how many parent parameters will be perturbed.
-            parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-            module_parameters = parent_module.duplicate_parameters()
-            mutation_intensity = random.uniform(0, 0.3)
-    
-            if self.mod_species_type[spec_id] == 'DENSE':
-                # Determine explicit integer amount of parameters to be mutated, though minimum is 1
-                param_mutation_count = int(mutation_intensity * 6)
-                if param_mutation_count == 0:
-                    param_mutation_count = 1
-    
-                # Uniform randomly choose the parameters to be mutated
-                parameters_to_mutate = random.sample(range(6), k=param_mutation_count)
-    
-                # Mutate parameters. Categorical parameters are chosen randomly from all available values.
-                # Sortable parameters are perturbed through a random normal distribution with the current value
-                # as mean and the config specified stddev
-                for param_to_mutate in parameters_to_mutate:
-                    if param_to_mutate == 0:
-                        module_parameters[0] = random.choice(self.dense_merge_methods)
-                    elif param_to_mutate == 1:
-                        perturbed_param = int(np.random.normal(loc=module_parameters[1],
-                                                               scale=self.dense_units_stddev))
-                        module_parameters[1] = round_to_nearest_multiple(perturbed_param,
-                                                                         self.dense_units[0],
-                                                                         self.dense_units[1],
-                                                                         self.dense_units[2])
-                    elif param_to_mutate == 2:
-                        module_parameters[2] = random.choice(self.dense_activations)
-                    elif param_to_mutate == 3:
-                        module_parameters[3] = random.choice(self.dense_kernel_initializers)
-                    elif param_to_mutate == 4:
-                        module_parameters[4] = random.choice(self.dense_bias_initializers)
-                    else:  # param_to_mutate == 5:
-                        # If Module param 5 (dropout rate) is not None is there a 'dropout_probability' chance
-                        # that the dropout parameter will be perturbed. Otherwise it will be set to None. If
-                        # the dropout rate of the parent is None to begin with then there is a
-                        # 'dropout_probability' chance that a new uniorm random dropout rate is created.
-                        # otherweise it will remain None.
-                        if module_parameters[5] is not None:
-                            if random.random() < self.dense_dropout_probability:
-                                perturbed_param = np.random.normal(loc=module_parameters[5],
-                                                                   scale=self.dense_dropout_rate_stddev)
-                                module_parameters[5] = round_to_nearest_multiple(perturbed_param,
-                                                                                 self.dense_dropout_rate[0],
-                                                                                 self.dense_dropout_rate[1],
-                                                                                 self.dense_dropout_rate[2])
-                            else:
-                                module_parameters[5] = None
-                        else:
-                            if random.random() < self.dense_dropout_probability:
-                                dropout_rate_uniform = random.uniform(self.dense_dropout_rate[0],
-                                                                      self.dense_dropout_rate[1])
-                                module_parameters[5] = round_to_nearest_multiple(dropout_rate_uniform,
-                                                                                 self.dense_dropout_rate[0],
-                                                                                 self.dense_dropout_rate[1],
-                                                                                 self.dense_dropout_rate[2])
-    
-                # Create new offpsring module with parent mutated parameters
-                new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
-                                                                        units=module_parameters[1],
-                                                                        activation=module_parameters[2],
-                                                                        kernel_initializer=module_parameters[3],
-                                                                        bias_initializer=module_parameters[4],
-                                                                        dropout_rate=module_parameters[5])        
-        '''
-
-    def _create_crossed_over_module(self):
-        """"""
-        pass
-        '''
-        else:  # random.random() < self.mod_crossover + self.mod_mutation
-            ## Create new module through crossover ##
-    
-            # Determine if 2 modules are available in current species, as is required for crossover
-            if len(self.mod_species[spec_id]) == 1:
-    
-                # If Only 1 module in current species available as parent, create new module with identical
-                # parameters
-                parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                module_parameters = parent_module.duplicate_parameters()
-    
-                if self.mod_species_type[spec_id] == 'DENSE':
-                    # Create new offspring module with identical parent parameters
-                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=module_parameters[0],
-                                                                            units=module_parameters[1],
-                                                                            activation=module_parameters[2],
-                                                                            kernel_initializer=
-                                                                            module_parameters[3],
-                                                                            bias_initializer=
-                                                                            module_parameters[4],
-                                                                            dropout_rate=module_parameters[5])
-            else:
-                # Choose 2 random parent modules, both of them different
-                parent_module_1_id, parent_module_2_id = random.sample(self.mod_species[spec_id], k=2)
-    
-                # Determine fitter parent and save parameters of 'fitter' and 'other' parent
-                if self.modules[parent_module_1_id].get_fitness() > \
-                        self.modules[parent_module_2_id].get_fitness():
-                    fitter_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
-                    other_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
-                else:
-                    fitter_parent_params = self.modules[parent_module_2_id].duplicate_parameters()
-                    other_parent_params = self.modules[parent_module_1_id].duplicate_parameters()
-    
-                if self.mod_species_type[spec_id] == 'DENSE':
-                    # Crete offspring parameters by carrying over parameter of fitter parent for categorical
-                    # parameters and calculating average parameter for sortable parameters
-                    offspring_params = [None] * 6
-                    offspring_params[0] = fitter_parent_params[0]
-                    offspring_params[1] = round_to_nearest_multiple(int((fitter_parent_params[1] +
-                                                                         other_parent_params[1]) / 2),
-                                                                    self.dense_units[0],
-                                                                    self.dense_units[1],
-                                                                    self.dense_units[2])
-                    offspring_params[2] = fitter_parent_params[2]
-                    offspring_params[3] = fitter_parent_params[3]
-                    offspring_params[4] = fitter_parent_params[4]
-                    if fitter_parent_params[5] is not None and other_parent_params[5] is not None:
-                        # If both parents have defined a dropout rate, calculate the average
-                        offspring_params[5] = round_to_nearest_multiple(((fitter_parent_params[5] +
-                                                                          other_parent_params[5]) / 2),
-                                                                        self.dense_dropout_rate[0],
-                                                                        self.dense_dropout_rate[1],
-                                                                        self.dense_dropout_rate[2])
-                    elif fitter_parent_params[5] is not None:
-                        # If only fitter parent defined dropout rate, carry that dropout rate over
-                        offspring_params[5] = fitter_parent_params[5]
-                    else:
-                        # If neither or only the lesser fit parent defined dropout rate, set dropout rate to
-                        # None
-                        offspring_params[5] = None
-    
-                    # Create new offspring module with crossed-over parental parameters
-                    new_mod_id, new_mod = self.encoding.create_dense_module(merge_method=offspring_params[0],
-                                                                            units=offspring_params[1],
-                                                                            activation=offspring_params[2],
-                                                                            kernel_initializer=
-                                                                            offspring_params[3],
-                                                                            bias_initializer=
-                                                                            offspring_params[4],
-                                                                            dropout_rate=offspring_params[5])        
-        '''
 
     def _create_mutated_blueprint_add_conn(self):
         """"""
