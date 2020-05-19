@@ -563,36 +563,75 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         for spec_id, carried_over_bp_ids in new_bp_species.items():
             # Determine amount of offspring and create according amount of new blueprints
             for _ in range(new_bp_species_size[spec_id] - len(carried_over_bp_ids)):
-                # Choose random float vaue determining specific evolutionary method for blueprint
+                # Choose random float vaue determining specific evolutionary method to evolve the chosen blueprint
                 random_choice = random.random()
                 if random_choice < self.bp_mutation_add_conn_prob:
                     ## Create new blueprint by adding connection ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_add_conn(parent_blueprint,
+                                                                                max_degree_of_mutation)
+
                 elif random_choice < bp_mutation_add_node_bracket:
                     ## Create new blueprint by adding node ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_add_node(parent_blueprint,
+                                                                                max_degree_of_mutation)
+
                 elif random_choice < bp_mutation_rem_conn_bracket:
                     ## Create new blueprint by removing connection ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_rem_conn(parent_blueprint,
+                                                                                max_degree_of_mutation)
+
                 elif random_choice < bp_mutation_rem_node_bracket:
                     ## Create new blueprint by removing node ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_rem_node(parent_blueprint,
+                                                                                max_degree_of_mutation)
+
                 elif random_choice < bp_mutation_node_spec_bracket:
                     ## Create new blueprint by mutating species in nodes ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_node_spec(parent_blueprint,
+                                                                                 max_degree_of_mutation)
+
                 elif random_choice < bp_mutation_optimizer_bracket:
                     ## Create new blueprint by mutating the associated optimizer ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_optimizer(parent_blueprint,
+                                                                                 max_degree_of_mutation)
+
                 else:  # random_choice < bp_crossover_bracket:
                     ## Create new blueprint through crossover ##
-                    # TODO
-                    raise NotImplementedError()
+                    # Determine if species has at least 2 blueprints as required for crossover
+                    if len(self.bp_species[spec_id]) >= 2:
+                        # Randomly determine both parents for the blueprint crossover
+                        parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
+                        parent_bp_1 = self.modules[parent_bp_1_id]
+                        parent_bp_2 = self.modules[parent_bp_2_id]
+                        new_bp_id, new_bp = self._create_crossed_over_blueprint(parent_bp_1,
+                                                                                parent_bp_2)
+
+                    else:
+                        # As species does not have enough blueprints for crossover, perform a simple species
+                        # perturbation in the blueprint nodes. Determine uniform randomly the parent blueprint from the
+                        # current species and the degree of mutation.
+                        parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
+                        max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                        new_bp_id, new_bp = self._create_mutated_blueprint_node_spec(parent_blueprint,
+                                                                                     max_degree_of_mutation)
 
                 # Add newly created blueprint to the blueprint container and its according species
                 new_blueprints[new_bp_id] = new_bp
@@ -727,9 +766,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         """"""
         raise NotImplementedError()
 
-    def _create_mutated_blueprint_add_conn(self):
+    def _create_mutated_blueprint_add_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
         '''
         if random_float < self.bp_mutation_add_conn:
             ## Create new blueprint by adding connection ##
@@ -796,9 +835,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                optimizer_factory=optimizer_factory)        
         '''
 
-    def _create_mutated_blueprint_add_node(self):
+    def _create_mutated_blueprint_add_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
         '''
         elif random_float < bp_mutation_add_node_prob:
             ## Create new blueprint by adding node ##
@@ -857,17 +896,17 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                optimizer_factory=optimizer_factory)        
         '''
 
-    def _create_mutated_blueprint_rem_conn(self):
+    def _create_mutated_blueprint_rem_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
 
-    def _create_mutated_blueprint_rem_node(self):
+    def _create_mutated_blueprint_rem_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
 
-    def _create_mutated_blueprint_node_spec(self):
+    def _create_mutated_blueprint_node_spec(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
         '''
         elif random_float < bp_mutation_node_species_prob:
             ## Create new blueprint by changing species of nodes ##
@@ -908,9 +947,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                optimizer_factory=optimizer_factory)
         '''
 
-    def _create_mutated_blueprint_optimizer(self):
+    def _create_mutated_blueprint_optimizer(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        pass
+        raise NotImplementedError()
         '''
         elif random_float < bp_mutation_hp_prob:
             ## Create new blueprint by mutating the hyperparameters ##
@@ -974,9 +1013,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                optimizer_factory=optimizer_factory)
         '''
 
-    def _create_crossed_over_blueprint(self):
+    def _create_crossed_over_blueprint(self, parent_bp_1, parent_bp_2):
         """"""
-        pass
+        raise NotImplementedError()
         '''
         else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
         ## Create new blueprint through crossover ##
