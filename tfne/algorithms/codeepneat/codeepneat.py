@@ -211,8 +211,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Traverse each possible parameter option and determine a uniformly random value depending on if its a
         # categorical, sortable or boolean value
         for mod_param, mod_param_val_range in available_module_params.items():
-            # If the module parameter is a categorical value choose randomly from the list/tuple
-            if isinstance(mod_param_val_range, tuple):
+            # If the module parameter is a categorical value choose randomly from the list
+            if isinstance(mod_param_val_range, list):
                 chosen_module_params[mod_param] = random.choice(mod_param_val_range)
             # If the module parameter is sortable, create a random value between the min and max values adhering to the
             # configured step
@@ -271,8 +271,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Traverse each possible parameter option and determine a uniformly random value depending on if its a
         # categorical, sortable or boolean value
         for opt_param, opt_param_val_range in available_optimizer_params.items():
-            # If the optimizer parameter is a categorical value choose randomly from the list/tuple
-            if isinstance(opt_param_val_range, tuple):
+            # If the optimizer parameter is a categorical value choose randomly from the list
+            if isinstance(opt_param_val_range, list):
                 chosen_optimizer_params['config'][opt_param] = random.choice(opt_param_val_range)
             # If the optimizer parameter is sortable, create a random value between the min and max values adhering
             # to the configured step
