@@ -768,72 +768,61 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _create_mutated_blueprint_add_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        raise NotImplementedError()
-        '''
-        if random_float < self.bp_mutation_add_conn:
-            ## Create new blueprint by adding connection ##
-    
-            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-            # case the amount of connections added to the blueprint graph
-            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-            graph_topology = parent_bp.get_graph_topology()
-            mutation_intensity = random.uniform(0, 0.3)
-    
-            # Traverse blueprint graph and collect tuples of connections as well as a list of all present nodes
-            bp_graph_conns = set()
-            bp_graph_nodes = list()
-            for gene in blueprint_graph.values():
-                if isinstance(gene, CoDeepNEATBlueprintNode):
-                    bp_graph_nodes.append(gene.node)
-                elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
-                    # Only consider a connection for bp_graph_conns if it is enabled
-                    bp_graph_conns.add((gene.conn_start, gene.conn_end))
-    
-            # Determine specifically how many connections will be added
-            conns_to_add_count = int(mutation_intensity * len(bp_graph_conns))
-            if conns_to_add_count == 0:
-                conns_to_add_count = 1
-    
-            # Add connections in loop until sufficient amount added
-            added_conns_count = 0
-            while added_conns_count < conns_to_add_count:
-                # Choose random start node from all possible nodes. Remove it immediately such that the same
-                # start node is not used twice, ensuring more complex mutation and a safe loop termination in
-                # case that all connection additions are exhausted
-                start_node = random.choice(bp_graph_nodes)
-                bp_graph_nodes.remove(start_node)
-                if len(bp_graph_nodes) == 0:
+        # Copy the parameters of the parent blueprint and get the pre-analyzed topology of the parent graph
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+        bp_graph_topology = parent_blueprint.get_graph_topology()
+
+        # Create collections of all nodes and present connections in the copied blueprint graph
+        bp_graph_conns = set()
+        bp_graph_nodes = list()
+        for gene in blueprint_graph.values():
+            if isinstance(gene, CoDeepNEATBlueprintNode):
+                bp_graph_nodes.append(gene.node)
+            elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
+                # Only consider a connection for bp_graph_conns if it is enabled
+                bp_graph_conns.add((gene.conn_start, gene.conn_end))
+
+        # Remove end-node (node 2) from this list and shuffle it, as it later serves to randomly pop the start node of
+        # the newly created connection
+        bp_graph_nodes.remove(2)
+        random.shuffle(bp_graph_nodes)
+
+        # Determine specifically how many connections will be added
+        number_of_conns_to_add = math.ceil(max_degree_of_mutation * len(bp_graph_conns))
+        if number_of_conns_to_add == 0:
+            number_of_conns_to_add = 1
+
+        # Add connections in a loop until predetermined number of connections that are to be added is reached or until
+        # the possible starting nodes run out
+        added_conns_counter = 0
+        while added_conns_counter < number_of_conns_to_add and len(bp_graph_nodes) > 0:
+            # Choose random start node from all possible nodes by popping it from a preshuffled list of graph nodes
+            start_node = bp_graph_nodes.pop()
+
+            # Determine the list of all possible end nodes that are behind the start node as implementation currently
+            # only supports feedforward topologies. Then shuffle the end nodes as they will later be randomly popped
+            start_node_level = None
+            for i in range(len(bp_graph_topology)):
+                if start_node in bp_graph_topology[i]:
+                    start_node_level = i
                     break
-    
-                # As graph currently only supports feedforward topologies, ensure that end node is topologically
-                # behind the start node
-                start_node_level = None
-                for i in range(len(graph_topology)):
-                    if start_node in graph_topology[i]:
-                        start_node_level = i
-                        break
-    
-                # Determine set of all possible end nodes that are behind the start node
-                possible_end_nodes = list(set().union(*graph_topology[start_node_level + 1:]))
-    
-                # Traverse all possible end nodes randomly and create and add a blueprint connection to the
-                # blueprint graph if no connection tuple present yet
-                while len(possible_end_nodes) != 0:
-                    end_node = random.choice(possible_end_nodes)
-                    possible_end_nodes.remove(end_node)
-                    if (start_node, end_node) not in bp_graph_conns:
-                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
-                                                                            conn_end=end_node)
-                        blueprint_graph[gene_id] = gene
-                        added_conns_count += 1
-    
-            # Create new offpsring blueprint with parent mutated blueprint graph
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)        
-        '''
+            possible_end_nodes = list(set().union(*bp_graph_topology[start_node_level + 1:]))
+            random.shuffle(possible_end_nodes)
+
+            # Traverse all possible end nodes randomly and create and add a blueprint connection to the offspring
+            # blueprint graph if the specific connection tuple is not yet present.
+            while len(possible_end_nodes) > 0:
+                end_node = possible_end_nodes.pop()
+                if (start_node, end_node) not in bp_graph_conns:
+                    gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
+                                                                        conn_end=end_node)
+                    blueprint_graph[gene_id] = gene
+                    added_conns_counter += 1
+
+        # Create and return the offspring blueprint with the edited blueprint graph having additional connections as
+        # well as the parent duplicated optimizer factory.
+        self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                       optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_add_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
