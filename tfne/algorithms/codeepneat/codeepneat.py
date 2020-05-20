@@ -9,7 +9,8 @@ from absl import logging
 import tfne
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
 from ...encodings.codeepneat.codeepneat_genome import CoDeepNEATGenome
-from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode
+from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprint
+from ...encodings.codeepneat.codeepneat_blueprint import CoDeepNEATBlueprintNode, CoDeepNEATBlueprintConn
 from ...encodings.codeepneat.modules.codeepneat_module_base import CoDeepNEATModuleBase
 from ...helper_functions import read_option_from_config, round_with_step
 
@@ -872,11 +873,123 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _create_mutated_blueprint_rem_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        raise NotImplementedError()
+        # Copy the parameters of the parent blueprint for the offspring
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Analyze amount of connections already present in bp graph and collect all gene ids whose connection ends in
+        # certain nodes, allowing the algorithm to determine which connections can be removed as they are not the sole
+        # connection to a remaining node.
+        conn_count = 0
+        bp_graph_incoming_conn_ids = dict()
+        for gene in blueprint_graph.values():
+            if isinstance(gene, CoDeepNEATBlueprintConn) and gene.enabled:
+                conn_count += 1
+                if gene.conn_end in bp_graph_incoming_conn_ids:
+                    bp_graph_incoming_conn_ids[gene.conn_end].append(gene.gene_id)
+                else:
+                    bp_graph_incoming_conn_ids[gene.conn_end] = [gene.gene_id]
+
+        # Remove all nodes from the 'bp_graph_incoming_conn_ids' dict that have only 1 incoming connection, as this
+        # connection is essential and can not be removed without also effectively removing nodes. If a node has more
+        # than 1 incoming connection then shuffle those, as they will later be popped.
+        for conn_end, incoming_conn_ids in bp_graph_incoming_conn_ids.items():
+            if len(incoming_conn_ids) == 1:
+                del bp_graph_incoming_conn_ids[conn_end]
+            else:
+                random.shuffle(bp_graph_incoming_conn_ids[conn_end])
+
+        # Determine how many conns will be removed based on the total connection count
+        number_of_conns_to_rem = math.ceil(max_degree_of_mutation * conn_count)
+
+        # Remove connections in loop until determined number of connections are removed or until no node has 2 incoming
+        # connections. Remove connections by randomly choosing a node with more than 1 incoming connections and then
+        # removing the associated gene id from the bp graph
+        rem_conns_counter = 0
+        while rem_conns_counter < number_of_conns_to_rem and len(bp_graph_incoming_conn_ids) > 0:
+            rem_conn_end_node = random.choice(bp_graph_incoming_conn_ids.keys())
+            conn_id_to_remove = bp_graph_incoming_conn_ids[rem_conn_end_node].pop()
+            # If node has only 1 incoming connection, remove it from the possible end nodes for future iterations
+            if len(bp_graph_incoming_conn_ids[rem_conn_end_node]) == 1:
+                del bp_graph_incoming_conn_ids[rem_conn_end_node]
+
+            del blueprint_graph[conn_id_to_remove]
+            rem_conns_counter += 1
+
+        # Create and return the offspring blueprint with the edited blueprint graph having one or multiple connections
+        # removed though still having at least 1 connection to each node.
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_rem_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        raise NotImplementedError()
+        # Copy the parameters of the parent blueprint for the offspring
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Collect all gene_ids of connections that are not the input or output node (as they are unremovable) and
+        # shuffle the list of those node ids for later random popping.
+        node_count = 0
+        bp_graph_node_ids = list()
+        for gene in blueprint_graph.values():
+            if isinstance(gene, CoDeepNEATBlueprintNode):
+                node_count += 1
+                if gene.node != 1 and gene.node != 2:
+                    bp_graph_node_ids.append(gene.gene_id)
+        random.shuffle(bp_graph_node_ids)
+
+        # Determine how many nodes will be removed based on the total node count
+        number_of_nodes_to_rem = math.ceil(max_degree_of_mutation * node_count)
+
+        # Remove nodes in loop until enough nodes are removed or until no node is left to be removed. When removing the
+        # node, replace its incoming and outcoming connections with connections from each incoming node to each outgoing
+        # node.
+        rem_nodes_counter = 0
+        while rem_nodes_counter < number_of_nodes_to_rem and len(bp_graph_node_ids) > 0:
+            node_id_to_remove = bp_graph_node_ids.pop()
+            node_to_remove = blueprint_graph[node_id_to_remove].node
+
+            # Collect all gene ids with connections starting or ending in the chosen node, independent of if the node
+            # is enabled or not, to be removed later. Also collect all end nodes of the outgoing connections as well
+            # as all start nodes of all incoming connections.
+            conn_ids_to_remove = list()
+            conn_replacement_start_nodes = list()
+            conn_replacement_end_nodes = list()
+            for gene in blueprint_graph.values():
+                if isinstance(gene, CoDeepNEATBlueprintConn):
+                    if gene.conn_start == node_to_remove:
+                        conn_ids_to_remove.append(gene.gene_id)
+                        if gene.enabled:
+                            conn_replacement_end_nodes.append(gene.conn_end)
+                    elif gene.conn_end == node_to_remove:
+                        conn_ids_to_remove.append(gene.gene_id)
+                        if gene.enabled:
+                            conn_replacement_start_nodes.append(gene.conn_start)
+
+            # Remove chosen node and all connections starting or ending in that node from blueprint graph
+            del blueprint_graph[node_id_to_remove]
+            for id_to_remove in conn_ids_to_remove:
+                del blueprint_graph[id_to_remove]
+
+            # Collect all current connections in blueprint graph to be checked against when creating new connections,
+            # in case the connection already exists. This has be done in each iteration as those connections change
+            # significantly for each round.
+            bp_graph_conns = set()
+            for gene in blueprint_graph.values():
+                if isinstance(gene, CoDeepNEATBlueprintConn):
+                    bp_graph_conns.add((gene.conn_start, gene.conn_end))
+
+            # Recreate the connections of the removed node by connecting all start nodes of the incoming connections to
+            # all end nodes of the outgoing connections.
+            for new_start_node in conn_replacement_start_nodes:
+                for new_end_node in conn_replacement_end_nodes:
+                    if (new_start_node, new_end_node) not in bp_graph_conns:
+                        gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_start_node,
+                                                                            conn_end=new_end_node)
+                        blueprint_graph[gene_id] = gene
+
+        # Create and return the offspring blueprint with the edited blueprint graph having removed nodes which were
+        # replaced by a full connection between all incoming and all outgoing nodes.
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_node_spec(self, parent_blueprint, max_degree_of_mutation):
         """"""
