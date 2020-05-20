@@ -819,87 +819,56 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Create and return the offspring blueprint with the edited blueprint graph having additional connections as
         # well as the parent duplicated optimizer factory.
-        self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                       optimizer_factory=optimizer_factory)
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_add_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
-
+        # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
 
+        # Analyze amount of nodes already present in bp graph as well as collect all gene ids of the present connections
+        # that can possibly be split
         node_count = 0
         bp_graph_conn_ids = list()
         for gene in blueprint_graph.values():
             if isinstance(gene, CoDeepNEATBlueprintNode):
                 node_count += 1
-            elif gene.enabled:
+            elif gene.enabled:  # and isinstance(gene, CoDeepNEATBlueprintConn)
+                # Only consider a connection for bp_graph_conn_ids if it is enabled
                 bp_graph_conn_ids.append(gene.gene_id)
 
-        nodes_to_add_count = math.ceil(mutation_intensity * node_count)
-
-        gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
-
+        # Determine how many nodes will be added, which connection gene_ids will be split for that and what possible
+        # species can be assigned to those new nodes
+        number_of_nodes_to_add = math.ceil(max_degree_of_mutation * node_count)
+        gene_ids_to_split = random.sample(bp_graph_conn_ids, k=number_of_nodes_to_add)
         available_mod_species = tuple(self.mod_species.keys())
 
+        # Split all chosen connections by setting them to disabled, querying the new node id from the encoding and then
+        # creating the new node and the associated 2 connections through the encoding.
+        for gene_id_to_split in gene_ids_to_split:
+            # Determine start and end node of connection and disable it
+            conn_start = blueprint_graph[gene_id_to_split].conn_start
+            conn_end = blueprint_graph[gene_id_to_split].conn_end
+            blueprint_graph[gene_id_to_split].set_enabled(False)
 
+            # Create a new unique node if connection has not yet been split by any other mutation. Otherwise create the
+            # same node. Choose species for new node randomly.
+            new_node = self.encoding.get_node_for_split(conn_start, conn_end)
+            new_species = random.choice(available_mod_species)
 
-        '''
-        elif random_float < bp_mutation_add_node_prob:
-            ## Create new blueprint by adding node ##
-    
-            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-            # case the amount of nodes added to the blueprint graph
-            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-            mutation_intensity = random.uniform(0, 0.3)
-    
-            # Identify all possible connections in blueprint graph that can be split by collecting ids. Also
-            # count nodes to determine intensity of mutation
-            node_count = 0
-            bp_graph_conn_ids = set()
-            for gene in blueprint_graph.values():
-                if isinstance(gene, CoDeepNEATBlueprintNode):
-                    node_count += 1
-                elif gene.enabled:
-                    bp_graph_conn_ids.add(gene.gene_id)
-    
-            # Determine specifically how many nodes will be added
-            nodes_to_add_count = int(mutation_intensity * node_count)
-            if nodes_to_add_count == 0:
-                nodes_to_add_count = 1
-    
-            # Uniform randomly choosen connections by ID that are to be split
-            gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
-    
-            # Determine possible species for new nodes
-            available_mod_species = tuple(self.mod_species.keys())
-    
-            # Actually perform the split and adding of new node for all determined connections
-            for gene_id_to_split in gene_ids_to_split:
-                # Determine start and end node of connection and disable it
-                conn_start = blueprint_graph[gene_id_to_split].conn_start
-                conn_end = blueprint_graph[gene_id_to_split].conn_end
-                blueprint_graph[gene_id_to_split].set_enabled(False)
-    
-                # Create a new unique node if connection has not yet been split by any other mutation. Otherwise
-                # create the same node. Choose species for new node randomly.
-                new_node = self.encoding.get_node_for_split(conn_start, conn_end)
-                new_species = random.choice(available_mod_species)
-    
-                # Create the genes for the new node addition and add to the blueprint graph
-                gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
-                blueprint_graph[gene_id] = gene
-                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
-                blueprint_graph[gene_id] = gene
-                gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
-                blueprint_graph[gene_id] = gene
-    
-            # Create new offpsring blueprint with parent mutated blueprint graph
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)        
-        '''
+            # Create the node and connections genes for the new node addition and add them to the blueprint graph
+            gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
+            blueprint_graph[gene_id] = gene
+            gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
+            blueprint_graph[gene_id] = gene
+            gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
+            blueprint_graph[gene_id] = gene
+
+        # Create and return the offspring blueprint with the edited blueprint graph having a new node through a split
+        # connection as well as the parent duplicated optimizer factory.
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_rem_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
