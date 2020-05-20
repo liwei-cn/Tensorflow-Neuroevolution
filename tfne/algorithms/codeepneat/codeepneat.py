@@ -1119,66 +1119,39 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _create_crossed_over_blueprint(self, parent_bp_1, parent_bp_2):
         """"""
-        raise NotImplementedError()
-        '''
-        else:  # random_float < self.bp_crossover + bp_mutation_hp_prob
-        ## Create new blueprint through crossover ##
-    
-        # Determine if 2 blueprints are available in current species, as is required for crossover
-        if len(self.bp_species[spec_id]) == 1:
-    
-            # If Only 1 blueprint in current species available as parent, create new blueprint with
-            # identical parameters
-            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-    
-            # Create new offpsring blueprint with identical parameters
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)
-    
+        # Copy the parameters of both parent blueprints for the offspring
+        bp_graph_1, opt_factory_1 = parent_bp_1.copy_parameters()
+        bp_graph_2, opt_factory_2 = parent_bp_2.copy_parameters()
+
+        # Create quickly searchable sets of gene ids to know about the overlap of genes in both blueprint graphs
+        bp_graph_1_ids = set(bp_graph_1.keys())
+        bp_graph_2_ids = set(bp_graph_2.keys())
+        all_bp_graph_ids = bp_graph_1_ids.union(bp_graph_2_ids)
+
+        # Create offspring blueprint graph by traversing all blueprint graph ids an copying over all genes that are
+        # exclusive to either blueprint graph and randomly choosing the gene to copy over that is present in both graphs
+        offspring_bp_graph = dict()
+        for gene_id in all_bp_graph_ids:
+            if gene_id in bp_graph_1_ids and gene_id in bp_graph_2_ids:
+                if random.randint(0, 1) == 0:
+                    offspring_bp_graph[gene_id] = bp_graph_1[gene_id]
+                else:
+                    offspring_bp_graph[gene_id] = bp_graph_2[gene_id]
+            elif gene_id in bp_graph_1_ids:
+                offspring_bp_graph[gene_id] = bp_graph_1[gene_id]
+            else:  # if gene_id in bp_graph_2_ids
+                offspring_bp_graph[gene_id] = bp_graph_2[gene_id]
+
+        # For the optimizer factory choose the one from the fitter parent blueprint
+        if parent_bp_1.get_fitness() > parent_bp_2.get_fitness():
+            offspring_opt_factory = opt_factory_1
         else:
-            # Choose 2 random though different blueprint ids as parents
-            parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
-    
-            # Assign the 'base_bp_graph' variable to the fitter blueprint and the 'other_bp_graph' variable
-            # to the less fitter blueprint. Copy over output activation and optimizer factory from the
-            # fitter blueprint for the creation of the crossed over bp
-            if self.blueprints[parent_bp_1_id].get_fitness() > \
-                    self.blueprints[parent_bp_2_id].get_fitness():
-                base_bp_graph, _, output_activation, optimizer_factory = \
-                    self.blueprints[parent_bp_1_id].duplicate_parameters()
-                other_bp_graph, _, _, _ = self.blueprints[parent_bp_2_id].duplicate_parameters()
-            else:
-                other_bp_graph, _, _, _ = self.blueprints[parent_bp_1_id].duplicate_parameters()
-                base_bp_graph, _, output_activation, optimizer_factory = \
-                    self.blueprints[parent_bp_2_id].duplicate_parameters()
-    
-            # Create quickly searchable sets of gene ids for the ids present in both the fitter and less fit
-            # blueprint graphs
-            base_bp_graph_ids = set(other_bp_graph.keys())
-            other_bp_graph_ids = set(other_bp_graph.keys())
-            all_bp_graph_ids = base_bp_graph_ids.union(other_bp_graph_ids)
-    
-            # For all gene ids in the blueprint graphs, choose uniform randomly which blueprint gene is
-            # carried over to the new blueprint graph if the gene id is joint (both blueprint graph have
-            # it). Carry over all gene ids to new blueprint graph that are exclusive to either parent
-            # blueprint graph.
-            for gene_id in all_bp_graph_ids:
-                if gene_id in base_bp_graph_ids and gene_id in other_bp_graph_ids:
-                    if random.randint(0, 1) == 0:
-                        base_bp_graph[gene_id] = other_bp_graph[gene_id]
-                elif gene_id in other_bp_graph_ids:
-                    base_bp_graph[gene_id] = other_bp_graph[gene_id]
-    
-            # Create new offpsring blueprint with crossed over blueprint graph and hyperparameters of
-            # fitter parent blueprint
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=base_bp_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)
-        '''
+            offspring_opt_factory = opt_factory_2
+
+        # Create and return the offspring blueprint with crossed over blueprint graph and optimizer_factory of the
+        # fitter parent
+        return self.encoding.create_blueprint(blueprint_graph=offspring_bp_graph,
+                                              optimizer_factory=offspring_opt_factory)
 
     def save_population(self, save_dir_path):
         """"""
