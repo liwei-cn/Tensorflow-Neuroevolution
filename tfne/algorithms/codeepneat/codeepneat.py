@@ -993,46 +993,27 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _create_mutated_blueprint_node_spec(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        raise NotImplementedError()
-        '''
-        elif random_float < bp_mutation_node_species_prob:
-            ## Create new blueprint by changing species of nodes ##
-    
-            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-            # case the amount of nodes changed in the blueprint graph
-            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-            mutation_intensity = random.uniform(0, 0.3)
-    
-            # Identify all non-Input nodes in the blueprint graph by ID
-            bp_graph_node_ids = set()
-            for gene in blueprint_graph.values():
-                if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
-                    bp_graph_node_ids.add(gene.gene_id)
-    
-            # Determine specifically how many nodes will be changed
-            nodes_to_change_count = int(mutation_intensity * len(bp_graph_node_ids))
-            if nodes_to_change_count == 0:
-                nodes_to_change_count = 1
-    
-            # Uniform randomly choosen nodes by ID that will get a changed species
-            gene_ids_to_mutate = random.sample(bp_graph_node_ids, k=nodes_to_change_count)
-    
-            # Determine possible species to mutate nodes into
-            available_mod_species = tuple(self.mod_species.keys())
-    
-            # Actually perform the split and adding of new node for all determined connections
-            for gene_id_to_mutate in gene_ids_to_mutate:
-                # Randomly choose new species from available ones and assign species to blueprint graph
-                new_species = random.choice(available_mod_species)
-                blueprint_graph[gene_id_to_mutate].species = new_species
-    
-            # Create new offpsring blueprint with parent mutated blueprint graph
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)
-        '''
+        # Copy the parameters of the parent blueprint for the offspring
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Identify all non-Input nodes in the blueprint graph by gene ID as the species of those can be mutated
+        bp_graph_node_ids = set()
+        for gene in blueprint_graph.values():
+            if isinstance(gene, CoDeepNEATBlueprintNode) and gene.node != 1:
+                bp_graph_node_ids.add(gene.gene_id)
+
+        # Determine the node ids that have their species changed and the available module species to change into
+        number_of_node_species_to_change = math.ceil(max_degree_of_mutation * len(bp_graph_node_ids))
+        node_ids_to_change_species = random.sample(bp_graph_node_ids, k=number_of_node_species_to_change)
+        available_mod_species = tuple(self.mod_species.keys())
+
+        # Traverse through all randomly chosen node ids and change their module species randomly to one of the available
+        for node_id_to_change_species in node_ids_to_change_species:
+            blueprint_graph[node_id_to_change_species].species = random.choice(available_mod_species)
+
+        # Create and return the offspring blueprint with the edited blueprint graph having mutated species
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_mutated_blueprint_optimizer(self, parent_blueprint, max_degree_of_mutation):
         """"""
