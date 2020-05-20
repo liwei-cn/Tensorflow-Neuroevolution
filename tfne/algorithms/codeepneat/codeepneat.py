@@ -608,11 +608,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
                 elif random_choice < bp_mutation_optimizer_bracket:
                     ## Create new blueprint by mutating the associated optimizer ##
-                    # Randomly determine the parent blueprint from the current species and the degree of mutation.
+                    # Randomly determine the parent blueprint from the current species.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
-                    new_bp_id, new_bp = self._create_mutated_blueprint_optimizer(parent_blueprint,
-                                                                                 max_degree_of_mutation)
+                    new_bp_id, new_bp = self._create_mutated_blueprint_optimizer(parent_blueprint)
 
                 else:  # random_choice < bp_crossover_bracket:
                     ## Create new blueprint through crossover ##
@@ -1015,71 +1013,109 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
                                               optimizer_factory=optimizer_factory)
 
-    def _create_mutated_blueprint_optimizer(self, parent_blueprint, max_degree_of_mutation):
+    def _create_mutated_blueprint_optimizer(self, parent_blueprint):
         """"""
-        raise NotImplementedError()
-        '''
-        elif random_float < bp_mutation_hp_prob:
-            ## Create new blueprint by mutating the hyperparameters ##
-    
-            # Determine parent blueprint and its parameters as well as the intensity of the mutation, in this
-            # case the amount of hyperparameters to be changed
-            parent_bp = self.blueprints[random.choice(self.bp_species[spec_id])]
-            blueprint_graph, _, output_activation, optimizer_factory = parent_bp.duplicate_parameters()
-            mutation_intensity = random.uniform(0, 0.3)
-    
-            # Uniform randomly determine optimizer to change to
-            if random.choice(self.available_optimizers) == 'SGD':
-                # Determine if current optimizer factory of same type as optimizer to change to, as in this case
-                # the variables will be perturbed instead of created completely new
-                if isinstance(optimizer_factory, SGDFactory):
-                    # Get current parameters of optimizer
-                    learning_rate, momentum, nesterov = optimizer_factory.get_parameters()
-    
-                    # Determine specifically how many hps will be changed
-                    hps_to_change_count = int(mutation_intensity * 4)
-                    if hps_to_change_count == 0:
-                        hps_to_change_count = 1
-    
-                    # Create specific list of parameter ids to be changed
-                    parameters_to_change = random.sample(range(4), k=hps_to_change_count)
-    
-                    # Traverse through list of parameter ids to change. Categorical hps will be uniform randomly
-                    # chosen anew. Sortable hps will be perturbed with normal distribution and config specified
-                    # standard deviation
-                    for param_to_change in parameters_to_change:
-                        if param_to_change == 0:
-                            output_activation = random.choice(self.output_activations)
-                        elif param_to_change == 1:
-                            perturbed_lr = np.random.normal(loc=learning_rate,
-                                                            scale=self.sgd_learning_rate_stddev)
-                            learning_rate = round_to_nearest_multiple(perturbed_lr,
-                                                                      self.sgd_learning_rate[0],
-                                                                      self.sgd_learning_rate[1],
-                                                                      self.sgd_learning_rate[2])
-                        elif param_to_change == 2:
-                            perturbed_momentum = np.random.normal(loc=momentum, scale=self.sgd_momentum_stddev)
-                            momentum = round_to_nearest_multiple(perturbed_momentum,
-                                                                 self.sgd_momentum[0],
-                                                                 self.sgd_momentum[1],
-                                                                 self.sgd_momentum[2])
-                        elif param_to_change == 3:
-                            nesterov = random.choice(self.sgd_nesterov)
-    
-                    # Create new optimizer factory with newly mutated parameters
-                    optimizer_factory = SGDFactory(learning_rate, momentum, nesterov)
+        # Copy the parameters of the parent blueprint for the offspring
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+        parent_opt_params = optimizer_factory.get_parameters()
+
+        # Randomly choose type of offspring optimizer and declare container collecting the specific parameters of
+        # the offspring optimizer, setting only the chosen optimizer class
+        offspring_optimizer_type = random.choice(self.available_optimizers)
+        available_opt_params = self.available_opt_params[offspring_optimizer_type]
+        offspring_opt_params = {'class_name': offspring_optimizer_type, 'config': dict()}
+
+        if offspring_optimizer_type == parent_opt_params['class_name']:
+            ## Mutation of the existing optimizers' parameters ##
+            # Traverse each possible parameter option and determine a uniformly random value if its a categorical param
+            # or try perturbing the the parent parameter if it is a sortable.
+            for opt_param, opt_param_val_range in available_opt_params.items():
+                # If the optimizer parameter is a categorical value choose randomly from the list
+                if isinstance(opt_param_val_range, list):
+                    offspring_opt_params['config'][opt_param] = random.choice(opt_param_val_range)
+                # If the optimizer parameter is sortable, create a random value between the min and max values adhering
+                # to the configured step
+                elif isinstance(opt_param_val_range, dict):
+                    if isinstance(opt_param_val_range['min'], int) \
+                            and isinstance(opt_param_val_range['max'], int) \
+                            and isinstance(opt_param_val_range['step'], int):
+                        perturbed_param = int(np.random.normal(loc=parent_opt_params['config'][opt_param],
+                                                               scale=opt_param_val_range['stddev']))
+                        chosen_opt_param = round_with_step(perturbed_param,
+                                                           opt_param_val_range['min'],
+                                                           opt_param_val_range['max'],
+                                                           opt_param_val_range['step'])
+                    elif isinstance(opt_param_val_range['min'], float) \
+                            and isinstance(opt_param_val_range['max'], float) \
+                            and isinstance(opt_param_val_range['step'], float):
+                        perturbed_param = np.random.normal(loc=parent_opt_params['config'][opt_param],
+                                                           scale=opt_param_val_range['stddev'])
+                        chosen_opt_param = round(round_with_step(perturbed_param,
+                                                                 opt_param_val_range['min'],
+                                                                 opt_param_val_range['max'],
+                                                                 opt_param_val_range['step']), 4)
+                    else:
+                        raise NotImplementedError(f"Config parameter '{opt_param}' of the {offspring_optimizer_type} "
+                                                  f"optimizer section is of type dict though the dict values are not "
+                                                  f"of type int or float")
+                    offspring_opt_params['config'][opt_param] = chosen_opt_param
+                # If the optimizer parameter is a binary value it is specified as a float with the probablity of that
+                # parameter being set to True
+                elif isinstance(opt_param_val_range, float):
+                    offspring_opt_params['config'][opt_param] = random.random() < opt_param_val_range
                 else:
-                    raise NotImplementedError("Handling of conversion to SGD optimizer while the current "
-                                              "optimizer is not SGD not yet implemented")
-            else:
-                raise RuntimeError("Optimizer other than SGD not yet implemented")
-    
-            # Create new offpsring blueprint with parent mutated hyperparameters
-            new_bp_id, new_bp = self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                                               output_shape=self.output_shape,
-                                                               output_activation=output_activation,
-                                                               optimizer_factory=optimizer_factory)
-        '''
+                    raise NotImplementedError(f"Config parameter '{opt_param}' of the {offspring_optimizer_type} "
+                                              f"optimizer section is not one of the valid types of list, dict or float")
+
+        else:
+            ## Creation of a new optimizer with random parameters ##
+            # Traverse each possible parameter option and determine a uniformly random value depending on if its a
+            # categorical, sortable or boolean value
+            for opt_param, opt_param_val_range in available_opt_params.items():
+                # If the optimizer parameter is a categorical value choose randomly from the list
+                if isinstance(opt_param_val_range, list):
+                    offspring_opt_params['config'][opt_param] = random.choice(opt_param_val_range)
+                # If the optimizer parameter is sortable, create a random value between the min and max values adhering
+                # to the configured step
+                elif isinstance(opt_param_val_range, dict):
+                    if isinstance(opt_param_val_range['min'], int) \
+                            and isinstance(opt_param_val_range['max'], int) \
+                            and isinstance(opt_param_val_range['step'], int):
+                        opt_param_random = random.randint(opt_param_val_range['min'],
+                                                          opt_param_val_range['max'])
+                        chosen_opt_param = round_with_step(opt_param_random,
+                                                           opt_param_val_range['min'],
+                                                           opt_param_val_range['max'],
+                                                           opt_param_val_range['step'])
+                    elif isinstance(opt_param_val_range['min'], float) \
+                            and isinstance(opt_param_val_range['max'], float) \
+                            and isinstance(opt_param_val_range['step'], float):
+                        opt_param_random = random.uniform(opt_param_val_range['min'],
+                                                          opt_param_val_range['max'])
+                        chosen_opt_param = round(round_with_step(opt_param_random,
+                                                                 opt_param_val_range['min'],
+                                                                 opt_param_val_range['max'],
+                                                                 opt_param_val_range['step']), 4)
+                    else:
+                        raise NotImplementedError(f"Config parameter '{opt_param}' of the {offspring_optimizer_type} "
+                                                  f"optimizer section is of type dict though the dict values are not "
+                                                  f"of type int or float")
+                    offspring_opt_params['config'][opt_param] = chosen_opt_param
+                # If the optimizer parameter is a binary value it is specified as a float with the probablity of that
+                # parameter being set to True
+                elif isinstance(opt_param_val_range, float):
+                    offspring_opt_params['config'][opt_param] = random.random() < opt_param_val_range
+                else:
+                    raise NotImplementedError(f"Config parameter '{opt_param}' of the {offspring_optimizer_type} "
+                                              f"optimizer section is not one of the valid types of list, dict or float")
+
+        # Create new optimizer through encoding, having either the parent perturbed offspring parameters or randomly
+        # new created parameters
+        optimizer_factory = self.encoding.create_optimizer_factory(optimizer_parameters=offspring_opt_params)
+
+        # Create and return the offspring blueprint with identical blueprint graph and modified optimizer_factory
+        return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
+                                              optimizer_factory=optimizer_factory)
 
     def _create_crossed_over_blueprint(self, parent_bp_1, parent_bp_2):
         """"""
