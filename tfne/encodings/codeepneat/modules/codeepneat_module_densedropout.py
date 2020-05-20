@@ -72,8 +72,6 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
 
         # Determine exact integer amount of parameters to be mutated, though minimum is 1
         param_mutation_count = math.ceil(max_degree_of_mutation * 7)
-        if param_mutation_count == 0:
-            param_mutation_count = 1
 
         # Uniform randomly choose the parameters to be mutated
         parameters_to_mutate = random.sample(range(7), k=param_mutation_count)

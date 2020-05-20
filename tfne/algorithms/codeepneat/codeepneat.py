@@ -492,7 +492,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     # parameters associated with the parent module and let the internal mutation function create a new
                     # module
                     mod_offspring_id = self.encoding.get_next_module_id()
-                    max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
                     parent_module = self.modules[random.choice(self.mod_species[spec_id])]
                     config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
@@ -512,7 +512,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # Get a new module ID from encoding, randomly determine the maximum degree of mutation and then
                         # determine the config parameters associated with the modules
                         mod_offspring_id = self.encoding.get_next_module_id()
-                        max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                        max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
                         config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                         # Determine the fitter parent module and let its internal crossover function create offspring
@@ -531,7 +531,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # As species does not have enough modules for crossover, perform a mutation on the remaining
                         # module
                         mod_offspring_id = self.encoding.get_next_module_id()
-                        max_degree_of_mutation = random.uniform(0, self.mod_max_mutation)
+                        max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
                         parent_module = self.modules[random.choice(self.mod_species[spec_id])]
                         config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
@@ -569,7 +569,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by adding connection ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_add_conn(parent_blueprint,
                                                                                 max_degree_of_mutation)
 
@@ -577,7 +577,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by adding node ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_add_node(parent_blueprint,
                                                                                 max_degree_of_mutation)
 
@@ -585,7 +585,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by removing connection ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_rem_conn(parent_blueprint,
                                                                                 max_degree_of_mutation)
 
@@ -593,7 +593,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by removing node ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_rem_node(parent_blueprint,
                                                                                 max_degree_of_mutation)
 
@@ -601,7 +601,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by mutating species in nodes ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_node_spec(parent_blueprint,
                                                                                  max_degree_of_mutation)
 
@@ -609,7 +609,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     ## Create new blueprint by mutating the associated optimizer ##
                     # Randomly determine the parent blueprint from the current species and the degree of mutation.
                     parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                    max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                    max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                     new_bp_id, new_bp = self._create_mutated_blueprint_optimizer(parent_blueprint,
                                                                                  max_degree_of_mutation)
 
@@ -629,7 +629,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         # perturbation in the blueprint nodes. Determine uniform randomly the parent blueprint from the
                         # current species and the degree of mutation.
                         parent_blueprint = self.blueprints[random.choice(self.bp_species[spec_id])]
-                        max_degree_of_mutation = random.uniform(0, self.bp_max_mutation)
+                        max_degree_of_mutation = random.uniform(1e-323, self.bp_max_mutation)
                         new_bp_id, new_bp = self._create_mutated_blueprint_node_spec(parent_blueprint,
                                                                                      max_degree_of_mutation)
 
@@ -789,8 +789,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Determine specifically how many connections will be added
         number_of_conns_to_add = math.ceil(max_degree_of_mutation * len(bp_graph_conns))
-        if number_of_conns_to_add == 0:
-            number_of_conns_to_add = 1
 
         # Add connections in a loop until predetermined number of connections that are to be added is reached or until
         # the possible starting nodes run out
@@ -826,7 +824,25 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _create_mutated_blueprint_add_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
-        raise NotImplementedError()
+
+        blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        node_count = 0
+        bp_graph_conn_ids = list()
+        for gene in blueprint_graph.values():
+            if isinstance(gene, CoDeepNEATBlueprintNode):
+                node_count += 1
+            elif gene.enabled:
+                bp_graph_conn_ids.append(gene.gene_id)
+
+        nodes_to_add_count = math.ceil(mutation_intensity * node_count)
+
+        gene_ids_to_split = random.sample(bp_graph_conn_ids, k=nodes_to_add_count)
+
+        available_mod_species = tuple(self.mod_species.keys())
+
+
+
         '''
         elif random_float < bp_mutation_add_node_prob:
             ## Create new blueprint by adding node ##
