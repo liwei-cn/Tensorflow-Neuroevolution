@@ -86,7 +86,7 @@ class CoDeepNEATGenome(BaseGenome):
             if merge_method is not None:
                 node_input_list = [node_outputs[node_dep] for node_dep in current_node_dependencies]
                 # FIXME POSSIBLY ADJUST THE STATIC AXIS=1 PARAMETER FOR OTHER MERGE METHODS THAN CONCAT
-                node_input = merge_method(node_input_list, axis=1)
+                node_input = merge_method(node_input_list, axis=1, dtype=self.dtype)
             else:
                 node_input = node_outputs[current_node_dependencies[0]]
 

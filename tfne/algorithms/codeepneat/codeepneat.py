@@ -548,10 +548,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         self.modules = new_modules
         self.mod_species = new_mod_species
 
-        # TODO Continue Here
-        print("Exiting Cleanly")
-        exit()
-
         #### Evolve Blueprints ####
         # Calculate the brackets for a random float to fall into in order to choose a specific evolutionary method
         bp_mutation_add_node_bracket = self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob
@@ -618,8 +614,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     if len(self.bp_species[spec_id]) >= 2:
                         # Randomly determine both parents for the blueprint crossover
                         parent_bp_1_id, parent_bp_2_id = random.sample(self.bp_species[spec_id], k=2)
-                        parent_bp_1 = self.modules[parent_bp_1_id]
-                        parent_bp_2 = self.modules[parent_bp_2_id]
+                        parent_bp_1 = self.blueprints[parent_bp_1_id]
+                        parent_bp_2 = self.blueprints[parent_bp_2_id]
                         new_bp_id, new_bp = self._create_crossed_over_blueprint(parent_bp_1,
                                                                                 parent_bp_2)
 
@@ -890,11 +886,14 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Remove all nodes from the 'bp_graph_incoming_conn_ids' dict that have only 1 incoming connection, as this
         # connection is essential and can not be removed without also effectively removing nodes. If a node has more
         # than 1 incoming connection then shuffle those, as they will later be popped.
+        bp_graph_incoming_conn_ids_to_remove = list()
         for conn_end, incoming_conn_ids in bp_graph_incoming_conn_ids.items():
             if len(incoming_conn_ids) == 1:
-                del bp_graph_incoming_conn_ids[conn_end]
+                bp_graph_incoming_conn_ids_to_remove.append(conn_end)
             else:
                 random.shuffle(bp_graph_incoming_conn_ids[conn_end])
+        for conn_id_to_remove in bp_graph_incoming_conn_ids_to_remove:
+            del bp_graph_incoming_conn_ids[conn_id_to_remove]
 
         # Determine how many conns will be removed based on the total connection count
         number_of_conns_to_rem = math.ceil(max_degree_of_mutation * conn_count)
@@ -923,7 +922,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
 
-        # Collect all gene_ids of connections that are not the input or output node (as they are unremovable) and
+        # Collect all gene_ids of nodes that are not the input or output node (as they are unremovable) and
         # shuffle the list of those node ids for later random popping.
         node_count = 0
         bp_graph_node_ids = list()
