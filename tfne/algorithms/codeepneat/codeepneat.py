@@ -935,7 +935,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # removing the associated gene id from the bp graph
         rem_conns_counter = 0
         while rem_conns_counter < number_of_conns_to_rem and len(bp_graph_incoming_conn_ids) > 0:
-            rem_conn_end_node = random.choice(bp_graph_incoming_conn_ids.keys())
+            rem_conn_end_node = random.choice(tuple(bp_graph_incoming_conn_ids.keys()))
             conn_id_to_remove = bp_graph_incoming_conn_ids[rem_conn_end_node].pop()
             # If node has only 1 incoming connection, remove it from the possible end nodes for future iterations
             if len(bp_graph_incoming_conn_ids[rem_conn_end_node]) == 1:
