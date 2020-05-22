@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from ..base_environment import BaseEnvironment, BaseEnvironmentFactory
+from .base_environment import BaseEnvironment, BaseEnvironmentFactory
 
 
 class XOREnvironment(BaseEnvironment):

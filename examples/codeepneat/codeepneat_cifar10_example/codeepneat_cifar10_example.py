@@ -18,11 +18,11 @@ flags.DEFINE_float('max_fitness',
                    default=None, help='TODO')
 
 
-def codeepneat_example(_):
+def codeepneat_cifar10_example(_):
     """"""
     # Set standard configuration specific to TFNE but not the neuroevolution process
     logging_level = logging.INFO
-    config_file_path = './codeepneat_example_config.cfg'
+    config_file_path = './codeepneat_cifar10_example_config.cfg'
     backup_dir_path = './population_backups/'
     num_cpus = None
     num_gpus = None
@@ -50,7 +50,7 @@ def codeepneat_example(_):
     config = tfne.parse_configuration(config_file_path)
 
     # Initialize the environment as well as the specific NE algorithm
-    environment_factory = tfne.environments.XOREnvironmentFactory()
+    environment_factory = tfne.environments.CIFAR10EnvironmentFactory()
     ne_algorithm = tfne.CoDeepNEAT(config, environment_factory)
 
     # Initialize evolution engine and supply config as well as initialized NE elements
@@ -72,4 +72,4 @@ def codeepneat_example(_):
 
 
 if __name__ == '__main__':
-    app.run(codeepneat_example)
+    app.run(codeepneat_cifar10_example)
