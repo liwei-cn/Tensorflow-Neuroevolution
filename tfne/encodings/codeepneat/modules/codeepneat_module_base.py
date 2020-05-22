@@ -7,8 +7,9 @@ import tensorflow as tf
 class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     """"""
 
-    def __init__(self, module_id, merge_method):
+    def __init__(self, module_id, parent_mutation, merge_method):
         self.module_id = module_id
+        self.parent_mutation = parent_mutation
         self.merge_method = merge_method
         self.fitness = 0
 

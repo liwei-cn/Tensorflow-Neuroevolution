@@ -206,6 +206,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Declare container collecting the specific parameters of the module to be created
         chosen_module_params = dict()
 
+        # Create the dict that keeps track of the way a module has been mutated or created
+        parent_mutation = {'parent_id': None,
+                           'mutation': 'init'}
+
         # Determine the specific parameter dict of the current module type
         available_module_params = self.available_mod_params[mod_type]
 
@@ -247,10 +251,16 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                           f"valid types of list, dict or float")
 
         # Create new module through encoding and return its ID and module
-        return self.encoding.create_module(mod_type=mod_type, module_parameters=chosen_module_params)
+        return self.encoding.create_module(mod_type=mod_type,
+                                           parent_mutation=parent_mutation,
+                                           module_parameters=chosen_module_params)
 
     def _create_initial_blueprint(self, initial_node_species) -> (int, CoDeepNEATBlueprint):
         """"""
+        # Create the dict that keeps track of the way a blueprint has been mutated or created
+        parent_mutation = {'parent_id': None,
+                           'mutation': 'init'}
+
         # Create a minimal blueprint graph with node 1 being the input node (having no species) and node 2 being the
         # random initial node species
         blueprint_graph = dict()
@@ -312,7 +322,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Create just defined initial blueprint through encoding
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
         """"""
@@ -767,6 +778,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
         bp_graph_topology = parent_blueprint.get_graph_topology()
 
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'add_conn',
+                           'added_genes': list()}
+
         # Create collections of all nodes and present connections in the copied blueprint graph
         bp_graph_conns = set()
         bp_graph_nodes = list()
@@ -810,17 +826,24 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     gene_id, gene = self.encoding.create_blueprint_conn(conn_start=start_node,
                                                                         conn_end=end_node)
                     blueprint_graph[gene_id] = gene
+                    parent_mutation['added_genes'].append(gene_id)
                     added_conns_counter += 1
 
         # Create and return the offspring blueprint with the edited blueprint graph having additional connections as
         # well as the parent duplicated optimizer factory.
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_mutated_blueprint_add_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'add_node',
+                           'added_genes': list()}
 
         # Analyze amount of nodes already present in bp graph as well as collect all gene ids of the present connections
         # that can possibly be split
@@ -855,20 +878,29 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             # Create the node and connections genes for the new node addition and add them to the blueprint graph
             gene_id, gene = self.encoding.create_blueprint_node(node=new_node, species=new_species)
             blueprint_graph[gene_id] = gene
+            parent_mutation['added_genes'].append(gene_id)
             gene_id, gene = self.encoding.create_blueprint_conn(conn_start=conn_start, conn_end=new_node)
             blueprint_graph[gene_id] = gene
+            parent_mutation['added_genes'].append(gene_id)
             gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_node, conn_end=conn_end)
             blueprint_graph[gene_id] = gene
+            parent_mutation['added_genes'].append(gene_id)
 
         # Create and return the offspring blueprint with the edited blueprint graph having a new node through a split
         # connection as well as the parent duplicated optimizer factory.
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_mutated_blueprint_rem_conn(self, parent_blueprint, max_degree_of_mutation):
         """"""
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'rem_conn',
+                           'removed_genes': list()}
 
         # Analyze amount of connections already present in bp graph and collect all gene ids whose connection ends in
         # certain nodes, allowing the algorithm to determine which connections can be removed as they are not the sole
@@ -910,17 +942,24 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 del bp_graph_incoming_conn_ids[rem_conn_end_node]
 
             del blueprint_graph[conn_id_to_remove]
+            parent_mutation['removed_genes'].append(conn_id_to_remove)
             rem_conns_counter += 1
 
         # Create and return the offspring blueprint with the edited blueprint graph having one or multiple connections
         # removed though still having at least 1 connection to each node.
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_mutated_blueprint_rem_node(self, parent_blueprint, max_degree_of_mutation):
         """"""
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'rem_node',
+                           'removed_genes': list()}
 
         # Collect all gene_ids of nodes that are not the input or output node (as they are unremovable) and
         # shuffle the list of those node ids for later random popping.
@@ -963,8 +1002,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
             # Remove chosen node and all connections starting or ending in that node from blueprint graph
             del blueprint_graph[node_id_to_remove]
+            parent_mutation['removed_genes'].append(node_id_to_remove)
             for id_to_remove in conn_ids_to_remove:
                 del blueprint_graph[id_to_remove]
+                parent_mutation['removed_genes'].append(id_to_remove)
 
             # Collect all current connections in blueprint graph to be checked against when creating new connections,
             # in case the connection already exists. This has be done in each iteration as those connections change
@@ -986,12 +1027,18 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         # Create and return the offspring blueprint with the edited blueprint graph having removed nodes which were
         # replaced by a full connection between all incoming and all outgoing nodes.
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_mutated_blueprint_node_spec(self, parent_blueprint, max_degree_of_mutation):
         """"""
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'node_spec',
+                           'mutated_node_spec': dict()}
 
         # Identify all non-Input nodes in the blueprint graph by gene ID as the species of those can be mutated
         bp_graph_node_ids = set()
@@ -1006,17 +1053,25 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Traverse through all randomly chosen node ids and change their module species randomly to one of the available
         for node_id_to_change_species in node_ids_to_change_species:
+            former_node_species = blueprint_graph[node_id_to_change_species].species
+            parent_mutation['mutated_node_spec'][node_id_to_change_species] = former_node_species
             blueprint_graph[node_id_to_change_species].species = random.choice(available_mod_species)
 
         # Create and return the offspring blueprint with the edited blueprint graph having mutated species
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_mutated_blueprint_optimizer(self, parent_blueprint):
         """"""
         # Copy the parameters of the parent blueprint for the offspring
         blueprint_graph, optimizer_factory = parent_blueprint.copy_parameters()
         parent_opt_params = optimizer_factory.get_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': parent_blueprint.get_id(),
+                           'mutation': 'optimizer',
+                           'mutated_params': parent_opt_params}
 
         # Randomly choose type of offspring optimizer and declare container collecting the specific parameters of
         # the offspring optimizer, setting only the chosen optimizer class
@@ -1114,13 +1169,20 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Create and return the offspring blueprint with identical blueprint graph and modified optimizer_factory
         return self.encoding.create_blueprint(blueprint_graph=blueprint_graph,
-                                              optimizer_factory=optimizer_factory)
+                                              optimizer_factory=optimizer_factory,
+                                              parent_mutation=parent_mutation)
 
     def _create_crossed_over_blueprint(self, parent_bp_1, parent_bp_2):
         """"""
         # Copy the parameters of both parent blueprints for the offspring
         bp_graph_1, opt_factory_1 = parent_bp_1.copy_parameters()
         bp_graph_2, opt_factory_2 = parent_bp_2.copy_parameters()
+
+        # Create the dict that keeps track of the way a blueprint has been mutated
+        parent_mutation = {'parent_id': (parent_bp_1.get_id(), parent_bp_2.get_id()),
+                           'mutation': 'crossover',
+                           'gene_parent': dict(),
+                           'optimizer_parent': None}
 
         # Create quickly searchable sets of gene ids to know about the overlap of genes in both blueprint graphs
         bp_graph_1_ids = set(bp_graph_1.keys())
@@ -1134,23 +1196,30 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             if gene_id in bp_graph_1_ids and gene_id in bp_graph_2_ids:
                 if random.randint(0, 1) == 0:
                     offspring_bp_graph[gene_id] = bp_graph_1[gene_id]
+                    parent_mutation['gene_parent'][gene_id] = parent_bp_1.get_id()
                 else:
                     offspring_bp_graph[gene_id] = bp_graph_2[gene_id]
+                    parent_mutation['gene_parent'][gene_id] = parent_bp_2.get_id()
             elif gene_id in bp_graph_1_ids:
                 offspring_bp_graph[gene_id] = bp_graph_1[gene_id]
+                parent_mutation['gene_parent'][gene_id] = parent_bp_1.get_id()
             else:  # if gene_id in bp_graph_2_ids
                 offspring_bp_graph[gene_id] = bp_graph_2[gene_id]
+                parent_mutation['gene_parent'][gene_id] = parent_bp_2.get_id()
 
         # For the optimizer factory choose the one from the fitter parent blueprint
         if parent_bp_1.get_fitness() > parent_bp_2.get_fitness():
             offspring_opt_factory = opt_factory_1
+            parent_mutation['optimizer_parent'] = parent_bp_1.get_id()
         else:
             offspring_opt_factory = opt_factory_2
+            parent_mutation['optimizer_parent'] = parent_bp_2.get_id()
 
         # Create and return the offspring blueprint with crossed over blueprint graph and optimizer_factory of the
         # fitter parent
         return self.encoding.create_blueprint(blueprint_graph=offspring_bp_graph,
-                                              optimizer_factory=offspring_opt_factory)
+                                              optimizer_factory=offspring_opt_factory,
+                                              parent_mutation=parent_mutation)
 
     def save_population(self, save_dir_path):
         """"""

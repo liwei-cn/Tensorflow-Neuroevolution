@@ -15,6 +15,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
 
     def __init__(self,
                  module_id,
+                 parent_mutation,
                  merge_method,
                  units,
                  activation,
@@ -24,7 +25,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                  dropout_rate):
         """"""
         # Register parameters
-        super().__init__(module_id, merge_method)
+        super().__init__(module_id, parent_mutation, merge_method)
         self.units = units
         self.activation = activation
         self.kernel_init = kernel_init
@@ -70,6 +71,11 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                             'dropout_flag': self.dropout_flag,
                             'dropout_rate': self.dropout_rate}
 
+        # Create the dict that keeps track of the mutations occuring for the offspring
+        parent_mutation = {'parent_id': self.module_id,
+                           'mutation': 'mutation',
+                           'mutated_params': dict()}
+
         # Determine exact integer amount of parameters to be mutated, though minimum is 1
         param_mutation_count = math.ceil(max_degree_of_mutation * 7)
 
@@ -82,6 +88,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         for param_to_mutate in parameters_to_mutate:
             if param_to_mutate == 0:
                 offspring_params['merge_method'] = random.choice(config_params['merge_method'])
+                parent_mutation['mutated_params']['merge_method'] = self.merge_method
             elif param_to_mutate == 1:
                 perturbed_units = int(np.random.normal(loc=self.units,
                                                        scale=config_params['units']['stddev']))
@@ -89,14 +96,19 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                                                             config_params['units']['min'],
                                                             config_params['units']['max'],
                                                             config_params['units']['step'])
+                parent_mutation['mutated_params']['units'] = self.units
             elif param_to_mutate == 2:
                 offspring_params['activation'] = random.choice(config_params['activation'])
+                parent_mutation['mutated_params']['activation'] = self.activation
             elif param_to_mutate == 3:
                 offspring_params['kernel_init'] = random.choice(config_params['kernel_init'])
+                parent_mutation['mutated_params']['kernel_init'] = self.kernel_init
             elif param_to_mutate == 4:
                 offspring_params['bias_init'] = random.choice(config_params['bias_init'])
+                parent_mutation['mutated_params']['bias_init'] = self.bias_init
             elif param_to_mutate == 5:
                 offspring_params['dropout_flag'] = not self.dropout_flag
+                parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
             else:  # param_to_mutate == 6:
                 # Activate the dropout layer with configured probability
                 offspring_params['dropout_flag'] = random.random() < config_params['dropout_flag']
@@ -108,8 +120,11 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                                                                          config_params['dropout_rate']['min'],
                                                                          config_params['dropout_rate']['max'],
                                                                          config_params['dropout_rate']['step'], ), 4)
+                parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
+                parent_mutation['mutated_params']['dropout_rate'] = self.dropout_rate
 
         return offspring_id, CoDeepNEATModuleDenseDropout(module_id=offspring_id,
+                                                          parent_mutation=parent_mutation,
                                                           **offspring_params)
 
     def create_crossover(self,
@@ -121,6 +136,10 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         # Crete offspring parameters by carrying over parameters of fitter parent for categorical parameters and
         # calculating parameter average between both modules for sortable parameters
         offspring_params = dict()
+
+        # Create the dict that keeps track of the mutations occuring for the offspring
+        parent_mutation = {'parent_id': (self.module_id, less_fit_module.get_id()),
+                           'mutation': 'crossover'}
 
         offspring_params['merge_method'] = self.merge_method
         offspring_params['units'] = round_with_step(int((self.units + less_fit_module.units) / 2),
@@ -137,4 +156,5 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                                                                  config_params['dropout_rate']['step'], ), 4)
 
         return offspring_id, CoDeepNEATModuleDenseDropout(module_id=offspring_id,
+                                                          parent_mutation=parent_mutation,
                                                           **offspring_params)

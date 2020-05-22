@@ -30,11 +30,13 @@ class CoDeepNEATBlueprint:
 
     def __init__(self,
                  blueprint_id,
+                 parent_mutation,
                  blueprint_graph,
                  optimizer_factory):
         """"""
         # Register parameters
         self.blueprint_id = blueprint_id
+        self.parent_mutation = parent_mutation
         self.blueprint_graph = blueprint_graph
         self.optimizer_factory = optimizer_factory
 

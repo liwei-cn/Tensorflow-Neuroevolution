@@ -33,10 +33,10 @@ class CoDeepNEATEncoding(BaseEncoding):
         self.node_counter = 2
         self.conn_split_history = dict()
 
-    def create_module(self, mod_type, module_parameters) -> (int, CoDeepNEATModuleBase):
+    def create_module(self, mod_type, parent_mutation, module_parameters) -> (int, CoDeepNEATModuleBase):
         """"""
         module_id = self.get_next_module_id()
-        return module_id, MODULES[mod_type](module_id=module_id, **module_parameters)
+        return module_id, MODULES[mod_type](module_id=module_id, parent_mutation=parent_mutation, **module_parameters)
 
     def get_next_module_id(self) -> int:
         """"""
@@ -45,10 +45,12 @@ class CoDeepNEATEncoding(BaseEncoding):
 
     def create_blueprint(self,
                          blueprint_graph,
-                         optimizer_factory) -> (int, CoDeepNEATBlueprint):
+                         optimizer_factory,
+                         parent_mutation) -> (int, CoDeepNEATBlueprint):
         """"""
         self.bp_id_counter += 1
         return self.bp_id_counter, CoDeepNEATBlueprint(blueprint_id=self.bp_id_counter,
+                                                       parent_mutation=parent_mutation,
                                                        blueprint_graph=blueprint_graph,
                                                        optimizer_factory=optimizer_factory)
 
