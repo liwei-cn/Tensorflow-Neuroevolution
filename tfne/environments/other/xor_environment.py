@@ -46,23 +46,12 @@ class XOREnvironment(BaseEnvironment):
             raise RuntimeError("Genome to evaluate ({}) does not supply an optimizer and no standard optimizer defined"
                                "for XOR environment as of yet.")
 
-        '''
         # Compile and train model
         model.compile(optimizer=optimizer, loss=self.loss_function)
         model.fit(x=self.x, y=self.y, epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbosity)
 
         # Evaluate and return its fitness
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, model.predict(self.x))))
-
-        # FIXME BUG WORKAROUND
-        # Sometimes loss function randomly returns NaN. Problem confirmed by Tensorflow.
-        # See bug report: https://github.com/tensorflow/tensorflow/issues/38457
-        if tf.math.is_nan(evaluated_fitness):
-            evaluated_fitness = 0.0
-        '''
-        # FIXME temporary for quick testing of dev version
-        import random
-        evaluated_fitness = random.uniform(0, 100)
 
         return round(evaluated_fitness, 4)
 
