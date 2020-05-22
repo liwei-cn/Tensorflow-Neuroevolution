@@ -158,3 +158,18 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         return offspring_id, CoDeepNEATModuleDenseDropout(module_id=offspring_id,
                                                           parent_mutation=parent_mutation,
                                                           **offspring_params)
+
+    def serialize(self) -> dict:
+        """"""
+        return {
+            'module_type': 'DenseDropout',
+            'module_id': self.module_id,
+            'parent_mutation': self.parent_mutation,
+            'merge_method': self.merge_method,
+            'units': self.units,
+            'activation': self.activation,
+            'kernel_init': self.kernel_init,
+            'bias_init': self.bias_init,
+            'dropout_flag': self.dropout_flag,
+            'dropout_rate': self.dropout_rate
+        }

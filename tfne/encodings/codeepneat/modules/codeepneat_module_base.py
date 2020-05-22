@@ -40,6 +40,11 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_crossover()'")
 
+    @abstractmethod
+    def serialize(self) -> dict:
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'serialize()'")
+
     def set_fitness(self, fitness):
         self.fitness = fitness
 

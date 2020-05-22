@@ -1,3 +1,5 @@
+import json
+
 import tensorflow as tf
 from absl import logging
 
@@ -125,7 +127,31 @@ class CoDeepNEATGenome(BaseGenome):
 
     def save_genotype(self, save_dir_path):
         """"""
-        logging.warning("CoDeepNEATGenome.save_genotype() NOT YET IMPLEMENTED")
+        # Set save file name as the genome id and indicate that its the genotype that is being saved
+        if save_dir_path[-1] is not '/':
+            save_dir_path += '/'
+        save_file_path = save_dir_path + f"genome_{self.genome_id}_genotype.json"
+
+        # Serializethe assignmend of modules to the bp species for json output
+        serialized_bp_assigned_mods = dict()
+        for spec, assigned_mod in self.bp_assigned_modules.items():
+            serialized_bp_assigned_mods[spec] = assigned_mod.serialize()
+
+        # Use the serialized mod to bp assignment to create a serialization of the whole genome
+        serialized_genome = {
+            'genome_id': self.genome_id,
+            'blueprint': self.blueprint.serialize(),
+            'bp_assigned_modules': serialized_bp_assigned_mods,
+            'output_layers': self.output_layers,
+            'input_shape': self.input_shape,
+            'dtype': self.dtype,
+            'origin_generation': self.origin_generation
+        }
+
+        # Actually save the just serialzied genome as a json file
+        with open(save_file_path, 'w') as save_file:
+            json.dump(serialized_genome, save_file, indent=2)
+        print(f"Saved CoDeepNEAT genome (ID: {self.genome_id}) to file: {save_file_path}")
 
     def save_model(self, save_dir_path):
         """"""

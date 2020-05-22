@@ -121,6 +121,28 @@ class CoDeepNEATBlueprint:
         return (deepcopy(self.blueprint_graph),
                 self.optimizer_factory.duplicate())
 
+    def serialize(self) -> dict:
+        """"""
+        # Create serialization of the blueprint graph suitable for json output
+        serialized_blueprint_graph = dict()
+        for gene_id, gene in self.blueprint_graph.items():
+            serialized_gene = dict()
+            if isinstance(gene, CoDeepNEATBlueprintNode):
+                serialized_gene['node'] = gene.node
+                serialized_gene['species'] = gene.species
+            else:
+                serialized_gene['conn_start'] = gene.conn_start
+                serialized_gene['conn_end'] = gene.conn_end
+                serialized_gene['enabled'] = gene.enabled
+            serialized_blueprint_graph[gene_id] = serialized_gene
+
+        return {
+            'blueprint_id': self.blueprint_id,
+            'parent_mutation': self.parent_mutation,
+            'blueprint_graph': serialized_blueprint_graph,
+            'optimizer_factory': self.optimizer_factory.get_parameters()
+        }
+
     def set_fitness(self, fitness):
         self.fitness = fitness
 

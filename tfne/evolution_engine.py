@@ -59,6 +59,7 @@ class EvolutionEngine:
 
             # Backup population in according gen directory
             gen_backup_dir_path = self.backup_dir_path + f"gen_{generation_counter}/"
+            os.makedirs(gen_backup_dir_path)
             self.ne_algorithm.save_population(save_dir_path=gen_backup_dir_path)
 
             # Exit training loop if maximum number of generations or maximum fitness has been reached

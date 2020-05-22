@@ -1,4 +1,5 @@
 import sys
+import json
 import math
 import random
 import statistics
@@ -1013,7 +1014,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             for gene in blueprint_graph.values():
                 if isinstance(gene, CoDeepNEATBlueprintConn):
                     bp_graph_conns[(gene.conn_start, gene.conn_end, gene.enabled)] = gene.gene_id
-            bp_graph_conns_set = set(bp_graph_conns.keys())
 
             # Recreate the connections of the removed node by connecting all start nodes of the incoming connections to
             # all end nodes of the outgoing connections. Only recreate the connection if the connection is not already
@@ -1229,7 +1229,40 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def save_population(self, save_dir_path):
         """"""
-        logging.warning("codeepneat.save_population() NOT YET IMPLEMENTED")
+        # Set save file name as 'pop backup' and including the current generation
+        if save_dir_path[-1] is not '/':
+            save_dir_path += '/'
+        save_file_path = save_dir_path + f"population_backup_gen_{self.generation_counter}.json"
+
+        # Serialize all modules for json output
+        serialized_modules = dict()
+        for mod_id, module in self.modules.items():
+            serialized_modules[mod_id] = module.serialize()
+
+        # Serialize all blueprints for json output
+        serialized_blueprints = dict()
+        for bp_id, blueprint in self.blueprints.items():
+            serialized_blueprints[bp_id] = blueprint.serialize()
+
+        # Use serialized module and blueprint population and extend it by algorithm internal evolution information
+        serialized_population = {
+            'best_genome_id': self.best_genome.get_id(),
+            'modules': serialized_modules,
+            'mod_species': self.mod_species,
+            'mod_species_type': self.mod_species_type,
+            'mod_species_counter': self.mod_species_counter,
+            'blueprints': serialized_blueprints,
+            'bp_species': self.bp_species,
+            'bp_species_counter': self.bp_species_counter
+        }
+
+        # Backup the genotype of the best genome
+        self.best_genome.save_genotype(save_dir_path=save_dir_path)
+
+        # Actually save the just serialzied population as a json file
+        with open(save_file_path, 'w') as save_file:
+            json.dump(serialized_population, save_file, indent=2)
+        print(f"Saved CoDeepNEAT population to file: {save_file_path}")
 
     def get_best_genome(self) -> CoDeepNEATGenome:
         """"""
