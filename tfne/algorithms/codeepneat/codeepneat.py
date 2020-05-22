@@ -1261,7 +1261,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         # Actually save the just serialzied population as a json file
         with open(save_file_path, 'w') as save_file:
-            json.dump(serialized_population, save_file, indent=2)
+            json.dump(serialized_population, save_file, indent=4)
         print(f"Saved CoDeepNEAT population to file: {save_file_path}")
 
     def get_best_genome(self) -> CoDeepNEATGenome:
