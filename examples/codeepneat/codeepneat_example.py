@@ -26,7 +26,7 @@ def codeepneat_example(_):
     backup_dir_path = './population_backups/'
     num_cpus = None
     num_gpus = None
-    max_generations = 10
+    max_generations = 100
     max_fitness = None
 
     # Read in optionally supplied flags, changing the just set standard configuration

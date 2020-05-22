@@ -984,8 +984,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             node_to_remove = blueprint_graph[node_id_to_remove].node
 
             # Collect all gene ids with connections starting or ending in the chosen node, independent of if the node
-            # is enabled or not, to be removed later. Also collect all end nodes of the outgoing connections as well
-            # as all start nodes of all incoming connections.
+            # is enabled or not (as this operation basically reverses the disabling of connections happening when adding
+            # instead of removing a node), to be removed later. Also collect all end nodes of the outgoing connections
+            # as well as all start nodes of all incoming connections.
             conn_ids_to_remove = list()
             conn_replacement_start_nodes = list()
             conn_replacement_end_nodes = list()
@@ -993,12 +994,10 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if isinstance(gene, CoDeepNEATBlueprintConn):
                     if gene.conn_start == node_to_remove:
                         conn_ids_to_remove.append(gene.gene_id)
-                        if gene.enabled:
-                            conn_replacement_end_nodes.append(gene.conn_end)
+                        conn_replacement_end_nodes.append(gene.conn_end)
                     elif gene.conn_end == node_to_remove:
                         conn_ids_to_remove.append(gene.gene_id)
-                        if gene.enabled:
-                            conn_replacement_start_nodes.append(gene.conn_start)
+                        conn_replacement_start_nodes.append(gene.conn_start)
 
             # Remove chosen node and all connections starting or ending in that node from blueprint graph
             del blueprint_graph[node_id_to_remove]
@@ -1010,16 +1009,23 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             # Collect all current connections in blueprint graph to be checked against when creating new connections,
             # in case the connection already exists. This has be done in each iteration as those connections change
             # significantly for each round.
-            bp_graph_conns = set()
+            bp_graph_conns = dict()
             for gene in blueprint_graph.values():
                 if isinstance(gene, CoDeepNEATBlueprintConn):
-                    bp_graph_conns.add((gene.conn_start, gene.conn_end))
+                    bp_graph_conns[(gene.conn_start, gene.conn_end, gene.enabled)] = gene.gene_id
+            bp_graph_conns_set = set(bp_graph_conns.keys())
 
             # Recreate the connections of the removed node by connecting all start nodes of the incoming connections to
-            # all end nodes of the outgoing connections.
+            # all end nodes of the outgoing connections. Only recreate the connection if the connection is not already
+            # present or if the connection present is disabled
             for new_start_node in conn_replacement_start_nodes:
                 for new_end_node in conn_replacement_end_nodes:
-                    if (new_start_node, new_end_node) not in bp_graph_conns:
+                    # Check if a disabled variant of the connection to recreate is in the bp_graph. If so reenable it.
+                    if (new_start_node, new_end_node, False) in bp_graph_conns:
+                        conn_id_to_reenable = bp_graph_conns[(new_start_node, new_end_node, False)]
+                        blueprint_graph[conn_id_to_reenable].set_enabled(True)
+                    # Check if a no variant of the connection to recreate is in the bp_graph. If so, create it.
+                    if (new_start_node, new_end_node, True) not in bp_graph_conns:
                         gene_id, gene = self.encoding.create_blueprint_conn(conn_start=new_start_node,
                                                                             conn_end=new_end_node)
                         blueprint_graph[gene_id] = gene
