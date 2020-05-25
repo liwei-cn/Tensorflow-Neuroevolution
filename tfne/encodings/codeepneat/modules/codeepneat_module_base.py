@@ -18,7 +18,7 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement '__str__()'")
 
     @abstractmethod
-    def create_module_layers(self, dtype) -> (tf.keras.layers.Layer, ...):
+    def create_module_layers(self, dtype) -> [tf.keras.layers.Layer, ...]:
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
