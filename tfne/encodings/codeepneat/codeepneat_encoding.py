@@ -2,11 +2,14 @@ from .codeepneat_genome import CoDeepNEATGenome
 from .codeepneat_optimizer_factory import OptimizerFactory
 from .codeepneat_blueprint import CoDeepNEATBlueprint, CoDeepNEATBlueprintNode, CoDeepNEATBlueprintConn
 from .modules.codeepneat_module_base import CoDeepNEATModuleBase
-from .modules import CoDeepNEATModuleDenseDropout
+from .modules import CoDeepNEATModuleDenseDropout, CoDeepNEATModuleConv2DMaxPool2DDropout
 from ..base_encoding import BaseEncoding
 
 # Association dict of the module string name to its implementation class
-MODULES = {'DenseDropout': CoDeepNEATModuleDenseDropout}
+MODULES = {
+    'DenseDropout': CoDeepNEATModuleDenseDropout,
+    'Conv2DMaxPool2DDropout': CoDeepNEATModuleConv2DMaxPool2DDropout
+}
 
 
 class CoDeepNEATEncoding(BaseEncoding):
