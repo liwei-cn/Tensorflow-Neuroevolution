@@ -159,7 +159,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             # Initialize module population with a basic speciation scheme, even when another speciation type is supplied
             # as config, only speciating modules according to their module type. Each module species (and therefore
             # module type) is initiated with the same amount of modules (or close to the same amount if module pop size
-            # not evenly divisble). Parameters of all initial modules are uniform randomly chosen.
+            # not evenly divisble). Parameters of all initial modules chosen as per module implementation (though
+            # usually uniformly random)
 
             # Set initial species counter of basic speciation, initialize module species list and map each species to
             # its type
@@ -172,8 +173,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 # Decide on for which species a new module is added (uniformly distributed)
                 chosen_species = (i % self.mod_species_counter) + 1
 
-                # Initialize a new module of the chosen species
-                module_id, module = self._create_initial_module(mod_type=self.mod_species_type[chosen_species])
+                # Determine type and the associated config parameters of chosen species and initialize a module with it
+                mod_type = self.mod_species_type[chosen_species]
+                mod_config_params = self.available_mod_params[mod_type]
+                module_id, module = self.encoding.create_initial_module(mod_type=mod_type,
+                                                                        config_params=mod_config_params)
 
                 # Append newly created initial module to module container and to according species
                 self.modules[module_id] = module
@@ -201,60 +205,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 self.bp_species[1].append(blueprint_id)
         else:
             raise NotImplementedError("Initializing population with pre-evolved initial population not yet implemented")
-
-    def _create_initial_module(self, mod_type) -> (int, CoDeepNEATModuleBase):
-        """"""
-        # Declare container collecting the specific parameters of the module to be created
-        chosen_module_params = dict()
-
-        # Create the dict that keeps track of the way a module has been mutated or created
-        parent_mutation = {'parent_id': None,
-                           'mutation': 'init'}
-
-        # Determine the specific parameter dict of the current module type
-        available_module_params = self.available_mod_params[mod_type]
-
-        # Traverse each possible parameter option and determine a uniformly random value depending on if its a
-        # categorical, sortable or boolean value
-        for mod_param, mod_param_val_range in available_module_params.items():
-            # If the module parameter is a categorical value choose randomly from the list
-            if isinstance(mod_param_val_range, list):
-                chosen_module_params[mod_param] = random.choice(mod_param_val_range)
-            # If the module parameter is sortable, create a random value between the min and max values adhering to the
-            # configured step
-            elif isinstance(mod_param_val_range, dict):
-                if isinstance(mod_param_val_range['min'], int) and isinstance(mod_param_val_range['max'], int) \
-                        and isinstance(mod_param_val_range['step'], int):
-                    mod_param_random = random.randint(mod_param_val_range['min'],
-                                                      mod_param_val_range['max'])
-                    chosen_mod_param = round_with_step(mod_param_random,
-                                                       mod_param_val_range['min'],
-                                                       mod_param_val_range['max'],
-                                                       mod_param_val_range['step'])
-                elif isinstance(mod_param_val_range['min'], float) and isinstance(mod_param_val_range['max'], float) \
-                        and isinstance(mod_param_val_range['step'], float):
-                    mod_param_random = random.uniform(mod_param_val_range['min'],
-                                                      mod_param_val_range['max'])
-                    chosen_mod_param = round(round_with_step(mod_param_random,
-                                                             mod_param_val_range['min'],
-                                                             mod_param_val_range['max'],
-                                                             mod_param_val_range['step']), 4)
-                else:
-                    raise NotImplementedError(f"Config parameter '{mod_param}' of the {mod_type} section is of type"
-                                              f"dict though the dict values are not of type int or float")
-                chosen_module_params[mod_param] = chosen_mod_param
-            # If the module parameter is a binary value it is specified as a float with the probablity of that parameter
-            # being set to True
-            elif isinstance(mod_param_val_range, float):
-                chosen_module_params[mod_param] = random.random() < mod_param_val_range
-            else:
-                raise NotImplementedError(f"Config parameter '{mod_param}' of the {mod_type} section is not one of the"
-                                          f"valid types of list, dict or float")
-
-        # Create new module through encoding and return its ID and module
-        return self.encoding.create_module(mod_type=mod_type,
-                                           parent_mutation=parent_mutation,
-                                           module_parameters=chosen_module_params)
 
     def _create_initial_blueprint(self, initial_node_species) -> (int, CoDeepNEATBlueprint):
         """"""
@@ -501,16 +451,13 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                 if random.random() < self.mod_mutation_prob:
                     ## Create new module through mutation ##
                     # Get a new module ID from the encoding, randomly determine the maximum degree of mutation and the
-                    # parent module from the non removed modules of the current species. Then determine the config
-                    # parameters associated with the parent module and let the internal mutation function create a new
-                    # module
+                    # parent module from the non removed modules of the current species. Then let the internal mutation
+                    # function create a new module
                     mod_offspring_id = self.encoding.get_next_module_id()
                     max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
                     parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                    config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                     new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
-                                                                        config_params,
                                                                         max_degree_of_mutation)
 
                 else:  # random.random() < self.mod_mutation_prob + self.mod_crossover_prob
@@ -522,22 +469,18 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         parent_module_1 = self.modules[parent_module_1_id]
                         parent_module_2 = self.modules[parent_module_2_id]
 
-                        # Get a new module ID from encoding, randomly determine the maximum degree of mutation and then
-                        # determine the config parameters associated with the modules
+                        # Get a new module ID from encoding, randomly determine the maximum degree of mutation
                         mod_offspring_id = self.encoding.get_next_module_id()
                         max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
-                        config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                         # Determine the fitter parent module and let its internal crossover function create offspring
                         if parent_module_1.get_fitness() >= parent_module_2.get_fitness():
                             new_mod_id, new_mod = parent_module_1.create_crossover(mod_offspring_id,
                                                                                    parent_module_2,
-                                                                                   config_params,
                                                                                    max_degree_of_mutation)
                         else:
                             new_mod_id, new_mod = parent_module_2.create_crossover(mod_offspring_id,
                                                                                    parent_module_1,
-                                                                                   config_params,
                                                                                    max_degree_of_mutation)
 
                     else:
@@ -546,10 +489,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                         mod_offspring_id = self.encoding.get_next_module_id()
                         max_degree_of_mutation = random.uniform(1e-323, self.mod_max_mutation)
                         parent_module = self.modules[random.choice(self.mod_species[spec_id])]
-                        config_params = self.available_mod_params[self.mod_species_type[spec_id]]
 
                         new_mod_id, new_mod = parent_module.create_mutation(mod_offspring_id,
-                                                                            config_params,
                                                                             max_degree_of_mutation)
 
                 # Add newly created module to the module container and its according species

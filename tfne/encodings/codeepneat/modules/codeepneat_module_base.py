@@ -7,10 +7,9 @@ import tensorflow as tf
 class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     """"""
 
-    def __init__(self, module_id, parent_mutation, merge_method):
+    def __init__(self, module_id, parent_mutation):
         self.module_id = module_id
         self.parent_mutation = parent_mutation
-        self.merge_method = merge_method
         self.fitness = 0
 
     @abstractmethod
@@ -24,9 +23,13 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
+    def initialize(self):
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'initialize()'")
+
+    @abstractmethod
     def create_mutation(self,
                         offspring_id,
-                        config_params,
                         max_degree_of_mutation) -> (int, CoDeepNEATModuleBase):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_mutation()'")
@@ -35,7 +38,6 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
     def create_crossover(self,
                          offspring_id,
                          less_fit_module,
-                         config_params,
                          max_degree_of_mutation) -> (int, CoDeepNEATModuleBase):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_crossover()'")

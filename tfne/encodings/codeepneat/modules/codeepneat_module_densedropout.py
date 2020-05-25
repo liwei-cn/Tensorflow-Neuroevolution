@@ -14,6 +14,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
     """"""
 
     def __init__(self,
+                 config_params,
                  module_id,
                  parent_mutation,
                  merge_method,
@@ -22,16 +23,25 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                  kernel_init,
                  bias_init,
                  dropout_flag,
-                 dropout_rate):
+                 dropout_rate,
+                 self_initialize=False):
         """"""
-        # Register parameters
-        super().__init__(module_id, parent_mutation, merge_method)
+        # Register the dict listing the module parameter range specified in the config
+        self.config_params = config_params
+
+        # Register the module parameters
+        super().__init__(module_id, parent_mutation)
+        self.merge_method = merge_method
         self.units = units
         self.activation = activation
         self.kernel_init = kernel_init
         self.bias_init = bias_init
         self.dropout_flag = dropout_flag
         self.dropout_rate = dropout_rate
+
+        # If self initialization flag is provided, initialize the module parameters as they are currently set to None
+        if self_initialize:
+            self.initialize()
 
     def __str__(self) -> str:
         """"""
@@ -57,9 +67,29 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         else:
             return (dense_layer,)
 
+    def initialize(self):
+        """"""
+        # Uniformly randomly set module parameters
+        self.merge_method = random.choice(self.config_params['merge_method'])
+        random_units = random.randint(self.config_params['units']['min'],
+                                      self.config_params['units']['max'])
+        self.units = round_with_step(random_units,
+                                     self.config_params['units']['min'],
+                                     self.config_params['units']['max'],
+                                     self.config_params['units']['step'])
+        self.activation = random.choice(self.config_params['activation'])
+        self.kernel_init = random.choice(self.config_params['kernel_init'])
+        self.bias_init = random.choice(self.config_params['bias_init'])
+        self.dropout_flag = random.random() < self.config_params['dropout_flag']
+        random_dropout_rate = random.uniform(self.config_params['dropout_rate']['min'],
+                                             self.config_params['dropout_rate']['max'])
+        self.dropout_rate = round_with_step(random_dropout_rate,
+                                            self.config_params['dropout_rate']['min'],
+                                            self.config_params['dropout_rate']['max'],
+                                            self.config_params['dropout_rate']['step'])
+
     def create_mutation(self,
                         offspring_id,
-                        config_params,
                         max_degree_of_mutation) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
         # Copy the parameters of this parent module for the parameters of the offspring
@@ -87,50 +117,50 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         # specified stddev
         for param_to_mutate in parameters_to_mutate:
             if param_to_mutate == 0:
-                offspring_params['merge_method'] = random.choice(config_params['merge_method'])
+                offspring_params['merge_method'] = random.choice(self.config_params['merge_method'])
                 parent_mutation['mutated_params']['merge_method'] = self.merge_method
             elif param_to_mutate == 1:
                 perturbed_units = int(np.random.normal(loc=self.units,
-                                                       scale=config_params['units']['stddev']))
+                                                       scale=self.config_params['units']['stddev']))
                 offspring_params['units'] = round_with_step(perturbed_units,
-                                                            config_params['units']['min'],
-                                                            config_params['units']['max'],
-                                                            config_params['units']['step'])
+                                                            self.config_params['units']['min'],
+                                                            self.config_params['units']['max'],
+                                                            self.config_params['units']['step'])
                 parent_mutation['mutated_params']['units'] = self.units
             elif param_to_mutate == 2:
-                offspring_params['activation'] = random.choice(config_params['activation'])
+                offspring_params['activation'] = random.choice(self.config_params['activation'])
                 parent_mutation['mutated_params']['activation'] = self.activation
             elif param_to_mutate == 3:
-                offspring_params['kernel_init'] = random.choice(config_params['kernel_init'])
+                offspring_params['kernel_init'] = random.choice(self.config_params['kernel_init'])
                 parent_mutation['mutated_params']['kernel_init'] = self.kernel_init
             elif param_to_mutate == 4:
-                offspring_params['bias_init'] = random.choice(config_params['bias_init'])
+                offspring_params['bias_init'] = random.choice(self.config_params['bias_init'])
                 parent_mutation['mutated_params']['bias_init'] = self.bias_init
             elif param_to_mutate == 5:
                 offspring_params['dropout_flag'] = not self.dropout_flag
                 parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
             else:  # param_to_mutate == 6:
                 # Activate the dropout layer with configured probability
-                offspring_params['dropout_flag'] = random.random() < config_params['dropout_flag']
+                offspring_params['dropout_flag'] = random.random() < self.config_params['dropout_flag']
 
                 # Either way, perturb dropout_rate parameter
                 perturbed_dropout_rate = np.random.normal(loc=self.dropout_rate,
-                                                          scale=config_params['dropout_rate']['stddev'])
+                                                          scale=self.config_params['dropout_rate']['stddev'])
                 offspring_params['dropout_rate'] = round(round_with_step(perturbed_dropout_rate,
-                                                                         config_params['dropout_rate']['min'],
-                                                                         config_params['dropout_rate']['max'],
-                                                                         config_params['dropout_rate']['step'], ), 4)
+                                                                         self.config_params['dropout_rate']['min'],
+                                                                         self.config_params['dropout_rate']['max'],
+                                                                         self.config_params['dropout_rate']['step']), 4)
                 parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
                 parent_mutation['mutated_params']['dropout_rate'] = self.dropout_rate
 
-        return offspring_id, CoDeepNEATModuleDenseDropout(module_id=offspring_id,
+        return offspring_id, CoDeepNEATModuleDenseDropout(config_params=self.config_params,
+                                                          module_id=offspring_id,
                                                           parent_mutation=parent_mutation,
                                                           **offspring_params)
 
     def create_crossover(self,
                          offspring_id,
                          less_fit_module,
-                         config_params,
                          max_degree_of_mutation) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
         # Crete offspring parameters by carrying over parameters of fitter parent for categorical parameters and
@@ -143,19 +173,20 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
 
         offspring_params['merge_method'] = self.merge_method
         offspring_params['units'] = round_with_step(int((self.units + less_fit_module.units) / 2),
-                                                    config_params['units']['min'],
-                                                    config_params['units']['max'],
-                                                    config_params['units']['step'])
+                                                    self.config_params['units']['min'],
+                                                    self.config_params['units']['max'],
+                                                    self.config_params['units']['step'])
         offspring_params['activation'] = self.activation
         offspring_params['kernel_init'] = self.kernel_init
         offspring_params['bias_init'] = self.bias_init
         offspring_params['dropout_flag'] = self.dropout_flag
         offspring_params['dropout_rate'] = round(round_with_step((self.dropout_rate + less_fit_module.dropout_rate) / 2,
-                                                                 config_params['dropout_rate']['min'],
-                                                                 config_params['dropout_rate']['max'],
-                                                                 config_params['dropout_rate']['step'], ), 4)
+                                                                 self.config_params['dropout_rate']['min'],
+                                                                 self.config_params['dropout_rate']['max'],
+                                                                 self.config_params['dropout_rate']['step'], ), 4)
 
-        return offspring_id, CoDeepNEATModuleDenseDropout(module_id=offspring_id,
+        return offspring_id, CoDeepNEATModuleDenseDropout(config_params=self.config_params,
+                                                          module_id=offspring_id,
                                                           parent_mutation=parent_mutation,
                                                           **offspring_params)
 

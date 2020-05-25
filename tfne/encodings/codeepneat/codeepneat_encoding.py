@@ -33,10 +33,24 @@ class CoDeepNEATEncoding(BaseEncoding):
         self.node_counter = 2
         self.conn_split_history = dict()
 
-    def create_module(self, mod_type, parent_mutation, module_parameters) -> (int, CoDeepNEATModuleBase):
+    def create_initial_module(self, mod_type, config_params) -> (int, CoDeepNEATModuleBase):
         """"""
+        # Determine module ID and set the parent mutation to 'init' notification
         module_id = self.get_next_module_id()
-        return module_id, MODULES[mod_type](module_id=module_id, parent_mutation=parent_mutation, **module_parameters)
+        parent_mutation = {'parent_id': None,
+                           'mutation': 'init'}
+
+        # Create a dict setting all module parameters to None, only because those parameters are required arguments,
+        # though let the module self initialize
+        module_parameters = dict()
+        for section in config_params.keys():
+            module_parameters[section] = None
+
+        return module_id, MODULES[mod_type](config_params=config_params,
+                                            module_id=module_id,
+                                            parent_mutation=parent_mutation,
+                                            self_initialize=True,
+                                            **module_parameters)
 
     def get_next_module_id(self) -> int:
         """"""
