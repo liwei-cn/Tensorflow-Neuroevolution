@@ -90,10 +90,10 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
         self.dropout_flag = random.random() < self.config_params['dropout_flag']
         random_dropout_rate = random.uniform(self.config_params['dropout_rate']['min'],
                                              self.config_params['dropout_rate']['max'])
-        self.dropout_rate = round_with_step(random_dropout_rate,
-                                            self.config_params['dropout_rate']['min'],
-                                            self.config_params['dropout_rate']['max'],
-                                            self.config_params['dropout_rate']['step'])
+        self.dropout_rate = round(round_with_step(random_dropout_rate,
+                                                  self.config_params['dropout_rate']['min'],
+                                                  self.config_params['dropout_rate']['max'],
+                                                  self.config_params['dropout_rate']['step']), 4)
 
     def create_mutation(self,
                         offspring_id,
@@ -147,17 +147,12 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                 offspring_params['dropout_flag'] = not self.dropout_flag
                 parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
             else:  # param_to_mutate == 6:
-                # Activate the dropout layer with configured probability
-                offspring_params['dropout_flag'] = random.random() < self.config_params['dropout_flag']
-
-                # Either way, perturb dropout_rate parameter
                 perturbed_dropout_rate = np.random.normal(loc=self.dropout_rate,
                                                           scale=self.config_params['dropout_rate']['stddev'])
                 offspring_params['dropout_rate'] = round(round_with_step(perturbed_dropout_rate,
                                                                          self.config_params['dropout_rate']['min'],
                                                                          self.config_params['dropout_rate']['max'],
                                                                          self.config_params['dropout_rate']['step']), 4)
-                parent_mutation['mutated_params']['dropout_flag'] = self.dropout_flag
                 parent_mutation['mutated_params']['dropout_rate'] = self.dropout_rate
 
         return offspring_id, CoDeepNEATModuleDenseDropout(config_params=self.config_params,
@@ -170,7 +165,7 @@ class CoDeepNEATModuleDenseDropout(CoDeepNEATModuleBase):
                          less_fit_module,
                          max_degree_of_mutation) -> (int, CoDeepNEATModuleDenseDropout):
         """"""
-        # Crete offspring parameters by carrying over parameters of fitter parent for categorical parameters and
+        # Create offspring parameters by carrying over parameters of fitter parent for categorical parameters and
         # calculating parameter average between both modules for sortable parameters
         offspring_params = dict()
 
