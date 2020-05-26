@@ -1171,7 +1171,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     def save_population(self, save_dir_path):
         """"""
         # Set save file name as 'pop backup' and including the current generation
-        if save_dir_path[-1] is not '/':
+        if save_dir_path[-1] != '/':
             save_dir_path += '/'
         save_file_path = save_dir_path + f"population_backup_gen_{self.generation_counter}.json"
 

@@ -128,7 +128,7 @@ class CoDeepNEATGenome(BaseGenome):
     def save_genotype(self, save_dir_path):
         """"""
         # Set save file name as the genome id and indicate that its the genotype that is being saved
-        if save_dir_path[-1] is not '/':
+        if save_dir_path[-1] != '/':
             save_dir_path += '/'
         save_file_path = save_dir_path + f"genome_{self.genome_id}_genotype.json"
 
