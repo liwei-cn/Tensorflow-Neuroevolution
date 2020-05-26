@@ -53,6 +53,11 @@ class XOREnvironment(BaseEnvironment):
         # Evaluate and return its fitness
         evaluated_fitness = float(100 * (1 - self.loss_function(self.y, model.predict(self.x))))
 
+        # FIXME Tensorflow arbitrary NaN loss when using float16 datatype. Confirmed by TF.
+        # Github TF issue: https://github.com/tensorflow/tensorflow/issues/38457
+        if tf.math.is_nan(evaluated_fitness):
+            evaluated_fitness = 0
+
         return round(evaluated_fitness, 4)
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
