@@ -294,6 +294,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         genome_eval_counter = 0
         genome_eval_counter_div = round(genome_pop_size / 40.0, 4)
         print("\nEvaluating {} genomes in generation {}...".format(genome_pop_size, self.generation_counter))
+        print_str = "\r[{:40}] {}/{} Genomes".format("", genome_eval_counter, genome_pop_size)
+        sys.stdout.write(print_str)
+        sys.stdout.flush()
 
         for blueprint in self.blueprints.values():
             bp_module_species = blueprint.get_species()

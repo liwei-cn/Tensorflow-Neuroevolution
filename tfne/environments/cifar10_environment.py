@@ -52,12 +52,16 @@ class CIFAR10Environment(BaseEnvironment):
                   batch_size=self.batch_size,
                   verbose=self.verbosity)
 
-        # Evaluate and return its fitness
-        evaluated_fitness = model.evaluate(x=self.test_images,
-                                           y=self.test_labels,
-                                           verbose=self.verbosity)
+        # Compile model again, this time considering accuracy, and evaluate and return its fitness being the accuracy
+        # in percent
+        model.compile(optimizer=optimizer,
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                      metrics=['accuracy'])
+        _, evaluated_fitness = model.evaluate(x=self.test_images,
+                                              y=self.test_labels,
+                                              verbose=self.verbosity)
 
-        return round(evaluated_fitness, 4)
+        return round(evaluated_fitness * 100, 4)
 
     def _eval_genome_fitness_non_weight_training(self, genome) -> float:
         """"""
