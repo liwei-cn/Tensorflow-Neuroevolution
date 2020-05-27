@@ -60,9 +60,9 @@ class CoDeepNEATModuleConv2DMaxPool2DDropout(CoDeepNEATModuleBase):
             .format('#' + str(self.module_id),
                     self.fitness,
                     self.filters,
-                    self.kernel_size,
+                    str(self.kernel_size),
                     self.activation,
-                    "None" if self.max_pool_flag is False else self.max_pool_size,
+                    "None" if self.max_pool_flag is False else str(self.max_pool_size),
                     "None" if self.dropout_flag is False else self.dropout_rate)
 
     def create_module_layers(self, dtype) -> [tf.keras.layers.Layer, ...]:
