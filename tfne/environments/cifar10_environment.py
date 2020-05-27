@@ -9,6 +9,7 @@ class CIFAR10Environment(BaseEnvironment):
     def __init__(self, verbosity, weight_training, epochs=None, batch_size=None):
         """"""
         # Load test data, unpack it and normalize the pixel values
+        print("Setting up dataset...")
         cifar10_dataset = tf.keras.datasets.cifar10.load_data()
         (self.train_images, self.train_labels), (self.test_images, self.test_labels) = cifar10_dataset
         self.train_images, self.test_images = self.train_images / 255.0, self.test_images / 255.0
