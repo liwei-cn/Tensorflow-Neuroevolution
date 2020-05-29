@@ -96,6 +96,10 @@ class CoDeepNEATModuleConv2DMaxPool2DDropout(CoDeepNEATModuleBase):
         # Return the iterable containing all layers present in the module
         return module_layers
 
+    def create_downsampling_layer(self, in_shape, out_shape, dtype) -> tf.keras.layers.Layer:
+        """"""
+        raise NotImplementedError("Downsampling has not yet been implemented for Conv2DMaxPool2DDropout Modules")
+
     def initialize(self):
         """"""
         # Uniformly randomly set module parameters
@@ -106,17 +110,14 @@ class CoDeepNEATModuleConv2DMaxPool2DDropout(CoDeepNEATModuleBase):
                                        self.config_params['filters']['min'],
                                        self.config_params['filters']['max'],
                                        self.config_params['filters']['step'])
-        random_kernel_size = random.choice(self.config_params['kernel_size'])
-        self.kernel_size = (random_kernel_size, random_kernel_size)
-        random_strides = random.choice(self.config_params['strides'])
-        self.strides = (random_strides, random_strides)
+        self.kernel_size = random.choice(self.config_params['kernel_size'])
+        self.strides = random.choice(self.config_params['strides'])
         self.padding = random.choice(self.config_params['padding'])
         self.activation = random.choice(self.config_params['activation'])
         self.kernel_init = random.choice(self.config_params['kernel_init'])
         self.bias_init = random.choice(self.config_params['bias_init'])
         self.max_pool_flag = random.random() < self.config_params['max_pool_flag']
-        random_max_pool_size = random.choice(self.config_params['max_pool_size'])
-        self.max_pool_size = (random_max_pool_size, random_max_pool_size)
+        self.max_pool_size = random.choice(self.config_params['max_pool_size'])
         self.dropout_flag = random.random() < self.config_params['dropout_flag']
         random_dropout_rate = random.uniform(self.config_params['dropout_rate']['min'],
                                              self.config_params['dropout_rate']['max'])
@@ -170,12 +171,10 @@ class CoDeepNEATModuleConv2DMaxPool2DDropout(CoDeepNEATModuleBase):
                                                               self.config_params['filters']['step'])
                 parent_mutation['mutated_params']['filters'] = self.filters
             elif param_to_mutate == 2:
-                random_kernel_size = random.choice(self.config_params['kernel_size'])
-                offspring_params['kernel_size'] = (random_kernel_size, random_kernel_size)
+                offspring_params['kernel_size'] = random.choice(self.config_params['kernel_size'])
                 parent_mutation['mutated_params']['kernel_size'] = self.kernel_size
             elif param_to_mutate == 3:
-                random_strides = random.choice(self.config_params['strides'])
-                offspring_params['strides'] = (random_strides, random_strides)
+                offspring_params['strides'] = random.choice(self.config_params['strides'])
                 parent_mutation['mutated_params']['strides'] = self.strides
             elif param_to_mutate == 4:
                 offspring_params['padding'] = random.choice(self.config_params['padding'])
@@ -193,8 +192,7 @@ class CoDeepNEATModuleConv2DMaxPool2DDropout(CoDeepNEATModuleBase):
                 offspring_params['max_pool_flag'] = not self.max_pool_flag
                 parent_mutation['mutated_params']['max_pool_flag'] = self.max_pool_flag
             elif param_to_mutate == 9:
-                random_max_pool_size = random.choice(self.config_params['max_pool_size'])
-                offspring_params['max_pool_size'] = (random_max_pool_size, random_max_pool_size)
+                offspring_params['max_pool_size'] = random.choice(self.config_params['max_pool_size'])
                 parent_mutation['mutated_params']['max_pool_size'] = self.max_pool_size
             elif param_to_mutate == 10:
                 offspring_params['dropout_flag'] = not self.dropout_flag

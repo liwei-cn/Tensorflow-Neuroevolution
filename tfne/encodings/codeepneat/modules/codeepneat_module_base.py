@@ -23,6 +23,11 @@ class CoDeepNEATModuleBase(object, metaclass=ABCMeta):
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_module_layers()'")
 
     @abstractmethod
+    def create_downsampling_layer(self, in_shape, out_shape, dtype) -> tf.keras.layers.Layer:
+        """"""
+        raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'create_downsampling_layer()'")
+
+    @abstractmethod
     def initialize(self):
         """"""
         raise NotImplementedError("Subclass of CoDeepNEATModuleBase does not implement 'initialize()'")

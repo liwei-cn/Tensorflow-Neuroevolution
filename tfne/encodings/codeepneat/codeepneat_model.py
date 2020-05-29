@@ -33,10 +33,52 @@ def create_model(blueprint, bp_assigned_modules, output_layers, input_shape, dty
                 merge_method_config['config']['dtype'] = dtype
                 merge_method = tf.keras.layers.deserialize(merge_method_config)
 
-                # Create list of all node outputs that the current node dependes upon and merge them
-                node_input_list = [node_outputs[node_dep] for node_dep in current_node_dependencies]
-                node_input = merge_method(node_input_list)
+                # Create list of all the nodes serving as input to the current node as well as their shapes. If a merge
+                # method with an axis has been supplied, disregard the values of that axis for potential downsampling
+                input_nodes = [node_outputs[node_dep] for node_dep in current_node_dependencies]
+                input_nodes_shapes = [list(in_node.shape) for in_node in input_nodes]
+                if hasattr(merge_method, 'axis'):
+                    for shape in input_nodes_shapes:
+                        shape[merge_method.axis] = None
+
+                # Determine if the output shapes of the input nodes are mismatched. If so, downsample. If not, merge.
+                if not all(shape == input_nodes_shapes[0] for shape in input_nodes_shapes):
+                    # Determine the smallest output shape to downsample to
+                    smallest_out_size = None
+                    smallest_out_shape = None
+                    for shape in input_nodes_shapes:
+                        output_size = 1
+                        for channel in shape:
+                            if channel is not None:
+                                output_size *= channel
+                        if smallest_out_size is None or output_size < smallest_out_size:
+                            smallest_out_size = output_size
+                            smallest_out_shape = shape
+
+                    # Create the list of input nodes with an additional downsampling layer for each mismatched input
+                    input_nodes_downsampled = list()
+                    for i in range(len(input_nodes)):
+                        if input_nodes_shapes[i] != smallest_out_shape:
+                            # output shape of input node mismatched. Create downsampling layer
+                            ds_layer = current_node_module.create_downsampling_layer(in_shape=input_nodes[i].shape,
+                                                                                     out_shape=smallest_out_shape,
+                                                                                     dtype=dtype)
+                            ds_layer(input_nodes[i])
+                            input_nodes_downsampled.append(ds_layer)
+                        else:
+                            # output shape of input node has minimal (downsampled) shape. Append the node output as is.
+                            input_nodes_downsampled.append(input_nodes[i])
+
+                    # Merge the downsampled input nodes, creating the input for the current node
+                    node_input = merge_method(input_nodes_downsampled)
+
+                else:
+                    # As the shapes of all input nodes are compatible, simply merge them to create the input for the
+                    # current node
+                    node_input = merge_method(input_nodes)
+
             else:
+                # As the current node only has 1 input, set this input node as the input for the current node
                 node_input = node_outputs[current_node_dependencies[0]]
 
             # Create the sequential layers of the module and pipe the just created input through this node/module
