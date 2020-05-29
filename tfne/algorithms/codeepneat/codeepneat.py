@@ -278,8 +278,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
         """"""
-        # TODO Properly implement parallelization
-        logging.warning("CoDeepNEAT as of now only supports a single eval instance. Ignoring num_cpus and num_gpus.")
+        # TODO Implement parallelization
         environment = self.environment_factory.create_environment(verbosity=verbosity,
                                                                   weight_training=True,
                                                                   epochs=self.eval_epochs,

@@ -1,8 +1,6 @@
 import ast
-from typing import Union, Callable, Any
+from typing import Union, Any
 from configparser import ConfigParser
-
-import tensorflow as tf
 
 
 def parse_configuration(config_path):
@@ -19,20 +17,6 @@ def read_option_from_config(config, section, option) -> Any:
     value = ast.literal_eval(config[section][option])
     print("Config value for '{}/{}': {}".format(section, option, value))
     return value
-
-
-def deserialize_merge_method(merge_method_str) -> Callable:
-    """"""
-    if merge_method_str == 'concat':
-        return tf.keras.layers.concatenate
-    elif merge_method_str == 'add':
-        return tf.keras.layers.add
-    elif merge_method_str == 'average':
-        return tf.keras.layers.average
-    elif merge_method_str == 'subtract':
-        return tf.keras.layers.subtract
-    else:
-        raise NotImplementedError("Config supplied possible merge method '{}' not implemented".format(merge_method_str))
 
 
 def round_with_step(value, minimum, maximum, step) -> Union[int, float]:
