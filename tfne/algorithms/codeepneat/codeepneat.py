@@ -5,6 +5,7 @@ import random
 import statistics
 
 import numpy as np
+from absl import logging
 
 import tfne
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
@@ -322,19 +323,36 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     chosen_module_id = random.choice(self.mod_species[i])
                     bp_assigned_modules[i] = self.modules[chosen_module_id]
 
-                # Create genome, using the specific blueprint, a dict of modules for each species, the configured output
-                # layers and input shape as well as the current generation
-                genome_id, genome = self.encoding.create_genome(blueprint,
-                                                                bp_assigned_modules,
-                                                                self.output_layers,
-                                                                self.input_shape,
-                                                                self.generation_counter)
+                try:
+                    # Create genome, using the specific blueprint, a dict of modules for each species, the configured
+                    # output layers and input shape as well as the current generation
+                    genome_id, genome = self.encoding.create_genome(blueprint,
+                                                                    bp_assigned_modules,
+                                                                    self.output_layers,
+                                                                    self.input_shape,
+                                                                    self.generation_counter)
+                except ValueError:
+                    # Catching build value error, occuring when the supplied layers and parameters do not result in a
+                    # valid TF model. See warning string.
+                    bp_id = blueprint.get_id()
+                    mod_spec_to_id = dict()
+                    for spec, mod in bp_assigned_modules.items():
+                        mod_spec_to_id[spec] = mod.get_id()
+                    logging.warning(f"CoDeepNEAT tried combining the Blueprint ID {bp_id} with the module assignmend "
+                                    f"{mod_spec_to_id}, resulting in an invalid neural network model. Setting genome "
+                                    f"fitness to 0.")
 
-                # Now evaluate genome on registered environment and set its fitness
-                # NOTE: As CoDeepNEAT implementation currently only supports 1 eval instance, automatically choose that
-                # instance from the environment list
-                genome_fitness = self.envs[0].eval_genome_fitness(genome)
-                genome.set_fitness(genome_fitness)
+                    # Setting genome id and genome to None as referenced later. Setting genome fitness to 0 to
+                    # discourage continued use of the blueprint and modules resulting in this faulty model.
+                    genome_id, genome = None, None
+                    genome_fitness = 0
+
+                if genome is not None:
+                    # Now evaluate genome on registered environment and set its fitness
+                    # NOTE: As CoDeepNEAT implementation currently only supports 1 eval instance, automatically choose
+                    # that instance from the environment list
+                    genome_fitness = self.envs[0].eval_genome_fitness(genome)
+                    genome.set_fitness(genome_fitness)
 
                 # Print population evaluation progress bar
                 genome_eval_counter += 1
