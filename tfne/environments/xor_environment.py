@@ -1,15 +1,18 @@
+from __future__ import annotations
+
 import numpy as np
 import tensorflow as tf
 
-from .base_environment import BaseEnvironment, BaseEnvironmentFactory
+from .base_environment import BaseEnvironment
 
 
 class XOREnvironment(BaseEnvironment):
     """"""
 
-    def __init__(self, verbosity, weight_training, epochs=None, batch_size=None):
+    def __init__(self, weight_training, verbosity, epochs=None, batch_size=None):
         """"""
         # Initialize corresponding input and output mappings
+        print("Setting up XOR environment...")
         self.x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         self.y = np.array([[0], [1], [1], [0]])
 
@@ -21,7 +24,8 @@ class XOREnvironment(BaseEnvironment):
 
         # If environment is set to be weight training then set eval_genome_function accordingly and save the supplied
         # weight training parameters
-        if weight_training:
+        self.weight_training = weight_training
+        if self.weight_training:
             # Register the weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_weight_training
 
@@ -72,18 +76,17 @@ class XOREnvironment(BaseEnvironment):
         print("Solution Values: \t{}\n".format(self.y))
         print("Predicted Values:\t{}\n".format(genome(self.x)))
 
-
-class XOREnvironmentFactory(BaseEnvironmentFactory):
-    """"""
-
-    def create_environment(self, verbosity, weight_training, epochs=None, batch_size=None) -> XOREnvironment:
+    def duplicate(self) -> XOREnvironment:
         """"""
-        return XOREnvironment(verbosity, weight_training, epochs, batch_size)
+        if self.weight_training:
+            return XOREnvironment(True, self.verbosity, self.epochs, self.batch_size)
+        else:
+            return XOREnvironment(False, self.verbosity)
 
-    def get_env_input_shape(self) -> (int,):
+    def get_input_shape(self) -> (int,):
         """"""
         return (2,)
 
-    def get_env_output_shape(self) -> (int,):
+    def get_output_shape(self) -> (int,):
         """"""
         return (1,)

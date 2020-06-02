@@ -35,6 +35,12 @@ class EvolutionEngine:
         print("Initialized the ray library with {} CPUs and {} GPUs".format(self.available_num_cpus,
                                                                             self.available_num_gpus))
 
+        # Initialize the environments of through the registered algorithm with the determined parameters for parallel
+        # evaluation and verbosity
+        self.ne_algorithm.initialize_environments(num_cpus=self.available_num_cpus,
+                                                  num_gpus=self.available_num_gpus,
+                                                  verbosity=self.verbosity)
+
         # Create the directory into wich the training process will backup the population each generation
         self.backup_dir_path = os.path.abspath(backup_dir_path)
         if self.backup_dir_path[-1] != '/':
@@ -52,9 +58,7 @@ class EvolutionEngine:
         # generations or the maximum fitness has been reached
         while True:
             # Evaluate and summarize population
-            generation_counter, best_fitness = self.ne_algorithm.evaluate_population(num_cpus=self.available_num_cpus,
-                                                                                     num_gpus=self.available_num_gpus,
-                                                                                     verbosity=self.verbosity)
+            generation_counter, best_fitness = self.ne_algorithm.evaluate_population()
             self.ne_algorithm.summarize_population()
 
             # Backup population in according gen directory

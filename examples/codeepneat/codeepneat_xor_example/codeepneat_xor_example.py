@@ -49,9 +49,9 @@ def codeepneat_xor_example(_):
     logging.set_verbosity(logging_level)
     config = tfne.parse_configuration(config_file_path)
 
-    # Initialize the environment as well as the specific NE algorithm
-    environment_factory = tfne.environments.XOREnvironmentFactory()
-    ne_algorithm = tfne.CoDeepNEAT(config, environment_factory)
+    # Set (not initialize) the environment and initialize the specific NE algorithm
+    environment = tfne.environments.XOREnvironment
+    ne_algorithm = tfne.CoDeepNEAT(config, environment)
 
     # Initialize evolution engine and supply config as well as initialized NE elements
     engine = tfne.EvolutionEngine(ne_algorithm=ne_algorithm,

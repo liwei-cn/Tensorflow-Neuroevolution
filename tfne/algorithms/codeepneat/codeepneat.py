@@ -5,7 +5,6 @@ import random
 import statistics
 
 import numpy as np
-from absl import logging
 
 import tfne
 from ..base_algorithm import BaseNeuroevolutionAlgorithm
@@ -19,20 +18,22 @@ from ...helper_functions import read_option_from_config, round_with_step
 class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
     """"""
 
-    def __init__(self, config, environment_factory, initial_population_file_path=None):
+    def __init__(self, config, environment, initial_population_file_path=None):
         """"""
 
         # Read and process the supplied config and register the optionally supplied initial population
         self._process_config(config)
         self.initial_population_file_path = initial_population_file_path
 
-        # Declare the variables for the environment factory and determine the input shape/dim and output shape/dim of
-        # the created environments
-        self.environment_factory = environment_factory
-        self.input_shape = self.environment_factory.get_env_input_shape()
-        self.input_dim = len(self.input_shape)
-        self.output_shape = self.environment_factory.get_env_output_shape()
-        self.output_dim = len(self.output_shape)
+        # Register the supplied environment class and declare the container for the initialized evaluation environments
+        # as well as the environment parameters (input and output dimension/shape) to which the created neural networks
+        # have to adhere to and which will be set when initializing the environments.
+        self.environment = environment
+        self.envs = list()
+        self.input_shape = None
+        self.input_dim = None
+        self.output_shape = None
+        self.output_dim = None
 
         # Initialize and register the associated CoDeepNEAT encoding
         self.encoding = tfne.encodings.CoDeepNEATEncoding(dtype=self.dtype)
@@ -143,6 +144,22 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         assert round(self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob + self.bp_mutation_rem_conn_prob
                      + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob
                      + self.bp_mutation_optimizer_prob, 4) == 1.0
+
+    def initialize_environments(self, num_cpus, num_gpus, verbosity):
+        """"""
+        # TODO Implement algorithm parallelisation and initialization of multiple environments
+        # Initialize only one instance as implementation currently only supports single instance evaluation
+        for _ in range(1):
+            initialized_env = self.environment(weight_training=True,
+                                               verbosity=verbosity,
+                                               epochs=self.eval_epochs,
+                                               batch_size=self.eval_batch_size)
+            self.envs.append(initialized_env)
+        # Determine required input and output dimensions and shape
+        self.input_shape = self.envs[0].get_input_shape()
+        self.input_dim = len(self.input_shape)
+        self.output_shape = self.envs[0].get_output_shape()
+        self.output_dim = len(self.output_shape)
 
     def initialize_population(self):
         """"""
@@ -276,14 +293,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                               optimizer_factory=optimizer_factory,
                                               parent_mutation=parent_mutation)
 
-    def evaluate_population(self, num_cpus, num_gpus, verbosity) -> (int, int):
+    def evaluate_population(self) -> (int, int):
         """"""
-        # TODO Implement parallelization
-        environment = self.environment_factory.create_environment(verbosity=verbosity,
-                                                                  weight_training=True,
-                                                                  epochs=self.eval_epochs,
-                                                                  batch_size=self.eval_batch_size)
-
         # Create container collecting the fitness of the genomes that involve specific modules. Calculate the average
         # fitness of the genomes in which a module is involved in later and assign it as the module's fitness
         mod_fitnesses_in_genomes = dict()
@@ -320,7 +331,9 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                                 self.generation_counter)
 
                 # Now evaluate genome on registered environment and set its fitness
-                genome_fitness = environment.eval_genome_fitness(genome)
+                # NOTE: As CoDeepNEAT implementation currently only supports 1 eval instance, automatically choose that
+                # instance from the environment list
+                genome_fitness = self.envs[0].eval_genome_fitness(genome)
                 genome.set_fitness(genome_fitness)
 
                 # Print population evaluation progress bar

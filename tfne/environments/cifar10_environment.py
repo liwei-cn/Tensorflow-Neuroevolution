@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 import tensorflow as tf
 
-from .base_environment import BaseEnvironment, BaseEnvironmentFactory
+from .base_environment import BaseEnvironment
 
 
 class CIFAR10Environment(BaseEnvironment):
     """"""
 
-    def __init__(self, verbosity, weight_training, epochs=None, batch_size=None):
+    def __init__(self, weight_training, verbosity, epochs=None, batch_size=None):
         """"""
         # Load test data, unpack it and normalize the pixel values
-        print("Setting up dataset...")
+        print("Setting up CIFAR10 environment...")
         cifar10_dataset = tf.keras.datasets.cifar10.load_data()
         (self.train_images, self.train_labels), (self.test_images, self.test_labels) = cifar10_dataset
         self.train_images, self.test_images = self.train_images / 255.0, self.test_images / 255.0
@@ -19,7 +21,8 @@ class CIFAR10Environment(BaseEnvironment):
 
         # If environment is set to be weight training then set eval_genome_function accordingly and save the supplied
         # weight training parameters
-        if weight_training:
+        self.weight_training = weight_training
+        if self.weight_training:
             # Register the weight training variant as the genome eval function
             self.eval_genome_fitness = self._eval_genome_fitness_weight_training
 
@@ -71,18 +74,17 @@ class CIFAR10Environment(BaseEnvironment):
         """"""
         raise NotImplementedError()
 
-
-class CIFAR10EnvironmentFactory(BaseEnvironmentFactory):
-    """"""
-
-    def create_environment(self, verbosity, weight_training, epochs=None, batch_size=None) -> CIFAR10Environment:
+    def duplicate(self) -> CIFAR10Environment:
         """"""
-        return CIFAR10Environment(verbosity, weight_training, epochs, batch_size)
+        if self.weight_training:
+            return CIFAR10Environment(True, self.verbosity, self.epochs, self.batch_size)
+        else:
+            return CIFAR10Environment(False, self.verbosity)
 
-    def get_env_input_shape(self) -> (int, int, int):
+    def get_input_shape(self) -> (int, int, int):
         """"""
         return 32, 32, 3
 
-    def get_env_output_shape(self) -> (int,):
+    def get_output_shape(self) -> (int,):
         """"""
         return (10,)

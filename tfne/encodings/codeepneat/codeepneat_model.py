@@ -41,19 +41,19 @@ def create_model(blueprint, bp_assigned_modules, output_layers, input_shape, dty
                     for shape in input_nodes_shapes:
                         shape[merge_method.axis] = None
 
-                # Determine if the output shapes of the input nodes are mismatched. If so, downsample. If not, merge.
+                # Assert that all out shapes of the input nodes are of the same dimension (only possible way CoDeepNEAT
+                # supports this) and determine if the output shapes of the input nodes are mismatched. If so,
+                # downsample. If not, merge.
+                output_dims = len(input_nodes_shapes[0])
+                assert all(len(shape) == output_dims for shape in input_nodes_shapes)
                 if not all(shape == input_nodes_shapes[0] for shape in input_nodes_shapes):
                     # Determine the smallest output shape to downsample to
-                    smallest_out_size = None
-                    smallest_out_shape = None
+                    smallest_out_shape = [None] * output_dims
                     for shape in input_nodes_shapes:
-                        output_size = 1
-                        for channel in shape:
-                            if channel is not None:
-                                output_size *= channel
-                        if smallest_out_size is None or output_size < smallest_out_size:
-                            smallest_out_size = output_size
-                            smallest_out_shape = shape
+                        for i in range(output_dims):
+                            if shape[i] is not None and (smallest_out_shape[i] is None
+                                                         or shape[i] < smallest_out_shape[i]):
+                                smallest_out_shape[i] = shape[i]
 
                     # Create the list of input nodes with an additional downsampling layer for each mismatched input
                     input_nodes_downsampled = list()
@@ -63,8 +63,8 @@ def create_model(blueprint, bp_assigned_modules, output_layers, input_shape, dty
                             ds_layer = current_node_module.create_downsampling_layer(in_shape=input_nodes[i].shape,
                                                                                      out_shape=smallest_out_shape,
                                                                                      dtype=dtype)
-                            ds_layer(input_nodes[i])
-                            input_nodes_downsampled.append(ds_layer)
+                            downsampled_input = ds_layer(input_nodes[i])
+                            input_nodes_downsampled.append(downsampled_input)
                         else:
                             # output shape of input node has minimal (downsampled) shape. Append the node output as is.
                             input_nodes_downsampled.append(input_nodes[i])
