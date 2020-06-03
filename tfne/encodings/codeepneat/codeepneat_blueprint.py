@@ -89,7 +89,8 @@ class CoDeepNEATBlueprint:
                 # If node_dependencies not empty, though no dependencyless node was found then a CircularDependencyError
                 # occured
                 if node_deps:
-                    raise ValueError("Circular Dependency Error when sorting the topology of the Blueprint graph")
+                    raise ValueError("Circular Dependency Error when sorting the topology of the Blueprint graph.\n"
+                                     "Parent mutation: {}".format(self.parent_mutation))
                 # Otherwise if no dependencyless nodes exist anymore and node_deps is empty, exit dependency loop
                 # regularly
                 break

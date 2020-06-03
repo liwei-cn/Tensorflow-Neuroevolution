@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 import ray
+import tensorflow as tf
 from absl import logging
 
 from .encodings.base_genome import BaseGenome
@@ -84,6 +85,10 @@ class EvolutionEngine:
                 print("Population went extinct.\n"
                       "Exiting evolutionary training loop...")
                 break
+
+            # Reset models, counters, layers, etc including in the GPU to avoid clutter from old models as most likely
+            # only limited memory is available
+            tf.keras.backend.clear_session()
 
         # Determine best genome from evolutionary process and return it. This should return the best genome of the
         # evolutionary process, even if the population went extinct.
