@@ -82,6 +82,31 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.mod_spec_max_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_max_size')
             self.mod_spec_elitism = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_elitism')
             self.mod_spec_reprod_thres = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_reprod_thres')
+        elif self.mod_spec_type == 'param-distance-fixed':
+            self.mod_spec_distance = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_distance')
+            self.mod_spec_min_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_min_size')
+            self.mod_spec_max_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_max_size')
+            self.mod_spec_elitism = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_elitism')
+            self.mod_spec_reprod_thres = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_reprod_thres')
+            self.mod_spec_max_stagnation = read_option_from_config(config,
+                                                                   'MODULE_SPECIATION',
+                                                                   'mod_spec_max_stagnation')
+            self.mod_spec_reinit_extinct = read_option_from_config(config,
+                                                                   'MODULE_SPECIATION',
+                                                                   'mod_spec_reinit_extinct')
+        elif self.mod_spec_type == 'param-distance-dynamic':
+            self.mod_spec_species_count = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_species_count')
+            self.mod_spec_distance = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_distance')
+            self.mod_spec_min_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_min_size')
+            self.mod_spec_max_size = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_max_size')
+            self.mod_spec_elitism = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_elitism')
+            self.mod_spec_reprod_thres = read_option_from_config(config, 'MODULE_SPECIATION', 'mod_spec_reprod_thres')
+            self.mod_spec_max_stagnation = read_option_from_config(config,
+                                                                   'MODULE_SPECIATION',
+                                                                   'mod_spec_max_stagnation')
+            self.mod_spec_reinit_extinct = read_option_from_config(config,
+                                                                   'MODULE_SPECIATION',
+                                                                   'mod_spec_reinit_extinct')
         else:
             raise NotImplementedError(f"Module speciation type '{self.mod_spec_type}' not yet implemented")
 
@@ -95,6 +120,23 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         if self.bp_spec_type == 'basic':
             self.bp_spec_elitism = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_elitism')
             self.bp_spec_reprod_thres = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reprod_thres')
+        elif self.bp_spec_type == 'gene-overlap-fixed':
+            self.bp_spec_distance = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_distance')
+            self.bp_spec_min_size = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_min_size')
+            self.bp_spec_max_size = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_max_size')
+            self.bp_spec_elitism = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_elitism')
+            self.bp_spec_reprod_thres = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reprod_thres')
+            self.bp_spec_max_stagnation = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_max_stagnation')
+            self.bp_spec_reinit_extinct = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reinit_extinct')
+        elif self.bp_spec_type == 'gene-overlap-dynamic':
+            self.bp_spec_species_count = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_species_count')
+            self.bp_spec_distance = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_distance')
+            self.bp_spec_min_size = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_min_size')
+            self.bp_spec_max_size = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_max_size')
+            self.bp_spec_elitism = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_elitism')
+            self.bp_spec_reprod_thres = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reprod_thres')
+            self.bp_spec_max_stagnation = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_max_stagnation')
+            self.bp_spec_reinit_extinct = read_option_from_config(config, 'BP_SPECIATION', 'bp_spec_reinit_extinct')
         else:
             raise NotImplementedError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
@@ -139,8 +181,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.available_opt_params[available_opt] = opt_section_params
 
         # Perform some basic sanity checks of the configuration
-        assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
-        assert self.mod_spec_max_size * len(self.available_modules) >= self.mod_pop_size
         assert round(self.mod_mutation_prob + self.mod_crossover_prob, 4) == 1.0
         assert round(self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob + self.bp_mutation_rem_conn_prob
                      + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob

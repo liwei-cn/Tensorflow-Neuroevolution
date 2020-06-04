@@ -2,6 +2,8 @@ import ast
 from typing import Union, Any
 from configparser import ConfigParser
 
+import tensorflow as tf
+
 
 def parse_configuration(config_path):
     """"""
@@ -37,3 +39,14 @@ def round_with_step(value, minimum, maximum, step) -> Union[int, float]:
             return minimum
         if higher_step > maximum:
             return maximum
+
+
+def set_tensorflow_memory_growth():
+    """
+    Set memory growth to true in the Tensorflow backend, fixing memory allocation problems that can occur on NVIDIA
+    Turing GPUs
+    """
+    #
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
