@@ -36,7 +36,7 @@ class EvolutionEngine:
         print("Initialized the ray library with {} CPUs and {} GPUs".format(self.available_num_cpus,
                                                                             self.available_num_gpus))
 
-        # Initialize the environments of through the registered algorithm with the determined parameters for parallel
+        # Initialize the environments through the registered algorithm with the determined parameters for parallel
         # evaluation and verbosity
         self.ne_algorithm.initialize_environments(num_cpus=self.available_num_cpus,
                                                   num_gpus=self.available_num_gpus,
