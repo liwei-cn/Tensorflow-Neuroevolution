@@ -21,7 +21,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def __init__(self, config, environment, initial_population_file_path=None):
         """"""
-
         # Read and process the supplied config and register the optionally supplied initial population
         self._process_config(config)
         self.initial_population_file_path = initial_population_file_path
@@ -211,6 +210,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                                                epochs=self.eval_epochs,
                                                batch_size=self.eval_batch_size)
             self.envs.append(initialized_env)
+
         # Determine required input and output dimensions and shape
         self.input_shape = self.envs[0].get_input_shape()
         self.input_dim = len(self.input_shape)
@@ -219,7 +219,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def initialize_population(self):
         """"""
-
         if self.initial_population_file_path is None:
             print("Initializing a new population of {} blueprints and {} modules..."
                   .format(self.bp_pop_size, self.mod_pop_size))
@@ -393,7 +392,7 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
                     mod_spec_to_id = dict()
                     for spec, mod in bp_assigned_modules.items():
                         mod_spec_to_id[spec] = mod.get_id()
-                    logging.warning(f"CoDeepNEAT tried combining the Blueprint ID {bp_id} with the module assignmend "
+                    logging.warning(f"CoDeepNEAT tried combining the Blueprint ID {bp_id} with the module assignment "
                                     f"{mod_spec_to_id}, resulting in an invalid neural network model. Setting genome "
                                     f"fitness to 0.")
 
@@ -449,7 +448,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def summarize_population(self):
         """"""
-
         # Calculate average fitnesses of each module species and total module pop. Determine best module of each species
         mod_species_avg_fitness = dict()
         mod_species_best_id = dict()
@@ -513,7 +511,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def evolve_population(self) -> bool:
         """"""
-
         #### Speciate Modules ####
         if self.mod_spec_type == 'basic':
             new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_basic()
@@ -684,7 +681,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _speciate_modules_basic(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
-
         #### Module Clustering ####
         # As module population is by default speciated by module type is further clustering not necessary
         pass
@@ -760,7 +756,6 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
     def _speciate_blueprints_basic(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
-
         #### Blueprint Clustering ####
         # Blueprint clustering unnecessary with basic scheme as all blueprints are assigned to species 1
         pass
