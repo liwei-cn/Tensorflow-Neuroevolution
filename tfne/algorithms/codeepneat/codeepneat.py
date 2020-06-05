@@ -181,6 +181,21 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             self.available_opt_params[available_opt] = opt_section_params
 
         # Perform some basic sanity checks of the configuration
+        if self.mod_spec_type == 'basic':
+            assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
+            assert self.mod_spec_max_size * len(self.available_modules) >= self.mod_pop_size
+        elif self.mod_spec_type == 'param-distance-fixed':
+            assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
+        elif self.mod_spec_type == 'param-distance-dynamic':
+            assert self.mod_spec_min_size * len(self.available_modules) <= self.mod_pop_size
+            assert self.mod_spec_min_size \
+                   <= int(self.mod_pop_size / self.mod_spec_species_count) \
+                   <= self.mod_spec_max_size
+        if self.bp_spec_type == 'gene-overlap-fixed':
+            assert self.bp_spec_min_size <= self.bp_pop_size
+        elif self.bp_spec_type == 'gene-overlap-dynamic':
+            assert self.bp_spec_min_size <= self.bp_pop_size
+            assert self.bp_spec_min_size <= int(self.bp_pop_size / self.bp_spec_species_count) <= self.bp_spec_max_size
         assert round(self.mod_mutation_prob + self.mod_crossover_prob, 4) == 1.0
         assert round(self.bp_mutation_add_conn_prob + self.bp_mutation_add_node_prob + self.bp_mutation_rem_conn_prob
                      + self.bp_mutation_rem_node_prob + self.bp_mutation_node_spec_prob + self.bp_crossover_prob
