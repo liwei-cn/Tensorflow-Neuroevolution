@@ -514,16 +514,20 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
         #### Speciate Modules ####
         if self.mod_spec_type == 'basic':
             new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_basic()
-        elif self.mod_spec_type == 'param_distance':
-            new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_param_distance()
+        elif self.mod_spec_type == 'param-distance-fixed':
+            new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_param_distance_fixed()
+        elif self.mod_spec_type == 'param-distance-dynamic':
+            new_modules, new_mod_species, new_mod_species_size = self._speciate_modules_param_distance_dynamic()
         else:
             raise RuntimeError(f"Module speciation type '{self.mod_spec_type}' not yet implemented")
 
         #### Speciate Blueprints ####
         if self.bp_spec_type == 'basic':
             new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_basic()
-        elif self.bp_spec_type == 'gene_overlap':
-            new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_gene_overlap()
+        elif self.bp_spec_type == 'gene-overlap-fixed':
+            new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_gene_overlap_fixed()
+        elif self.bp_spec_type == 'gene-overlap-dynamic':
+            new_blueprints, new_bp_species, new_bp_species_size = self._speciate_blueprints_gene_overlap_dynamic()
         else:
             raise RuntimeError(f"Blueprint speciation type '{self.bp_spec_type}' not yet implemented")
 
@@ -734,8 +738,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             spec_mod_ids_to_carry_over = spec_mod_ids_sorted[:self.mod_spec_elitism]
             removal_index_threshold = int(len(spec_mod_ids) * (1 - self.mod_spec_reprod_thres))
             # Correct removal index threshold if reproduction threshold so high that elitism modules will be removed
-            if removal_index_threshold + len(spec_mod_ids_to_carry_over) < len(spec_mod_ids):
-                removal_index_threshold = len(spec_mod_ids_to_carry_over)
+            if removal_index_threshold + self.mod_spec_elitism < len(spec_mod_ids):
+                removal_index_threshold = self.mod_spec_elitism
             spec_mod_ids_to_remove = spec_mod_ids_sorted[removal_index_threshold:]
 
             # Carry over fittest module ids of species to new container and species assignment
@@ -750,7 +754,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         return new_modules, new_mod_species, new_mod_species_size
 
-    def _speciate_modules_param_distance(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
+    def _speciate_modules_param_distance_fixed(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
+        """"""
+        raise NotImplementedError()
+
+    def _speciate_modules_param_distance_dynamic(self) -> ({int: CoDeepNEATModuleBase}, {int: [int, ...]}, {int: int}):
         """"""
         raise NotImplementedError()
 
@@ -777,8 +785,8 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
             spec_bp_ids_to_carry_over = spec_bp_ids_sorted[:self.bp_spec_elitism]
             removal_index_threshold = int(len(spec_bp_ids) * (1 - self.bp_spec_reprod_thres))
             # Correct removal index threshold if reproduction threshold so high that elitism blueprints will be removed
-            if removal_index_threshold + len(spec_bp_ids_to_carry_over) < len(spec_bp_ids):
-                removal_index_threshold = len(spec_bp_ids_to_carry_over)
+            if removal_index_threshold + self.bp_spec_elitism < len(spec_bp_ids):
+                removal_index_threshold = self.bp_spec_elitism
             spec_bp_ids_to_remove = spec_bp_ids_sorted[removal_index_threshold:]
 
             # Carry over fittest blueprint ids of species to new container and species assignment
@@ -793,7 +801,11 @@ class CoDeepNEAT(BaseNeuroevolutionAlgorithm):
 
         return new_blueprints, new_bp_species, new_bp_species_size
 
-    def _speciate_blueprints_gene_overlap(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
+    def _speciate_blueprints_gene_overlap_fixed(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
+        """"""
+        raise NotImplementedError()
+
+    def _speciate_blueprints_gene_overlap_dynamic(self) -> ({int: CoDeepNEATBlueprint}, {int: [int, ...]}, {int: int}):
         """"""
         raise NotImplementedError()
 
